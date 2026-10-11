@@ -11,11 +11,19 @@ const walk = (d) => readdirSync(d).flatMap((f) => {
 const pages = walk(dist);
 const errors = [];
 
-const EXPECTED = ['index.html', 'how/index.html', 'examples/index.html', 'install/index.html', 'about/index.html', 'es/index.html', '404.html'];
+const EXPECTED = ['index.html', 'how/index.html', 'examples/index.html', 'install/index.html', 'about/index.html', 'es/index.html', 'es/como/index.html', 'es/ejemplos/index.html', 'es/instalar/index.html', 'es/acerca/index.html', '404.html'];
+
+// Both languages from day one: every page says which language it is in, and each has its pair.
+for (const p of pages) {
+  const html = readFileSync(p, 'utf8');
+  const es = p.includes(join(dist, 'es'));
+  if (!html.includes(es ? '<html lang="es">' : '<html lang="en">')) errors.push(`${p}: wrong or missing lang attribute`);
+  if (!p.endsWith('404.html') && !html.includes('hreflang=')) errors.push(`${p}: no link to its other-language page`);
+}
 for (const e of EXPECTED) if (!pages.includes(join(dist, e))) errors.push(`missing page: ${e}`);
 
 // Words from the private setup this was extracted from, and unfinished copy.
-const BANNED = [/\{\{/, /\bTODO\b/, /\[PLACEHOLDER\]/i, /lorem ipsum/i, /\bcierra\b/i, /\bcharla\b/i, /\bPM lane\b/i, /Letra Chica/i, /\bUL(s)?\b/];
+const BANNED = [/\{\{/, /\bTODO\b/, /\[PLACEHOLDER\]/i, /lorem ipsum/i, /\bcharla\b/i, /\bPM lane\b/i, /Letra Chica/i, /\bUL(s)?\b/];
 for (const p of pages) {
   const html = readFileSync(p, 'utf8');
   for (const b of BANNED) if (b.test(html)) errors.push(`${p}: contains ${b}`);

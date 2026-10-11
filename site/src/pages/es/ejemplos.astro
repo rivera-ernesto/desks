@@ -1,0 +1,39 @@
+---
+import Base from '../../layouts/Base.astro';
+import { REPO } from '../../data/site';
+---
+<Base lang="es" title="Ejemplos de Desks" description="Cómo queda la carpeta de un tema después de una sesión real, y pedidos que funcionan bien.">
+  <h1>Ejemplos</h1>
+  <p class="lede">Toda persona, lugar y precio aquí es inventado. Muestran la forma del trabajo, no los asuntos de nadie.</p>
+
+  <h2>Vender una cámara: una sesión, una revisión que cambió la respuesta</h2>
+  <p>Después de la sesión, la carpeta del tema contiene esto:</p>
+  <div class="tablewrap"><table>
+    <tbody>
+      <tr><td class="label">README.md</td><td>El objetivo, dónde están las cosas, el siguiente paso, lo abierto y tres reglas aprendidas ("el precio de referencia lo dan los anuncios vendidos, no los publicados")</td></tr>
+      <tr><td class="label">decisions.md</td><td>Pedir 95, piso 80. Decir el conteo de disparos. Solo entrega en persona. Cada una con su razón y lo que se descartó</td></tr>
+      <tr><td class="label">sessions/</td><td>Una nota breve: hecho, decidido, probado y descartado, tropiezos y cómo terminó cada uno</td></tr>
+      <tr><td class="label">reviews/</td><td>El archivo que se envió, la respuesta de cada empresa y una tabla de qué se hizo con cada objeción</td></tr>
+      <tr><td class="label">listing.md</td><td>El borrador, sin publicar. Publicar espera la palabra del dueño</td></tr>
+    </tbody>
+  </table></div>
+  <p><a href={`${REPO}/tree/main/examples/sell-camera`}>Lee la carpeta completa en GitHub</a> (en inglés).</p>
+
+  <h2>Pedidos que funcionan bien</h2>
+  <div class="grid">
+    <div class="card"><h3>Una decisión con dinero</h3><p>"desk cotizacion-cocina. Van tres cotizaciones. ¿Cuál, y qué le pregunto a cada uno antes de decidir?"</p></div>
+    <div class="card"><h3>Un texto que otros van a leer</h3><p>"desk carta-casero. Redacta la carta por la gotera. Firme, no hostil. No envíes nada."</p></div>
+    <div class="card"><h3>Investigar donde equivocarse cuesta</h3><p>"desk opciones-visa. ¿Cuál de estas tres rutas encaja con mi caso? Solo fuentes oficiales, y dime qué no pudiste verificar."</p></div>
+    <div class="card"><h3>Un proyecto pequeño de varias semanas</h3><p>"desk venta-garaje. Planifícalo en fases. Empieza por lo barato y lo que ya está esperando."</p></div>
+    <div class="card"><h3>Mirar sin tocar</h3><p>"desk tienda-cifras. Abre el panel de mi tienda y dime qué cinco publicaciones tuvieron vistas pero ningún mensaje." Solo lectura por defecto.</p></div>
+    <div class="card"><h3>Retomar después</h3><p>"desk venta-garaje" en una sesión nueva, una semana más tarde. Lee las notas y propone el siguiente paso.</p></div>
+  </div>
+
+  <h2>Hábitos que rinden</h2>
+  <ul>
+    <li>Tráelo como venga. Cuando aparece un segundo asunto, el Desk lo anota en su propio tema y sigue.</li>
+    <li>Di cómo se ve "terminado" en el primer mensaje.</li>
+    <li>Abre de vez en cuando una de las respuestas de revisión. Si las objeciones nunca valen la pena para tu tipo de trabajo, dilo en un reporte.</li>
+    <li>Déjalo cerrar. Una sesión nueva sobre buenas notas es más barata y más aguda que una larga.</li>
+  </ul>
+</Base>

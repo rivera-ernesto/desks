@@ -1,10 +1,15 @@
 ---
 import '../styles/global.css';
-import { NAV, REPO } from '../data/site';
+import { NAV, NAV_ES, PAIRS, REPO } from '../data/site';
 interface Props { title: string; description: string; lang?: string; }
 const { title, description, lang = 'en' } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 const here = Astro.url.pathname;
+const rel = here.startsWith(base) ? here.slice(base.length) : '';
+const es = lang === 'es';
+const nav = es ? NAV_ES : NAV;
+const back = Object.entries(PAIRS).find(([, v]) => v === rel)?.[0];
+const other = es ? (back ?? '') : (PAIRS[rel] ?? 'es/');
 ---
 <!doctype html>
 <html lang={lang}>
@@ -14,25 +19,26 @@ const here = Astro.url.pathname;
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="icon" href={`${base}favicon.svg`} type="image/svg+xml" />
+    <link rel="alternate" hreflang={es ? 'en' : 'es'} href={`${base}${other}`} />
   </head>
   <body>
     <header class="site">
       <div class="wrap">
-        <a class="brand" href={base}>Desks</a>
-        <nav class="main" aria-label="Main">
-          {NAV.map((n) => (
+        <a class="brand" href={es ? `${base}es/` : base}>Desks</a>
+        <nav class="main" aria-label={es ? 'Principal' : 'Main'}>
+          {nav.map((n) => (
             <a href={`${base}${n.href}`} aria-current={here === `${base}${n.href}` ? 'page' : undefined}>{n.label}</a>
           ))}
-          <a href={`${base}es/`} lang="es">Español</a>
+          <a href={`${base}${other}`} lang={es ? 'en' : 'es'}>{es ? 'English' : 'Español'}</a>
         </nav>
       </div>
     </header>
     <main><div class="wrap"><slot /></div></main>
     <footer class="site">
       <div class="wrap">
-        <span>MIT licensed. Not made by, or affiliated with, Anthropic.</span>
-        <a href={REPO}>Source</a>
-        <a href={`${base}about/#work-with-me`}>Work with me</a>
+        <span>{es ? 'Licencia MIT. No es de Anthropic ni está afiliado a Anthropic.' : 'MIT licensed. Not made by, or affiliated with, Anthropic.'}</span>
+        <a href={REPO}>{es ? 'Código' : 'Source'}</a>
+        <a href={es ? `${base}es/acerca/#trabaja-conmigo` : `${base}about/#work-with-me`}>{es ? 'Trabaja conmigo' : 'Work with me'}</a>
       </div>
     </footer>
     <script is:inline>

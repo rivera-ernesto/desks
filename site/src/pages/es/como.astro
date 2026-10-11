@@ -1,0 +1,62 @@
+---
+import Base from '../../layouts/Base.astro';
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+---
+<Base lang="es" title="Cómo funciona Desks" description="La revisión, las cinco cosas que esperan tu palabra, los ayudantes, el cierre y qué sale de tu equipo.">
+  <h1>Cómo funciona</h1>
+  <p class="lede">Desks no es una app. Es un conjunto de instrucciones que Claude Code carga cuando abres un tema, más dos scripts pequeños. Todo lo que hace lo puedes leer.</p>
+
+  <h2>1. Abres un tema</h2>
+  <p>Escribe <code>desk viaje-lisboa</code>. Claude crea o reabre la carpeta de ese tema, lee sus notas y propone el siguiente paso. Si la carpeta guarda historial con git, el tema recibe su propia rama y su propia copia de trabajo: la carpeta principal nunca queda a medio editar y varios temas pueden avanzar a la vez. No ves nada de eso si no quieres.</p>
+
+  <h2>2. Las respuestas de fondo se revisan</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Tipo de respuesta</th><th>Revisión</th></tr></thead>
+    <tbody>
+      <tr><td>Conversación, una aclaración, una nota breve</td><td>Ninguna</td></tr>
+      <tr><td>Una recomendación, un borrador que vas a usar, un dato sobre el que vas a actuar</td><td>Al menos una pasada</td></tr>
+      <tr><td>Estrategia, dinero, texto público, cualquier cosa difícil de deshacer</td><td>Varias empresas</td></tr>
+    </tbody>
+  </table></div>
+  <p>Claude escribe la pregunta y su respuesta propuesta en un archivo, sin nombres ni contactos, y un script lo envía a modelos gratuitos de varias otras empresas. Son más débiles que Claude. No están para tener razón. Fueron entrenados distinto, así que objetan cosas distintas, y Claude tiene que atender cada objeción por escrito antes de responderte.</p>
+  <p>Toda respuesta revisada termina con una etiqueta:</p>
+  <div class="tablewrap"><table>
+    <tbody>
+      <tr><td class="label">[converged]</td><td>Varias empresas respondieron y cada objeción fue adoptada o rechazada con su razón</td></tr>
+      <tr><td class="label">[thin]</td><td>Solo una empresa respondió</td></tr>
+      <tr><td class="label">[same-vendor]</td><td>Aún no hay clave de revisión. Un segundo Claude atacó la respuesta. Detecta descuidos, no puntos ciegos</td></tr>
+      <tr><td class="label">[unreviewed]</td><td>No hubo revisión</td></tr>
+      <tr><td class="label">[quick]</td><td>Pediste saltarla</td></tr>
+    </tbody>
+  </table></div>
+  <p>La etiqueta trae un número de recibo que el script escribe junto a las respuestas originales, así que una etiqueta no se puede simplemente afirmar.</p>
+
+  <h2>3. Cinco cosas esperan tu palabra</h2>
+  <p>Claude no te pasa preguntas que puede resolver. Trabaja la pregunta, la hace revisar y trae una propuesta. Lo que no respondes avanza con esa propuesta. Cinco tipos de cosa siempre esperan tu palabra, el tiempo que haga falta:</p>
+  <ul>
+    <li><strong>Dinero</strong>: gastar, precios, cualquier cosa paga.</li>
+    <li><strong>Público</strong>: todo lo que otras personas van a ver.</li>
+    <li><strong>Afuera</strong>: enviar un mensaje, publicar, contactar a alguien, crear una cuenta.</li>
+    <li><strong>Accesos</strong>: contraseñas, claves, ajustes, permisos.</li>
+    <li><strong>Permanente</strong>: borrar, sobrescribir, lo que no se puede deshacer.</li>
+  </ul>
+  <p>En tus cuentas abiertas Claude solo lee, salvo que le pidas un tipo concreto de acción en esa sesión.</p>
+
+  <h2>4. Los ayudantes leen</h2>
+  <p>El mejor modelo se queda contigo en la conversación. Leer, buscar, sacar números de una pantalla y correr comandos largos va a tres ayudantes con nombre que usan un modelo más pequeño. Lo que leen no entra a tu conversación, que es donde de otro modo se gasta la mayor parte del plan.</p>
+
+  <h2>5. La sesión se cierra bien</h2>
+  <p>Las sesiones largas cuestan más por respuesta, porque cada turno relee todo lo anterior. Por eso, en un hito, Claude propone cerrar. Reescribe las notas del tema (dónde están las cosas, el siguiente paso, lo abierto, lo aprendido), escribe una nota breve de la sesión e integra el trabajo a la carpeta principal o abre un pull request para que lo mires. Una sesión nueva sobre el mismo tema arranca desde esas notas.</p>
+
+  <h2>Qué sale de tu equipo</h2>
+  <ul>
+    <li>Solo el archivo de revisión, un único documento sin datos que identifiquen, va a OpenRouter y de ahí a las empresas de los modelos.</li>
+    <li>El script se niega a enviar un archivo que contenga un correo, un número con forma de teléfono, algo que parezca una clave o cualquier palabra de tu lista privada.</li>
+    <li>Los modelos gratuitos pueden guardar o entrenar con lo que reciben. Trata un archivo de revisión como algo que estarías dispuesto a publicar de forma anónima.</li>
+    <li>Lo que no se puede volver anónimo lo revisa un segundo Claude, o un carril privado si lo configuras.</li>
+  </ul>
+
+  <h2>La configuración ocurre sobre la marcha</h2>
+  <p>No hay pantalla de configuración. La primera vez que algo importa (guardar historial, una clave de revisión, una copia privada en GitHub, un perfil breve tuyo), Claude hace esa única pregunta con una respuesta recomendada y recuerda lo que dijiste.</p>
+  <p><a href={`${base}es/instalar/`}>Instalar</a> · <a href={`${base}es/ejemplos/`}>Ejemplos</a></p>
+</Base>

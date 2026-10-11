@@ -1,0 +1,38 @@
+---
+import Base from '../../layouts/Base.astro';
+import { REPO, CONTACT } from '../../data/site';
+---
+<Base lang="es" title="Acerca de Desks" description="De dónde viene Desks, qué está probado y qué no, proyectos vecinos y cómo conseguir ayuda para montar el tuyo.">
+  <h1>Acerca</h1>
+  <p class="lede">Desks salió de la forma de trabajar diaria de una persona. Esta página dice qué está probado, qué no, y qué más existe.</p>
+
+  <h2>Qué está probado y qué no</h2>
+  <ul>
+    <li><strong>Usado a diario por su autor</strong> durante un mes de trabajo que no es código, en unas veinte sesiones, antes de extraerlo.</li>
+    <li><strong>Las cifras de la documentación</strong> (la parte del uso que se llevan las sesiones largas y las capturas de pantalla) son mediciones de las sesiones de esa única persona. Son evidencia, no un estudio comparativo.</li>
+    <li><strong>Todavía no probado por otras personas.</strong> Esta versión es temprana. Si no ayuda con tu tipo de trabajo, ese es un resultado que vale la pena reportar.</li>
+  </ul>
+
+  <h2>Por qué existe</h2>
+  <p>Buenos resultados con un plan modesto. Un Desk gasta el modelo caro en la conversación y el criterio, manda la lectura a modelos más pequeños y hace revisar las respuestas por modelos que no cuestan nada. Te llegan menos respuestas equivocadas y se quema menos cómputo para conseguirlas. La revisión de otras empresas reduce los errores dichos con seguridad. No los elimina.</p>
+  <p>Dos tipos de desorden son bienvenidos aquí. El de cómo piensa la gente: escríbele a un Desk como llegan de verdad las ideas. Y el que mueve al código abierto: nadie manda sobre lo que haces con esto. Cópialo, tuércelo, llévalo a otra parte.</p>
+  <p>Esta es la versión para Claude Code. La idea no está atada a él: si usas otro asistente, puedes usar Desks para construir tu propia versión.</p>
+
+  <h2>Proyectos vecinos</h2>
+  <p>Desks reutiliza lo que Claude Code ya trae (habilidades, subagentes, plugins, copias de trabajo) y no lo reconstruye. Otros resolvieron problemas cercanos, y para algunas necesidades son la mejor opción:</p>
+  <ul>
+    <li><a href="https://github.com/BeehiveInnovations/pal-mcp-server">PAL MCP Server</a>: un conjunto completo de herramientas multi-modelo para programar, con consenso entre modelos pagos.</li>
+    <li><a href="https://github.com/automazeio/ccpm">CCPM</a>: gestión de proyectos de software sobre Issues de GitHub y copias de trabajo.</li>
+    <li><a href="https://github.com/obra/superpowers">Superpowers</a>: un método de desarrollo de software como conjunto de habilidades.</li>
+    <li><a href="https://github.com/ballred/obsidian-claude-pkm">obsidian-claude-pkm</a>: planificación personal en una bóveda de Obsidian.</li>
+  </ul>
+  <p>Lo que Desks añade es la combinación: revisión gratuita entre empresas con recibo, una lista corta y fija de cosas que esperan a una persona, y foco en trabajo que no es código.</p>
+
+  <h2>Contribuir</h2>
+  <p>La contribución más útil es un reporte de cómo fue una sesión real, sobre todo donde falló. Son bienvenidas nuevas superficies (cómo manejar bien una herramienta) y nuevos carriles de revisión. <a href={`${REPO}/blob/main/CONTRIBUTING.md`}>Cómo contribuir</a> (en inglés). La licencia es MIT: haz tu copia y vuélvela tuya.</p>
+
+  <h2 id="trabaja-conmigo">Trabaja conmigo</h2>
+  <p>Desks es gratis y lo puedes montar por tu cuenta. Si prefieres que se construya alrededor de cómo ya trabajas tú o tu equipo (tus herramientas, tus cuentas, tus propias reglas y carriles de revisión), lo hago como trabajo privado. <a href={CONTACT}>Escríbeme.</a></p>
+
+  <p class="note">Desks es un proyecto independiente. No es de Anthropic, ni está avalado por Anthropic ni afiliado a Anthropic. Claude y Claude Code son nombres de Anthropic.</p>
+</Base>

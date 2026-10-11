@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.4 (2026-10-11)
+
+- The site is in English and Spanish, every page.
+- A profile can start from something the user already wrote.
+
+No migration needed.
+
 ## 0.1.3 (2026-10-11)
 
 Found by running a full Desk on the installed skill, and by reviewing 0.1.2's own new rule.

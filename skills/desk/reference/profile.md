@@ -30,6 +30,17 @@ Ask, one at a time, and accept "skip":
 
 Write short sections: *Aims · Mine to keep · People · Voice · Never without asking · My tests*.
 
+## Starting from something that exists
+
+Most people have already written this somewhere: an about page, a values list, a manifesto for a
+project, instructions they gave another assistant. If they point at one (a file or a link), read
+it, fill the sections it covers, show them the result, and ask only for what is missing. Keep
+their words; do not improve them.
+
+A project or a community can have such a statement too (what it is for, what it will not do, the
+questions it asks before acting). That belongs to the project, not to the person: put it at the
+top of that topic's README, and leave the personal profile about the person.
+
 ## Using it
 
 Read it when the topic touches them, their people or their voice. Not at every opening.
