@@ -6,6 +6,7 @@
     python3 desk.py close <topic> --merge | --pr [--title "Five Words At Most"]
     python3 desk.py note  <open-topic> <other-topic> "what came up, in a sentence or two"
     python3 desk.py set   "Close" "merge"      (records a setup answer in CLAUDE.md)
+    python3 desk.py add   "Setup" "use my researcher agent for reading"   (adds a line, keeps earlier ones)
     python3 desk.py tidy
 
 Three levels, detected, never required:
@@ -145,6 +146,14 @@ def cmd_status():
     if os.path.isdir(dr):
         topics = sorted(d for d in os.listdir(dr) if os.path.isfile(os.path.join(dr, d, "README.md")))
         print("topics:   " + (", ".join(topics) or "none"))
+        waiting = []
+        for d in sorted(os.listdir(dr)):
+            box = os.path.join(dr, d, "inbox")
+            n = len(os.listdir(box)) if os.path.isdir(box) else 0
+            if n:
+                waiting.append(f"{d} ({n})")
+        if waiting:
+            print("notes waiting: " + ", ".join(waiting) + "  <- tell the user; they were left by other desks")
     print("python3:  ok")
     return 0
 
@@ -182,6 +191,8 @@ def cmd_open(topic):
     left = sorted(os.listdir(inbox)) if os.path.isdir(inbox) else []
     if left:
         print(f"inbox:  {len(left)} note(s) left by other desks in {inbox}: fold each into the README, then delete it")
+    if not new and "## Next step" not in open(os.path.join(folder, "README.md"), encoding="utf-8").read():
+        print("readme: this README was here before Desks. Add the sections State, Next step, Open and What we learned to it; keep everything it already says")
     if lv != "folder":
         print(f"branch: desk/{topic}  ·  working copy: {work}")
         print(f"note:   files in {root} that were never committed are not in the working copy; read them from there by full path")
@@ -199,6 +210,8 @@ def cmd_close(topic, how, title):
     if not work:
         die(f"no open desk named {topic}")
     folder = os.path.join(work, droot, topic)
+    if not os.path.isfile(os.path.join(folder, "README.md")):
+        die(f"there is no topic '{topic}' under {os.path.join(work, droot)}. Run this from the folder the session was opened on.")
     notes = sorted(f for f in os.listdir(os.path.join(folder, "sessions")) if f.endswith(".md")) if os.path.isdir(os.path.join(folder, "sessions")) else []
     if not notes:
         die("no session note yet: write sessions/<date>-<title>.md from the template first")
@@ -274,7 +287,7 @@ def cmd_note(current, other, text):
     return 0
 
 
-def cmd_set(key, value):
+def cmd_set(key, value, append=False):
     """Record a setup answer as `- Key: value` in the Desk block of the main folder's CLAUDE.md.
 
     The block lives in the main folder, not in a topic's working copy, because
@@ -292,8 +305,11 @@ def cmd_set(key, value):
         die("CLAUDE.md has no Desk block; run the install first")
     key, value = key.strip().rstrip(":"), value.strip()
     body, line = m.group(2), f"- {key}: {value}"
-    pat = re.compile(rf"^\s*-\s*{re.escape(key)}:.*$", flags=re.M | re.I)
-    body = pat.sub(line, body, count=1) if pat.search(body) else body.rstrip("\n") + "\n" + line + "\n"
+    pat = re.compile(rf"^[ \t]*-[ \t]*{re.escape(key)}:.*$", flags=re.M | re.I)
+    if pat.search(body) and not append:
+        body = pat.sub(line, body, count=1)
+    elif line not in body:
+        body = body.rstrip("\n") + "\n" + line + "\n"
     open(path, "w", encoding="utf-8").write(text[:m.start(2)] + body + text[m.end(2):])
     print(f"recorded in {path}: {line}")
     if is_git and run(["git", "ls-files", "--error-unmatch", "CLAUDE.md"], cwd=root)[0] == 0:
@@ -328,8 +344,8 @@ def main(a):
     if len(a) >= 4 and a[1] == "close" and a[3] in ("--merge", "--pr"):
         title = a[a.index("--title") + 1] if "--title" in a and a.index("--title") + 1 < len(a) else ""
         return cmd_close(a[2], a[3], title)
-    if len(a) >= 4 and a[1] == "set":
-        return cmd_set(a[2], " ".join(a[3:]))
+    if len(a) >= 4 and a[1] in ("set", "add"):
+        return cmd_set(a[2], " ".join(a[3:]), append=(a[1] == "add"))
     if len(a) >= 5 and a[1] == "note":
         return cmd_note(a[2], a[3], " ".join(a[4:]))
     if len(a) >= 2 and a[1] == "tidy":

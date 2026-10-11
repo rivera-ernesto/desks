@@ -32,10 +32,18 @@ Look first, then propose a short list, then change only what they agree to.
 - **Memory.** If they use Claude's own memory, keep using it for preferences about how to work.
   What belongs to a topic goes in that topic's README, where the next session reads it.
 
+- **Rules that restrict what Desk needs.** If their rules say to ask before running scripts or
+  commands, theirs win: ask once for a standing yes for Desk's own two scripts (`desk.py`,
+  `review.py`), and record it. Without that yes, ask each time.
+- **A README that was already there** stays theirs. Add the Desk sections to it (State, Next
+  step, Open, What we learned) and keep everything it says. `desk.py open` tells you when a
+  topic's README lacks them.
+
 ## Record
 
-Write what was agreed as a short "Setup" section in the `CLAUDE.md` block, so the next session
-does not ask again.
+Record each thing agreed with `desk.py add "Setup" "<one line>"`, and single answers with
+`desk.py set` (`Desk root`, `Close`), so the next session does not ask again. Ask the `Close:`
+question here too (`reference/setup.md`).
 
 ## Importing how the user already works
 

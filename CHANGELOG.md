@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.5 (2026-10-11)
+
+Found by a second full test Desk, in a folder that already had rules, an agent and client folders.
+
+- **Fixed:** recording several `Setup` lines kept only the last (`desk.py add`), and recording a
+  setting removed a blank line from the block.
+- `desk.py open` says when a README that was already there lacks the Desk sections;
+  `desk.py status` shows notes waiting in inboxes; `close` says when it is run from the wrong folder.
+- `desk adopt` handles a house rule that restricts running scripts, and uses the user's own agents
+  where the block names them.
+- `review.py --help` prints the usage.
+
+No migration needed.
+
 ## 0.1.4 (2026-10-11)
 
 - The site is in English and Spanish, every page.

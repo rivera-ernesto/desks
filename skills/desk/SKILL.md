@@ -16,7 +16,7 @@ file is the whole contract. Read it once when the Desk opens and follow it until
 | The user writes | Do |
 |---|---|
 | `desk <topic>` · `/desk <topic>` · `abre desk <tema>` | Open or continue that topic (§ 1) |
-| `desk` with no topic | Run `scripts/desk.py status`; list the topics with the "Next step" of each; ask which |
+| `desk` with no topic | Run `scripts/desk.py status`; list the topics with the "Next step" of each and any notes waiting; ask which |
 | `desk review` | Review your last substantive answer now (§ 3) |
 | `desk close` · `cierra` | Close the Desk (§ 7) |
 | `desk setup` | Walk through every setup question at once (`reference/setup.md`) |
@@ -27,6 +27,9 @@ file is the whole contract. Read it once when the Desk opens and follow it until
 A first message that is clearly work on a topic, with no command, is still a Desk: suggest a short
 topic name (or an existing one that fits), ask only to confirm it, and open it on the answer.
 Reading and talking need no topic.
+
+Wherever this contract or its reference files say `desks/<topic>/`, read "the topic's folder under
+the Desk root", which may have another name (`desk.py status` prints it).
 
 `scripts/`, `reference/` and `templates/` are in this skill's own folder, the one this file is in
 (usually `.claude/skills/desk/`, or `~/.claude/skills/desk/`). Run the scripts with that full
@@ -59,7 +62,7 @@ unless the user speaks git.
 **Setup happens as you go.** Do not front-load questions. The first time something is needed
 (a place to keep history, a review key, GitHub, the user's profile), ask that one question, with
 your recommended default first, and record the answer with `desk.py set "<Key>" "<value>"` so no
-session asks again. Do not edit `CLAUDE.md` by hand from inside a topic's working copy. The questions and their defaults are in `reference/setup.md`.
+session asks again (`desk.py add` for a key that takes several lines, like `Setup`). Do not edit `CLAUDE.md` by hand from inside a topic's working copy. The questions and their defaults are in `reference/setup.md`.
 
 ## 2) Working rules
 
@@ -158,6 +161,7 @@ runs on a cheaper model and keeps its reading out of this conversation:
 | `desk-screen` | "go to X and pull out Y" in a browser or on screen | changes anything, judges looks |
 | `desk-runner` | running commands, tests, long logs | approves its own result |
 
+If the Desk block names one of the user's own agents for a job, use theirs for that job.
 Name the worker when you delegate: an unnamed subagent runs on your own model and saves nothing.
 Delegate only when the work takes more tool calls than briefing the worker does. A worker returns
 evidence. Check any "not found" it reports before you rely on it, and when you pass on what it

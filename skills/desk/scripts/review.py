@@ -282,8 +282,8 @@ def main(argv):
     if len(argv) >= 2 and not argv[1].startswith("-") and not os.path.isfile(argv[1]):
         print(f"packet not found: {os.path.abspath(argv[1])}\n(run from the folder the session was opened on, or give the full path)", file=sys.stderr)
         return 2
-    if len(argv) < 2:
-        print(__doc__.split("\n\n")[1], file=sys.stderr)
+    if len(argv) < 2 or argv[1].startswith("-"):
+        print(__doc__.split("Setup lives")[0].strip(), file=sys.stderr)
         return 2
     packet = argv[1]
     focus = argv[2] if len(argv) > 2 else "Adversarial review: what would the author miss or agree with too easily?"
