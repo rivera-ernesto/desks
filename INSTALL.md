@@ -1,4 +1,4 @@
-# Installing Desk
+# Installing Desks
 
 This file is written for Claude Code to follow, and for a person to read first. It only copies
 files and adds one marked block to `CLAUDE.md`. It installs no software, runs nothing from the
@@ -27,7 +27,7 @@ Use whichever applies:
 
 - The user gave you a local path to an unzipped copy: use it as `SRC`.
 - Otherwise clone to a temporary folder:
-  `git clone --depth 1 --branch v0.1.0 https://github.com/rivera-ernesto/desk <temp>/desk` and use
+  `git clone --depth 1 --branch v0.1.0 https://github.com/rivera-ernesto/desks <temp>/desks` and use
   that as `SRC`. A version tag does not move; do not install from the moving `main` branch unless
   the user asks for the development version.
   If `git` is missing or the clone is refused, ask the user to download the zip from the
@@ -95,8 +95,8 @@ anything during install; tell the user what is new and let them decide.
 In a terminal session of Claude Code:
 
 ```text
-/plugin marketplace add rivera-ernesto/desk
-/plugin install desk@desk
+/plugin marketplace add rivera-ernesto/desks
+/plugin install desk@desks
 ```
 
 The skill then appears as `/desk:desk` and the workers as `desk:desk-reader` and so on, in every

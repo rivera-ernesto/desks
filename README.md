@@ -1,4 +1,4 @@
-# Desk
+# Desks
 
 **A way of working for Claude Code: one topic per session, answers checked by other AI vendors, a written close.**
 
@@ -7,7 +7,7 @@ recommendations attacked by models from other companies before you read them, se
 reading to cheaper workers, and when the session gets long, writes down where things stand so the
 next session picks up without you explaining anything.
 
-It is for real work that is mostly not code: selling something, planning, drafting, researching a
+Desks is the project; a Desk is one session. It is for real work that is mostly not code: selling something, planning, drafting, researching a
 decision, running a small project. It needs a paid Claude plan and Claude Code (the desktop app's
 Code tab, or the terminal). It is not made by, or affiliated with, Anthropic.
 
@@ -20,7 +20,7 @@ Code tab, or the terminal). It is not made by, or affiliated with, Anthropic.
 Open the folder you want to work in with Claude Code and paste:
 
 ```text
-Set up Desk in this folder. Get version v0.1.0 of https://github.com/rivera-ernesto/desk, read its INSTALL.md and follow it. First show me the list of files you will create or change, and wait for my yes. Keep everything I already have.
+Set up Desks in this folder. Get version v0.1.0 of https://github.com/rivera-ernesto/desks, read its INSTALL.md and follow it. First show me the list of files you will create or change, and wait for my yes. Keep everything I already have.
 ```
 
 Read [INSTALL.md](INSTALL.md) first if you like to know what a prompt will do; it is short.
@@ -97,6 +97,20 @@ vault). What Desk adds is the combination: free review across vendors with a rec
 list of things that wait for a person, and a focus on work that is not code.
 
 Want something different? It is MIT: fork it and make it yours.
+
+## Why
+
+Good results from a modest plan. A Desk spends the expensive model on the conversation and the
+judgment, sends the reading to smaller models, and has answers checked by models that cost
+nothing, so that fewer wrong answers reach you and less compute is burned getting there. Review
+by other vendors reduces confident mistakes. It does not eliminate them, and nothing here claims
+it does.
+
+## Ports
+
+This repository is the version for Claude Code. The idea is not tied to it: the contract, the
+review script and the templates are plain text and plain Python. If you use another assistant,
+you can use Desks to build your own version for it. See [CONTRIBUTING.md](CONTRIBUTING.md) § Ports.
 
 ## License
 

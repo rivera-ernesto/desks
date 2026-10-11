@@ -1,5 +1,5 @@
 {
-  "name": "desk",
+  "name": "desks",
   "owner": {
     "name": "Ernesto Rivera"
   },
@@ -11,6 +11,6 @@
     }
   ],
   "metadata": {
-    "description": "Desk: focused, reviewed working sessions for Claude Code."
+    "description": "Desks: focused, reviewed working sessions for Claude Code."
   }
 }

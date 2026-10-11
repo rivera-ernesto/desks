@@ -33,3 +33,13 @@ every line in it costs every user some of their allowance on every Desk.
 - `python3 skills/desk/scripts/review.py --check` runs.
 - If you changed the site: `npm run build` in `site/` passes.
 - You ran one real Desk with your change and say in the PR what happened.
+
+## Ports
+
+Desks for another assistant is welcome, here or in your own repository. What carries over as it
+is: `skills/desk/SKILL.md` (the contract is plain instructions), the reference files, the
+templates, and `scripts/review.py` and `scripts/desk.py`, which do not depend on Claude. What you
+rewrite: how the contract gets loaded (here, a skill and one block in `CLAUDE.md`), the three
+workers (here, subagent files), and the surfaces file. In a port, the author named in the review
+prompt should be the model you are porting to, and the review should exclude that model's vendor.
+Not every assistant can do all of it. A port that does part of it honestly is still a port.

@@ -4,10 +4,10 @@ import Prompt from '../components/Prompt.astro';
 import { INSTALL_PROMPT, REPO } from '../data/site';
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 ---
-<Base title="Desk: a way of working for Claude Code" description="One topic per session, answers checked by other AI vendors before you read them, and a written close. Open source, for Claude Code.">
+<Base title="Desks: a way of working for Claude Code" description="One topic per session, answers checked by other AI vendors before you read them, and a written close. Open source, for Claude Code.">
   <span class="status">Early version. Tested daily by one person, now opening to others.</span>
   <h1>Claude's answers, checked by other AIs before you read them.</h1>
-  <p class="lede">Desk is a way of working for Claude Code. One topic per session, recommendations attacked by models from other vendors, heavy reading sent to cheaper workers, and a written close so the next session starts where this one stopped.</p>
+  <p class="lede">Desks is a way of working for Claude Code. One topic per session, recommendations attacked by models from other vendors, heavy reading sent to cheaper workers, and a written close so the next session starts where this one stopped.</p>
 
   <Prompt id="install" text={INSTALL_PROMPT} caption="Open your folder in Claude Code and paste this" />
   <p class="note">It copies one skill and three workers into the folder and adds one marked block to <code>CLAUDE.md</code>. It asks before touching anything you already have. <a href={`${base}install/`}>What the prompt does, step by step.</a></p>

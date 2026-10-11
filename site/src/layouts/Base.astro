@@ -18,7 +18,7 @@ const here = Astro.url.pathname;
   <body>
     <header class="site">
       <div class="wrap">
-        <a class="brand" href={base}>Desk</a>
+        <a class="brand" href={base}>Desks</a>
         <nav class="main" aria-label="Main">
           {NAV.map((n) => (
             <a href={`${base}${n.href}`} aria-current={here === `${base}${n.href}` ? 'page' : undefined}>{n.label}</a>

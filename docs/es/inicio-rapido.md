@@ -1,4 +1,4 @@
-# Desk: inicio rápido
+# Desks: inicio rápido
 
 Desk es una forma de trabajar con Claude Code: un tema por sesión, respuestas revisadas por
 modelos de otras empresas antes de que las leas, y un cierre escrito para retomar después sin
@@ -14,7 +14,7 @@ Abre con Claude Code la carpeta donde quieres trabajar. Puede ser una carpeta qu
 reemplaza nada de lo que tengas. Pega esto:
 
 ```text
-Instala Desk en esta carpeta. Obtén la versión v0.1.0 de https://github.com/rivera-ernesto/desk, lee su INSTALL.md y síguelo. Primero muéstrame la lista de archivos que vas a crear o cambiar, y espera mi sí. Conserva todo lo que ya tengo. Respóndeme en español.
+Instala Desks en esta carpeta. Obtén la versión v0.1.0 de https://github.com/rivera-ernesto/desks, lee su INSTALL.md y síguelo. Primero muéstrame la lista de archivos que vas a crear o cambiar, y espera mi sí. Conserva todo lo que ya tengo. Respóndeme en español.
 ```
 
 Antes de copiar nada te muestra la lista de archivos y espera tu sí. El archivo que sigue,
