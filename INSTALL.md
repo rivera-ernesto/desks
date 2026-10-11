@@ -46,17 +46,18 @@ Check `SRC/skills/desk/SKILL.md` exists before going on.
 
 | From | To | If it already exists |
 |---|---|---|
-| `SRC/skills/desk/` (the whole folder) | `DEST/skills/desk/` | replace only if it is an older Desk (it has a `SKILL.md` whose name is `desk`); otherwise ask |
+| `SRC/skills/desk/` (the whole folder) | `DEST/skills/desk/` | if its `SKILL.md` begins with `name: desk` it is a previous install: replace the folder. Anything else: ask |
 | `SRC/agents/desk-reader.md` | `DEST/agents/desk-reader.md` | ask |
 | `SRC/agents/desk-screen.md` | `DEST/agents/desk-screen.md` | ask |
 | `SRC/agents/desk-runner.md` | `DEST/agents/desk-runner.md` | ask |
 
-Create the folders as needed. Copy nothing else: not the site, not the examples, not `.git`.
+Create the folders as needed; an existing `.claude/` with other content is left as it is. Skip
+`__pycache__` folders. Copy nothing else: not the site, not the examples, not `.git`.
 
 ## 4) Add the block to `CLAUDE.md`
 
 If `CLAUDE.md` does not exist in the target folder, create it with only this block. If it exists,
-append the block at the end and change nothing else. If a block between the same two marker lines
+append the block at the end, after one blank line, and change nothing else. If a block between the same two marker lines
 is already there, replace just that block.
 
 ```markdown
@@ -80,7 +81,9 @@ anything during install; tell the user what is new and let them decide.
 ## 6) Check and report
 
 1. Confirm `DEST/skills/desk/SKILL.md` and the three agent files exist.
-2. Run `python3 DEST/skills/desk/scripts/review.py --check` and report its output. If `python3`
+2. Run `python3 DEST/skills/desk/scripts/review.py --check` (with `DEST` replaced by the real
+   path) and report its output. A review key is kept per user, not per folder, so it may already
+   be set from another folder. If `python3`
    is missing, say that cross-vendor review will need it and that everything else works.
 3. Tell the user, in a few lines:
    - the files created or changed;

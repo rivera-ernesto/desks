@@ -28,8 +28,9 @@ A first message that is clearly work on a topic, with no command, is still a Des
 topic name (or an existing one that fits), ask only to confirm it, and open it on the answer.
 Reading and talking need no topic.
 
-`scripts/` and `reference/` are in this skill's own folder. Run the scripts from the folder the
-session was opened on.
+`scripts/`, `reference/` and `templates/` are in this skill's own folder, the one this file is in
+(usually `.claude/skills/desk/`, or `~/.claude/skills/desk/`). Run the scripts with that full
+path, from the folder the session was opened on.
 
 ## 1) Opening
 
