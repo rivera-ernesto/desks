@@ -223,6 +223,8 @@ def cmd_close(topic, how, title):
     notes = sorted(f for f in os.listdir(os.path.join(folder, "sessions")) if f.endswith(".md")) if os.path.isdir(os.path.join(folder, "sessions")) else []
     if not notes:
         die("no session note yet: write sessions/<date>-<title>.md from the template first")
+    if not open(os.path.join(folder, "README.md"), encoding="utf-8").read().strip():
+        die(f"{os.path.join(folder, 'README.md')} is empty: the next session would start from nothing")
     check = [os.path.join(folder, f) for f in sorted(os.listdir(folder)) if f.endswith(".md")]
     check += [os.path.join(folder, "sessions", f) for f in notes]
     for f in check:

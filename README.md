@@ -75,9 +75,15 @@ skills/desk/scripts/      review.py and desk.py (Python standard library only)
 skills/desk/templates/    topic README, session note, plan, review packet
 agents/                   desk-reader, desk-screen, desk-runner
 examples/                 a worked topic, with invented details
+tests/                    unit tests for both scripts (standard library only)
 docs/                     beta notes, benchmark protocol, guía en español
 site/                     the website
 ```
+
+## Plans
+
+What is untested, what is proposed and what is only an idea are all in the
+[issues](https://github.com/rivera-ernesto/desks/issues). Nothing is planned anywhere else.
 
 ## Docs
 
@@ -113,7 +119,8 @@ it does.
 
 This repository is the version for Claude Code. The idea is not tied to it: the contract, the
 review script and the templates are plain text and plain Python. If you use another assistant,
-you can use Desks to build your own version for it. See [CONTRIBUTING.md](CONTRIBUTING.md) § Ports.
+you can use Desks to build your own version for it, propose one in an issue, or hire the author
+to build it. See [CONTRIBUTING.md](CONTRIBUTING.md) § Ports.
 
 ## License
 

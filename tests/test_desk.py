@@ -1,0 +1,269 @@
+"""desk.py against real scratch repositories. Standard library only.
+
+    python3 -m unittest discover tests
+"""
+import os
+import re
+import subprocess
+import sys
+import tempfile
+import unittest
+
+DESK = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "skills", "desk", "scripts", "desk.py")
+BLOCK = "# Mine\n\nMy own rule.\n\n<!-- desk:start -->\n## Desk\n\nA paragraph.\n\n- Desk root: `desks/`\n- Version: 0\n<!-- desk:end -->\n"
+
+
+def put(path, text, mode="w"):
+    with open(path, mode, encoding="utf-8") as f:
+        f.write(text)
+
+
+def get(path):
+    with open(path, encoding="utf-8") as f:
+        return f.read()
+
+
+def sh(args, cwd):
+    return subprocess.run(args, cwd=cwd, capture_output=True, text=True)
+
+
+def desk(cwd, *args):
+    return sh([sys.executable, DESK, *args], cwd)
+
+
+class Base(unittest.TestCase):
+    git = True
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.root = os.path.realpath(self._tmp.name)
+        put(os.path.join(self.root, "CLAUDE.md"), BLOCK)
+        if self.git:
+            for a in (["init", "-q", "-b", "main"], ["config", "user.email", "t@example.invalid"],
+                      ["config", "user.name", "t"], ["add", "CLAUDE.md"], ["commit", "-qm", "init"]):
+                self.assertEqual(sh(["git", *a], self.root).returncode, 0)
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def work(self, topic):
+        return os.path.join(self.root, ".claude", "worktrees", f"desk-{topic}") if self.git else self.root
+
+    def fill(self, topic, root="desks"):
+        """What a session does before closing: fill the README, write a note, save."""
+        folder = os.path.join(self.work(topic), root, topic)
+        p = os.path.join(folder, "README.md")
+        put(p, re.sub(r"\{\{[^}]*\}\}", "x", get(p)))
+        put(os.path.join(folder, "sessions", "2026-01-01-first.md"), "# note\n")
+        if self.git:
+            sh(["git", "add", root], self.work(topic))
+            self.assertEqual(sh(["git", "commit", "-qm", "desk"], self.work(topic)).returncode, 0)
+        return folder
+
+
+class FolderLevel(Base):
+    git = False
+
+    def test_open_creates_topic_without_git(self):
+        r = desk(self.root, "open", "Sell Camera!")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("level:  folder", r.stdout)
+        self.assertIn("topic:  sell-camera (new)", r.stdout)
+        for f in ("README.md", "decisions.md", "sessions", "reviews"):
+            self.assertTrue(os.path.exists(os.path.join(self.root, "desks", "sell-camera", f)), f)
+
+    def test_open_twice_continues_and_keeps_the_readme(self):
+        desk(self.root, "open", "trip")
+        p = os.path.join(self.root, "desks", "trip", "README.md")
+        put(p, "\nMINE\n", "a")
+        r = desk(self.root, "open", "trip")
+        self.assertIn("(continued)", r.stdout)
+        self.assertIn("MINE", get(p))
+
+    def test_close_refuses_without_a_session_note(self):
+        desk(self.root, "open", "trip")
+        r = desk(self.root, "close", "trip", "--merge")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("no session note", r.stderr)
+
+    def test_close_refuses_placeholders_then_passes(self):
+        desk(self.root, "open", "trip")
+        folder = os.path.join(self.root, "desks", "trip")
+        put(os.path.join(folder, "sessions", "2026-01-01-a.md"), "# n\n")
+        r = desk(self.root, "close", "trip", "--merge")
+        self.assertIn("unfilled placeholders", r.stderr)
+        self.fill("trip")
+        self.assertEqual(desk(self.root, "close", "trip", "--merge").returncode, 0)
+
+    def test_close_refuses_an_empty_readme(self):
+        desk(self.root, "open", "trip")
+        folder = self.fill("trip")
+        put(os.path.join(folder, "README.md"), "\n")
+        r = desk(self.root, "close", "trip", "--merge")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("is empty", r.stderr)
+
+    def test_close_of_an_unknown_topic_says_so(self):
+        r = desk(self.root, "close", "nope", "--merge")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("no topic 'nope'", r.stderr)
+
+    def test_empty_topic_name_is_refused(self):
+        self.assertEqual(desk(self.root, "open", "!!!").returncode, 2)
+
+
+class GitLevel(Base):
+    def test_open_makes_a_branch_and_working_copy_and_leaves_main_alone(self):
+        r = desk(self.root, "open", "trip")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("level:  git", r.stdout)
+        self.assertTrue(os.path.isfile(os.path.join(self.work("trip"), "desks", "trip", "README.md")))
+        self.assertFalse(os.path.exists(os.path.join(self.root, "desks")))
+        self.assertEqual(sh(["git", "status", "--porcelain"], self.root).stdout, "")  # working copies are excluded
+        self.assertEqual(sh(["git", "branch", "--show-current"], self.root).stdout.strip(), "main")
+
+    def test_open_twice_reattaches(self):
+        desk(self.root, "open", "trip")
+        r = desk(self.root, "open", "trip")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("(continued)", r.stdout)
+
+    def test_close_refuses_unsaved_files(self):
+        desk(self.root, "open", "trip")
+        folder = os.path.join(self.work("trip"), "desks", "trip")
+        p = os.path.join(folder, "README.md")
+        put(p, re.sub(r"\{\{[^}]*\}\}", "x", get(p)))
+        put(os.path.join(folder, "sessions", "2026-01-01-a.md"), "# n\n")
+        r = desk(self.root, "close", "trip", "--merge")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("uncommitted", r.stderr)
+
+    def test_close_merges_tidies_and_prints_the_undo(self):
+        desk(self.root, "open", "trip")
+        self.fill("trip")
+        r = desk(self.root, "close", "trip", "--merge", "--title", "Trip First Plan")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertRegex(r.stdout, r"to undo this whole desk later: git revert -m 1 [0-9a-f]{7,}")
+        self.assertTrue(os.path.isfile(os.path.join(self.root, "desks", "trip", "README.md")))
+        self.assertFalse(os.path.exists(self.work("trip")))
+        self.assertNotIn("desk/trip", sh(["git", "branch"], self.root).stdout)
+        self.assertIn("desk Trip First Plan", sh(["git", "log", "--oneline", "-1"], self.root).stdout)
+
+    def test_the_undo_really_undoes(self):
+        desk(self.root, "open", "trip")
+        self.fill("trip")
+        out = desk(self.root, "close", "trip", "--merge").stdout
+        sha = re.search(r"git revert -m 1 ([0-9a-f]+)", out).group(1)
+        self.assertEqual(sh(["git", "revert", "--no-edit", "-m", "1", sha], self.root).returncode, 0)
+        self.assertFalse(os.path.exists(os.path.join(self.root, "desks", "trip")))
+
+    def test_close_refuses_when_main_has_half_finished_changes_and_changes_nothing(self):
+        desk(self.root, "open", "trip")
+        self.fill("trip")
+        put(os.path.join(self.root, "CLAUDE.md"), "edit\n", "a")
+        r = desk(self.root, "close", "trip", "--merge")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("Nothing was changed", r.stderr)
+        self.assertTrue(os.path.exists(self.work("trip")))
+
+    def test_a_conflicting_merge_is_undone(self):
+        desk(self.root, "open", "trip")
+        folder = self.fill("trip")
+        os.makedirs(os.path.join(self.root, "desks", "trip"))
+        put(os.path.join(self.root, "desks", "trip", "README.md"), "other\n")
+        self.assertEqual(sh(["git", "add", "desks"], self.root).returncode, 0)
+        c = sh(["git", "commit", "-qm", "clash"], self.root)
+        self.assertEqual(c.returncode, 0, c.stdout + c.stderr)
+        r = desk(self.root, "close", "trip", "--merge")
+        self.assertNotEqual(r.returncode, 0, r.stdout)
+        self.assertIn("was undone", r.stderr)
+        self.assertEqual(sh(["git", "status", "--porcelain"], self.root).stdout, "")
+        self.assertTrue(os.path.isdir(folder))
+
+    def test_pr_close_without_github_is_refused(self):
+        desk(self.root, "open", "trip")
+        self.fill("trip")
+        r = desk(self.root, "close", "trip", "--pr")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("no GitHub remote", r.stderr)
+
+    def test_two_desks_side_by_side_both_merge(self):
+        for t in ("a", "b"):
+            desk(self.root, "open", t)
+            self.fill(t)
+        for t in ("a", "b"):
+            self.assertEqual(desk(self.root, "close", t, "--merge").returncode, 0)
+        self.assertTrue(os.path.isfile(os.path.join(self.root, "desks", "b", "README.md")))
+
+    def test_notes_from_two_desks_for_one_topic_never_collide(self):
+        for t in ("a", "b"):
+            desk(self.root, "open", t)
+            r = desk(self.root, "note", t, "taxes", f"from {t}")
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.fill(t)
+        for t in ("a", "b"):
+            self.assertEqual(desk(self.root, "close", t, "--merge").returncode, 0)
+        inbox = os.path.join(self.root, "desks", "taxes", "inbox")
+        self.assertEqual(len(os.listdir(inbox)), 2)
+        self.assertIn("notes waiting: taxes (2)", desk(self.root, "status").stdout)
+        self.assertIn("inbox:  2 note(s)", desk(self.root, "open", "taxes").stdout)
+
+    def test_tidy_keeps_unmerged_work(self):
+        desk(self.root, "open", "trip")
+        self.fill("trip")
+        desk(self.root, "tidy")
+        self.assertTrue(os.path.exists(self.work("trip")))
+
+
+class Settings(Base):
+    def block(self):
+        return get(os.path.join(self.root, "CLAUDE.md"))
+
+    def test_set_replaces_one_line_and_keeps_everything_else(self):
+        self.assertEqual(desk(self.root, "set", "Close", "merge").returncode, 0)
+        self.assertEqual(desk(self.root, "set", "Close", "review").returncode, 0)
+        text = self.block()
+        self.assertIn("- Close: review", text)
+        self.assertNotIn("- Close: merge", text)
+        self.assertIn("My own rule.", text)
+        self.assertIn("A paragraph.\n\n- Desk root", text)  # the blank line survives
+        self.assertTrue(text.rstrip().endswith("<!-- desk:end -->"))
+
+    def test_add_keeps_earlier_lines_and_does_not_duplicate(self):
+        for v in ("one", "two", "two"):
+            desk(self.root, "add", "Setup", v)
+        self.assertEqual(self.block().count("- Setup:"), 2)
+
+    def test_set_saves_only_claude_md(self):
+        put(os.path.join(self.root, "other.txt"), "x")
+        sh(["git", "add", "other.txt"], self.root)
+        desk(self.root, "set", "Close", "merge")
+        self.assertIn("other.txt", sh(["git", "status", "--porcelain"], self.root).stdout)
+        self.assertEqual(sh(["git", "show", "--stat", "--format=", "HEAD"], self.root).stdout.count("|"), 1)
+
+    def test_desk_root_setting_moves_the_topics(self):
+        desk(self.root, "set", "Desk root", "clients/")
+        r = desk(self.root, "open", "acme")
+        self.assertIn(os.path.join("clients", "acme"), r.stdout)
+
+    def test_an_existing_readme_is_kept_and_flagged(self):
+        os.makedirs(os.path.join(self.root, "desks", "acme"))
+        put(os.path.join(self.root, "desks", "acme", "README.md"), "# Acme\n\nTheirs.\n")
+        sh(["git", "add", "desks"], self.root)
+        sh(["git", "commit", "-qm", "theirs"], self.root)
+        r = desk(self.root, "open", "acme")
+        self.assertIn("(continued)", r.stdout)
+        self.assertIn("readme:", r.stdout)
+        self.assertIn("Theirs.", get(os.path.join(self.work("acme"), "desks", "acme", "README.md")))
+
+    def test_git_off_falls_back_to_folders(self):
+        desk(self.root, "set", "Git", "off")
+        self.assertIn("level:  folder", desk(self.root, "open", "trip").stdout)
+
+    def test_set_without_a_block_is_refused(self):
+        put(os.path.join(self.root, "CLAUDE.md"), "# nothing\n")
+        self.assertNotEqual(desk(self.root, "set", "Close", "merge").returncode, 0)
+
+
+if __name__ == "__main__":
+    unittest.main()

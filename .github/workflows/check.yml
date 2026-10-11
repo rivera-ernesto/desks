@@ -7,29 +7,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Scripts compile and run
+      - name: Unit tests
         run: |
-          python3 -m py_compile skills/desk/scripts/review.py skills/desk/scripts/desk.py
-          python3 skills/desk/scripts/desk.py status
-      - name: A desk opens and closes in a scratch repository
-        run: |
-          set -e
-          S="$(mktemp -d)"; cd "$S"; git init -q -b main
-          git config user.email ci@example.invalid; git config user.name ci
-          echo hi > a.txt; git add a.txt; git commit -qm init
-          D="$GITHUB_WORKSPACE/skills/desk/scripts/desk.py"
-          python3 "$D" open trip
-          W="$S/.claude/worktrees/desk-trip"
-          if python3 "$D" close trip --merge; then echo "close must refuse without a session note"; exit 1; fi
-          sed -i 's/{{[^}]*}}/x/g' "$W/desks/trip/README.md"
-          printf '# note\n' > "$W/desks/trip/sessions/2026-01-01-first.md"
-          git -C "$W" add desks/trip; git -C "$W" commit -qm "desk trip"
-          python3 "$D" close trip --merge
-          test -f "$S/desks/trip/README.md"
-      - name: Privacy refusal
-        run: |
-          echo 'write to someone@example.com' > /tmp/p.md
-          if python3 skills/desk/scripts/review.py /tmp/p.md; then echo "must refuse"; exit 1; fi
+          git config --global init.defaultBranch main
+          python3 -m unittest discover tests
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - name: Site builds and passes its checks
