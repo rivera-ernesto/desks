@@ -9,8 +9,13 @@ next session picks up without you explaining anything.
 
 Desks is the project; a Desk is one session. It is for real work that is mostly not code: selling something, planning, drafting, researching a
 decision, running a small project. **It is free and open source (MIT)**: no account, no
-subscription, and the review runs on models that cost nothing. It needs a paid Claude plan and Claude Code (the desktop app's
-Code tab, or the terminal). It is not made by, or affiliated with, Anthropic.
+subscription, and the review runs on models that cost nothing. It is not made by, or affiliated with, Anthropic.
+
+**Tested with:** Claude Code on a paid Claude plan (the desktop app's Code tab and the terminal),
+on a Mac. That is the only setup it has been run on. **Not tied to it:** the contract is plain
+instructions and the two scripts are plain Python, so any capable assistant that can read files
+and run commands, paid or free, can be put to the test. Nobody has done that yet; if you do, say
+how it went.
 
 > **Status: 0.1, early.** It is extracted from a setup one person has used daily. It has not yet
 > been proven by people who are not that person. Reports of where it fails are the most useful
@@ -120,8 +125,8 @@ it does.
 
 This repository is the version for Claude Code. The idea is not tied to it: the contract, the
 review script and the templates are plain text and plain Python. If you use another assistant,
-you can use Desks to build your own version for it, propose one in an issue, or hire the author
-to build it. See [CONTRIBUTING.md](CONTRIBUTING.md) § Ports.
+you can try Desks with it as it is, build your own version, propose one in an issue, or hire the
+author to build it. See [CONTRIBUTING.md](CONTRIBUTING.md) § Ports.
 
 ## License
 

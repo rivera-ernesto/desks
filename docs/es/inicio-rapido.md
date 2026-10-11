@@ -6,8 +6,9 @@ modelos de otras empresas antes de que las leas, y un cierre escrito para retoma
 volver a explicar nada.
 
 Sirve para trabajo real que no es código: vender algo, planificar, redactar, investigar una
-decisión, llevar un proyecto pequeño. Necesitas un plan pago de Claude y Claude Code (la pestaña
-Code de la app de escritorio, o la terminal).
+decisión, llevar un proyecto pequeño. Está probado con Claude Code y un plan pago de Claude (la
+pestaña Code de la app de escritorio, o la terminal), en una Mac. No está atado a eso, pero es lo
+único probado hasta ahora.
 
 ## 1) Instalar (dos minutos)
 
