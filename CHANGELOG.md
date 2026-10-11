@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1 (2026-10-11)
+
+- The project is named Desks; the repository moved to `rivera-ernesto/desks`.
+- Install: the points a test install had to guess are settled.
+- Site: an example of messy input.
+
+No migration needed from 0.1.0.
+
 ## 0.1.0 (2026-10-11, first public version, early)
 
 First extraction.

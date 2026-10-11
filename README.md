@@ -20,7 +20,7 @@ Code tab, or the terminal). It is not made by, or affiliated with, Anthropic.
 Open the folder you want to work in with Claude Code and paste:
 
 ```text
-Set up Desks in this folder. Get version v0.1.0 of https://github.com/rivera-ernesto/desks, read its INSTALL.md and follow it. First show me the list of files you will create or change, and wait for my yes. Keep everything I already have.
+Set up Desks in this folder. Get version v0.1.1 of https://github.com/rivera-ernesto/desks, read its INSTALL.md and follow it. First show me the list of files you will create or change, and wait for my yes. Keep everything I already have.
 ```
 
 Read [INSTALL.md](INSTALL.md) first if you like to know what a prompt will do; it is short.

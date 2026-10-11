@@ -14,7 +14,7 @@ Abre con Claude Code la carpeta donde quieres trabajar. Puede ser una carpeta qu
 reemplaza nada de lo que tengas. Pega esto:
 
 ```text
-Instala Desks en esta carpeta. Obtén la versión v0.1.0 de https://github.com/rivera-ernesto/desks, lee su INSTALL.md y síguelo. Primero muéstrame la lista de archivos que vas a crear o cambiar, y espera mi sí. Conserva todo lo que ya tengo. Respóndeme en español.
+Instala Desks en esta carpeta. Obtén la versión v0.1.1 de https://github.com/rivera-ernesto/desks, lee su INSTALL.md y síguelo. Primero muéstrame la lista de archivos que vas a crear o cambiar, y espera mi sí. Conserva todo lo que ya tengo. Respóndeme en español.
 ```
 
 Antes de copiar nada te muestra la lista de archivos y espera tu sí. El archivo que sigue,
