@@ -52,15 +52,31 @@ def main_root():
     return os.path.dirname(common) if os.path.basename(common) == ".git" else os.getcwd(), True
 
 
+BLOCK = re.compile(r"(<!-- desk:start -->)(.*?)(<!-- desk:end -->)", flags=re.S)
+
+
+def block_file(root):
+    """The file that holds the Desk block. `CLAUDE.local.md` wins when it has one:
+    that is where the block goes in a shared project whose `CLAUDE.md` is not
+    yours to change. It is personal and stays out of the project's history."""
+    for name in ("CLAUDE.local.md", "CLAUDE.md"):
+        path = os.path.join(root, name)
+        try:
+            if BLOCK.search(open(path, encoding="utf-8").read()):
+                return path
+        except OSError:
+            pass
+    return None
+
+
 def settings(root):
-    """Lines like `- Desk root: desks/` inside the marked block of CLAUDE.md."""
+    """Lines like `- Desk root: desks/` inside the marked block."""
     out = {}
-    try:
-        text = open(os.path.join(root, "CLAUDE.md"), encoding="utf-8").read()
-    except OSError:
+    path = block_file(root)
+    if not path:
         return out
-    m = re.search(r"<!-- desk:start -->(.*?)<!-- desk:end -->", text, flags=re.S)
-    for line in (m.group(1) if m else "").splitlines():
+    m = BLOCK.search(open(path, encoding="utf-8").read())
+    for line in m.group(2).splitlines():
         k = re.match(r"\s*-\s*([A-Za-z ]+):\s*`?([^`\n]+?)`?\s*$", line)
         if k:
             out[k.group(1).strip().lower()] = k.group(2).strip()
@@ -135,6 +151,7 @@ def cmd_status():
     print(f"folder:   {root}")
     print(f"level:    {lv}")
     print(f"desk root: {cfg.get('desk root', 'desks/')}")
+    print(f"settings: {block_file(root) or 'none (defaults)'}")
     if is_git:
         remote, gh_ok, vis = github(root)
         print(f"branch:   {default_branch(root)} (default)")
@@ -305,14 +322,12 @@ def cmd_set(key, value, append=False):
     itself, so a later close never finds the main folder half-edited.
     """
     root, is_git = main_root()
-    path = os.path.join(root, "CLAUDE.md")
-    try:
-        text = open(path, encoding="utf-8").read()
-    except OSError:
-        die("no CLAUDE.md in the main folder; run the install first")
-    m = re.search(r"(<!-- desk:start -->)(.*?)(<!-- desk:end -->)", text, flags=re.S)
-    if not m:
-        die("CLAUDE.md has no Desk block; run the install first")
+    path = block_file(root)
+    if not path:
+        die("no Desk block in CLAUDE.md or CLAUDE.local.md of the main folder; run the install first")
+    text = open(path, encoding="utf-8").read()
+    m = BLOCK.search(text)
+    name = os.path.basename(path)
     key, value = key.strip().rstrip(":"), value.strip()
     body, line = m.group(2), f"- {key}: {value}"
     pat = re.compile(rf"^[ \t]*-[ \t]*{re.escape(key)}:.*$", flags=re.M | re.I)
@@ -322,8 +337,8 @@ def cmd_set(key, value, append=False):
         body = body.rstrip("\n") + "\n" + line + "\n"
     open(path, "w", encoding="utf-8").write(text[:m.start(2)] + body + text[m.end(2):])
     print(f"recorded in {path}: {line}")
-    if is_git and run(["git", "ls-files", "--error-unmatch", "CLAUDE.md"], cwd=root)[0] == 0:
-        rc, _, err = run(["git", "commit", "--only", "CLAUDE.md", "-m", f"desk: record {key}"], cwd=root)
+    if is_git and run(["git", "ls-files", "--error-unmatch", name], cwd=root)[0] == 0:
+        rc, _, err = run(["git", "commit", "--only", name, "-m", f"desk: record {key}"], cwd=root)
         print("saved to history" if rc == 0 else "not saved to history (" + (err.splitlines() or ["nothing to save"])[-1] + ")")
     return 0
 

@@ -73,6 +73,10 @@ work on a topic, load the `desk` skill and follow it for the whole session.
 <!-- desk:end -->
 ```
 
+**A shared project whose `CLAUDE.md` is not yours to change:** put the block in `CLAUDE.local.md`
+in the same folder instead. Desks reads the block from there first, records its settings there,
+and never touches the shared file. Keep `CLAUDE.local.md` out of the project's history.
+
 ## 5) Create the Desk root
 
 Create `desks/` if it does not exist. If the folder is a git repository, do **not** commit

@@ -5,6 +5,8 @@
 - `desk feedback`: the Desk drafts a report of the session with the private parts removed; the
   person sends it, or does not.
 - Unit tests for both scripts, run in CI. `close` refuses an empty README.
+- The Desk block can live in `CLAUDE.local.md`, for a shared project whose `CLAUDE.md` is not
+  yours to change.
 
 ## 0.1.7 (2026-10-11)
 

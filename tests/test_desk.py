@@ -260,6 +260,18 @@ class Settings(Base):
         desk(self.root, "set", "Git", "off")
         self.assertIn("level:  folder", desk(self.root, "open", "trip").stdout)
 
+    def test_a_local_block_wins_and_the_shared_file_is_never_touched(self):
+        shared = get(os.path.join(self.root, "CLAUDE.md"))
+        local = os.path.join(self.root, "CLAUDE.local.md")
+        put(local, "<!-- desk:start -->\n## Desk\n\n- Desk root: `mine/`\n- Git: off\n<!-- desk:end -->\n")
+        r = desk(self.root, "open", "trip")
+        self.assertIn("level:  folder", r.stdout)
+        self.assertIn(os.path.join("mine", "trip"), r.stdout)
+        self.assertEqual(desk(self.root, "set", "Close", "merge").returncode, 0)
+        self.assertIn("- Close: merge", get(local))
+        self.assertEqual(get(os.path.join(self.root, "CLAUDE.md")), shared)
+        self.assertEqual(sh(["git", "log", "--oneline"], self.root).stdout.count("\n"), 1)  # nothing saved to their history
+
     def test_set_without_a_block_is_refused(self):
         put(os.path.join(self.root, "CLAUDE.md"), "# nothing\n")
         self.assertNotEqual(desk(self.root, "set", "Close", "merge").returncode, 0)
