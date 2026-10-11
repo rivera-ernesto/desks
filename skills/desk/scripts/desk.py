@@ -146,6 +146,14 @@ def cmd_status():
     if os.path.isdir(dr):
         topics = sorted(d for d in os.listdir(dr) if os.path.isfile(os.path.join(dr, d, "README.md")))
         print("topics:   " + (", ".join(topics) or "none"))
+        now = datetime.datetime.now().timestamp()
+        for d in topics:  # the facts for a brief across topics; the recommendation is the session's
+            f = os.path.join(dr, d, "README.md")
+            text = open(f, encoding="utf-8").read()
+            m = re.search(r"^## Next step\s*\n+(.+?)(?:\n\s*\n|\n## |\Z)", text, flags=re.M | re.S)
+            step = " ".join(m.group(1).split())[:160] if m else "(no Next step section)"
+            days = int((now - os.path.getmtime(f)) // 86400)
+            print(f"  {d}: notes {days} day(s) old · next: {step}")
         waiting = []
         for d in sorted(os.listdir(dr)):
             box = os.path.join(dr, d, "inbox")

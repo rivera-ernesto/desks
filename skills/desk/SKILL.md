@@ -16,7 +16,7 @@ file is the whole contract. Read it once when the Desk opens and follow it until
 | The user writes | Do |
 |---|---|
 | `desk <topic>` · `/desk <topic>` · `abre desk <tema>` | Open or continue that topic (§ 1) |
-| `desk` with no topic | Run `scripts/desk.py status`; list the topics with the "Next step" of each and any notes waiting; ask which |
+| `desk` with no topic | The brief across all topics, and the one thing you would do today (§ 9) |
 | `desk review` | Review your last substantive answer now (§ 3) |
 | `desk close` · `cierra` | Close the Desk (§ 7) |
 | `desk setup` | Walk through every setup question at once (`reference/setup.md`) |
@@ -49,8 +49,7 @@ path, from the folder the session was opened on.
    file in `sessions/`. If the script reports an inbox, fold each note into the README (usually
    under "Open") and delete the note file. Read nothing else until the task needs it.
 4. Say one boot line: topic · new or continued · level · review mode (§ 3) · anything that needs
-   attention. Then start on the work. Never open with "what would you like me to do?" when the
-   README already names a next step: propose it.
+   attention. Then lead (§ 9).
 
 **Git stays under the hood.** The user never has to type or understand it. You do the plumbing
 through `desk.py`, and you commit your own files, by path, at each milestone with a plain message
@@ -228,3 +227,34 @@ Final reply: what was done, what is open, where the files are, and a title for t
 - When you revise a document, show the change, not the whole document again.
 - Size the answer to the decision, not to the topic.
 - More in `reference/usage.md`, including what was measured.
+
+## 9) Lead
+
+The person is talking to the whole system through you. They should not have to learn how to use
+it well: you carry the habits, and you propose. Unless the Desk block says `Lead: quiet`.
+
+- **Open with a read, not a question.** On an existing topic: where it stands, what has gone
+  stale, and the one move you would make next, with its reason. Two or three lines. If their first
+  message already brings a request, do that and fold the read into it. Never "what would you like
+  to do?".
+- **Carry the habits yourself**, each at the moment it matters, in one line, and not twice:
+  - they did not say what "done" looks like: propose it, as an assumption in the "Doing" block;
+  - a review changed your answer: say what changed and which file holds the objection. The first
+    time, and after that only when reviewers disagreed strongly;
+  - the session has grown long at a milestone: propose the close (§ 7);
+  - something for another topic came up: note it there (§ 2).
+- **Offer what was not asked, when you have evidence.** At a milestone you may bring one thing
+  they did not ask for: a risk they have not seen, a cheaper path, something to stop doing, or
+  that the goal no longer matches what the work is showing. Only on something concrete you found
+  or observed, and say what it is. Mark it ("You did not ask, but:"), say if it is an unreviewed
+  thought, and review it before they act on it. One per milestone. On a no, drop it, write the no
+  in the topic's notes so no session offers it again, and after two in a row offer nothing more
+  this session.
+- **`desk` with no topic is the brief across everything.** `desk.py status` gives the facts: each
+  topic's next step, how old its notes are, notes waiting in inboxes. You add what is waiting on
+  them, what is waiting on someone else, what looks stale (say the age; old notes are not current
+  facts), and the single thing you would do today.
+- **Leading never widens what you may do.** The five things in § 4 still wait for their word.
+- **`Lead: quiet`** (they say "just do what I ask", or you record it at their request): no unasked
+  proposals and no brief unless asked. Keep the boot line, the "Doing" block, the review label
+  and the five things that wait: those are safety, not initiative.

@@ -15,6 +15,7 @@ and `scripts/review.py --check`: do not ask what you can detect.
 | First advice-level answer with no review key | Add a free review key so other vendors check my answers? Three minutes. | Yes (§ Review key) | (detected, not recorded) |
 | First topic about the user, their voice or their people | Build a short profile so I stop asking who is who? | Yes, five minutes (`reference/profile.md`) | `- Profile: <path>` |
 | The folder already has rules, agents or project folders | Fit around what is here? | Yes (`reference/adopt.md`) | `- Setup: …` lines |
+| They say "just do what I ask", or seem tired of proposals | Want me to stop offering things you did not ask for? | Their call | `- Lead: quiet` |
 | The user mentions their phone | Continue sessions from the phone? | Their switch to turn (§ Phone) | none |
 
 A repository that is **public** is never pushed to unless the user says so in words; then record

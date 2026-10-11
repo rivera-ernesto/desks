@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.7 (2026-10-11)
+
+- The Desk leads: it opens with a read and a proposed move, carries the habits itself, offers
+  what was not asked when it has evidence, and gives a brief across all topics. `Lead: quiet`
+  turns the initiative off.
+
+No migration needed.
+
 ## 0.1.6 (2026-10-11)
 
 - A Desk shows what it added to a short request, each addition with its source and guesses
