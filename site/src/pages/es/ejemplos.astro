@@ -19,15 +19,17 @@ import { REPO } from '../../data/site';
   </table></div>
   <p><a href={`${REPO}/tree/main/examples/sell-camera`}>Lee la carpeta completa en GitHub</a> (en inglés).</p>
 
-  <h2>Pedidos que funcionan bien</h2>
+  <h2>Pedidos cortos, y lo que el Desk les añade</h2>
+  <p>Tú escribes la línea entre comillas. El Desk la completa con tus notas, tu perfil y sus propias reglas, te muestra lo que añadió y empieza.</p>
   <div class="grid">
-    <div class="card"><h3>Una decisión con dinero</h3><p>"desk cotizacion-cocina. Van tres cotizaciones. ¿Cuál, y qué le pregunto a cada uno antes de decidir?"</p></div>
-    <div class="card"><h3>Un texto que otros van a leer</h3><p>"desk carta-casero. Redacta la carta por la gotera. Firme, no hostil. No envíes nada."</p></div>
-    <div class="card"><h3>Investigar donde equivocarse cuesta</h3><p>"desk opciones-visa. ¿Cuál de estas tres rutas encaja con mi caso? Solo fuentes oficiales, y dime qué no pudiste verificar."</p></div>
-    <div class="card"><h3>Un proyecto pequeño de varias semanas</h3><p>"desk venta-garaje. Planifícalo en fases. Empieza por lo barato y lo que ya está esperando."</p></div>
-    <div class="card"><h3>Mirar sin tocar</h3><p>"desk tienda-cifras. Abre el panel de mi tienda y dime qué cinco publicaciones tuvieron vistas pero ningún mensaje." Solo lectura por defecto.</p></div>
-    <div class="card"><h3>Retomar después</h3><p>"desk venta-garaje" en una sesión nueva, una semana más tarde. Lee las notas y propone el siguiente paso.</p></div>
+    <div class="card"><h3>Una decisión con dinero</h3><p class="said">"¿Cuál cotización para la cocina?"</p><p><span class="added"><strong>+ notas del tema:</strong> tres cotizaciones guardadas · tope de 4.000 · lo quieres listo antes de marzo</span><br /><span class="added"><strong>+ supongo:</strong> quieres las preguntas para hacerle a cada uno antes de decidir</span><br /><span class="added"><strong>+ Desk:</strong> revisado por otras empresas, porque es dinero</span></p></div>
+    <div class="card"><h3>Un texto que otros van a leer</h3><p class="said">"Redacta la carta por la gotera."</p><p><span class="added"><strong>+ notas del tema:</strong> al casero · firme, no hostil</span><br /><span class="added"><strong>+ tu perfil:</strong> sin amenazas legales</span><br /><span class="added"><strong>+ Desk:</strong> solo un borrador; no se envía nada</span></p></div>
+    <div class="card"><h3>Investigar donde equivocarse cuesta</h3><p class="said">"¿Qué ruta de visa me sirve?"</p><p><span class="added"><strong>+ tu perfil:</strong> tu nacionalidad y tu situación de trabajo</span><br /><span class="added"><strong>+ notas del tema:</strong> las tres rutas que ya venías comparando</span><br /><span class="added"><strong>+ Desk:</strong> solo fuentes oficiales; lo que no se pudo verificar se dice</span></p></div>
+    <div class="card"><h3>Un proyecto pequeño de varias semanas</h3><p class="said">"Planifica la venta de garaje."</p><p><span class="added"><strong>+ notas del tema:</strong> el 21 · las bicis van juntas · todavía no se publica nada</span><br /><span class="added"><strong>+ Desk:</strong> en fases, empezando por lo barato y lo que ya está esperando</span></p></div>
+    <div class="card"><h3>Mirar sin tocar</h3><p class="said">"¿Cómo va la tienda?"</p><p><span class="added"><strong>+ notas del tema:</strong> te importan las publicaciones con vistas y sin mensajes</span><br /><span class="added"><strong>+ supongo:</strong> los últimos 30 días</span><br /><span class="added"><strong>+ Desk:</strong> solo lectura en tu cuenta</span></p></div>
+    <div class="card"><h3>Retomar después</h3><p class="said">"desk venta-garaje"</p><p><span class="added"><strong>+ notas del tema:</strong> dónde quedó hace una semana · la llamada por el permiso sigue siendo tuya</span><br /><span class="added"><strong>+ Desk:</strong> abre con lo que quedó viejo y el paso que daría ahora</span></p></div>
   </div>
+  <p class="note">Ejemplos inventados. En un tema nuevo todavía no hay notas, así que el primer pedido necesita un poco más; se achica a medida que crecen las notas. Lo que ningún archivo dice se marca como suposición, y puedes corregir cualquier línea.</p>
 
   <h2>Lo que el Desk hace para que tú no tengas que hacerlo</h2>
   <p>No deberías tener que aprender hábitos de un sitio web. El Desk los lleva, cada uno en el momento en que importa:</p>
