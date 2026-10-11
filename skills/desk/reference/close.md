@@ -22,7 +22,8 @@ the work without asking the user what happened.
    Nothing is left only in the conversation.
 5. **Offer what you noticed** about how the user works, as a question (`reference/profile.md`
    § Learning as you go). At most one or two, and only if they would hold next time.
-6. **Save and close.** Commit your files by path with one plain message, then:
+6. **Save and close.** If no `Close:` line is recorded yet, ask once and record it with
+   `desk.py set` before anything else. Commit your files by path with one plain message, then:
    - `desk.py close <topic> --merge` folds the Desk into the main folder and removes its working
      copy. This is the default for solo work.
    - `desk.py close <topic> --pr` (the `github` level, when the block says `Close: review`) sends

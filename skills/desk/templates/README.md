@@ -24,10 +24,11 @@ Rules that hold for this topic. Tighten or delete them as they are proved wrong.
 
 | Fact | Verified |
 |---|---|
-| {{a price, someone's availability, a status}} | {{date}} |
+| {{a price, someone's availability, a status}} | {{date, or "not verified" and why}} |
 
 ## Files
 
 - `decisions.md`: what was decided, when and why
 - `sessions/`: one short note per working session
 - `reviews/`: packets sent for review, the answers, and what was done with them
+- `inbox/`: notes left by other Desks; the next session here folds them in and deletes them

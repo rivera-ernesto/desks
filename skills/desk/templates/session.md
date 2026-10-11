@@ -20,6 +20,10 @@
 |---|---|
 | {{snag}} | fixed in README / open / dropped: {{reason}} |
 
+## Noted for other topics
+
+- {{topic}}: {{what was left in its inbox}}
+
 ## Reviews
 
 - {{packet}} · {{label line}}

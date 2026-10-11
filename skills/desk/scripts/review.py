@@ -84,7 +84,7 @@ def private_hits(text):
     return hits
 
 
-def http(url, payload=None, key=None, timeout=180):
+def http(url, payload=None, key=None, timeout=100):
     headers = {"Content-Type": "application/json", "X-Title": "Desk review"}
     if key:
         headers["Authorization"] = "Bearer " + key
@@ -170,6 +170,8 @@ def ask_openrouter(model, packet_text, focus, key):
             last = f"HTTP {e.code}: " + e.read().decode("utf-8", "replace")[:400]
         except Exception as e:  # network, timeout, malformed answer
             last = f"{type(e).__name__}: {e}"
+            if "timed out" in last.lower():
+                return "failed", last  # a model that slow will not be quick the second time
         if "free-models-per-day" in last:
             return "account-cap", last
         if attempt == 1:
@@ -277,7 +279,10 @@ def main(argv):
         return check()
     if len(argv) >= 3 and argv[1] == "--verify":
         return verify(argv[2], argv[3] if len(argv) > 3 else ".")
-    if len(argv) < 2 or not os.path.isfile(argv[1]):
+    if len(argv) >= 2 and not argv[1].startswith("-") and not os.path.isfile(argv[1]):
+        print(f"packet not found: {os.path.abspath(argv[1])}\n(run from the folder the session was opened on, or give the full path)", file=sys.stderr)
+        return 2
+    if len(argv) < 2:
         print(__doc__.split("\n\n")[1], file=sys.stderr)
         return 2
     packet = argv[1]
@@ -383,7 +388,8 @@ def main(argv):
         print(f"Label line: Review: [thin] · 1 vendor{plus} · receipt {rid}")
     else:
         print(f"Label line: Review: [converged] · {len(vendors)} vendors{plus} · receipt {rid}\n"
-              "  Use [converged] only once every finding has a disposition. Until then it is [open].")
+              f"  Earn it first: give every finding a disposition in {stem}-dispositions.md, next to the packet.\n"
+              "  Until that file exists the review is still open.")
     return 0
 
 

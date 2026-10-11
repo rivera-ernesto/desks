@@ -43,32 +43,36 @@ path, from the folder the session was opened on.
 2. **New topic:** the script copied the README template. Fill the goal in one sentence from what
    the user said. Nothing else yet.
 3. **Existing topic:** read its `README.md` (state, what was learned, next step) and the newest
-   file in `sessions/`. Read nothing else until the task needs it.
+   file in `sessions/`. If the script reports an inbox, fold each note into the README (usually
+   under "Open") and delete the note file. Read nothing else until the task needs it.
 4. Say one boot line: topic · new or continued · level · review mode (§ 3) · anything that needs
    attention. Then start on the work. Never open with "what would you like me to do?" when the
    README already names a next step: propose it.
 
 **Git stays under the hood.** The user never has to type or understand it. You do the plumbing
-through `desk.py`, and you commit your own files, by path, at each milestone with a plain message.
+through `desk.py`, and you commit your own files, by path, at each milestone with a plain message
+(the review answers the script wrote are evidence: commit that folder too).
 Never `git add -A`, never switch branches or stash in the main folder, never force, never commit
 files you did not write. Say "saved" and "sent for your review", not "committed" and "pushed",
 unless the user speaks git.
 
 **Setup happens as you go.** Do not front-load questions. The first time something is needed
 (a place to keep history, a review key, GitHub, the user's profile), ask that one question, with
-your recommended default first, and record the answer in the Desk block of `CLAUDE.md` so no
-session asks again. The questions and their defaults are in `reference/setup.md`.
+your recommended default first, and record the answer with `desk.py set "<Key>" "<value>"` so no
+session asks again. Do not edit `CLAUDE.md` by hand from inside a topic's working copy. The questions and their defaults are in `reference/setup.md`.
 
 ## 2) Working rules
 
 - **The user's disorder is welcome; sorting it is your job.** People think in several subjects at
   once. When something that belongs to another topic comes up, do not refuse it and do not ask
-  them to open another Desk. Small: answer it here. Larger: say in one line where you are filing
-  it, add it to that topic's README under "Open" (create the topic with `desk.py open` if it does
-  not exist), and carry on. A Desk can hold more than one topic; each topic's notes still live in
-  its own folder, so the next session finds them. At the close, each topic touched gets its
-  README updated.
-
+  them to open another Desk.
+  - *Small:* answer it here.
+  - *Worth keeping:* run `desk.py note <this-topic> <other-topic> "what came up"`, say in one line
+    that you noted it for that topic, and carry on. The note waits in that topic's `inbox/`, and
+    the next Desk opened on it folds it into its README. Do not open or edit the other topic
+    from here: this session has one working copy, and it belongs to this topic.
+  - *Taking over:* when the session has plainly become about the other subject, say so once and
+    offer to close this one and continue there. Keep going here if they prefer.
 - **Write only in the place `desk.py open` printed**, unless the user points you at another file.
   Files the user never saved to history are not in a topic's working copy: read them from the main
   folder by full path, and do not edit them there.
@@ -107,7 +111,7 @@ session. In short:
    user it is running (about three minutes, no cost). It asks free models from other vendors and
    prints a label line with a receipt.
 3. Read every answer. Give each finding a disposition (adopted, rejected and why, or left to the
-   user) in `<packet>-reviews.md`. Change your answer accordingly.
+   user) in `<packet>-dispositions.md`. Change your answer accordingly.
 4. End the reply with the label line, copied from the script's output.
 
 **Review modes**, said once in the boot line:
@@ -121,7 +125,8 @@ session. In short:
 `[thin]` only one vendor answered · `[same-vendor]` reviewed by a Claude subagent only ·
 `[unreviewed]` no review ran · `[quick]` the user asked, in their own words, to skip it. A label
 without a receipt is only valid for `[same-vendor]`, `[unreviewed]` and `[quick]`. Never write a
-label the script did not print. If an answer changes after its review, it is unreviewed again.
+label the script did not print. Changing your answer because of what reviewers found is the review
+working, and needs no second review. Adding a claim they never saw does.
 
 **Private material.** If removing the identifying details would change the answer, do not send it
 out. Use the same-vendor pass, or a private lane if one is set up (`reference/review.md`).

@@ -4,6 +4,8 @@
     python3 desk.py status
     python3 desk.py open  <topic>
     python3 desk.py close <topic> --merge | --pr [--title "Five Words At Most"]
+    python3 desk.py note  <open-topic> <other-topic> "what came up, in a sentence or two"
+    python3 desk.py set   "Close" "merge"      (records a setup answer in CLAUDE.md)
     python3 desk.py tidy
 
 Three levels, detected, never required:
@@ -119,6 +121,9 @@ def seed(folder, topic):
     if new:
         text = open(os.path.join(TEMPLATES, "README.md"), encoding="utf-8").read()
         open(os.path.join(folder, "README.md"), "w", encoding="utf-8").write(text.replace("{{topic}}", topic))
+    dec = os.path.join(folder, "decisions.md")
+    if not os.path.exists(dec):
+        open(dec, "w", encoding="utf-8").write("# Decisions\n\nOne dated line each: what was decided, why, and what was ruled out.\n")
     return new
 
 
@@ -173,6 +178,10 @@ def cmd_open(topic):
     print(f"level:  {lv}")
     print(f"topic:  {topic} ({'new' if new else 'continued'})")
     print(f"work in: {folder}")
+    inbox = os.path.join(folder, "inbox")
+    left = sorted(os.listdir(inbox)) if os.path.isdir(inbox) else []
+    if left:
+        print(f"inbox:  {len(left)} note(s) left by other desks in {inbox}: fold each into the README, then delete it")
     if lv != "folder":
         print(f"branch: desk/{topic}  ·  working copy: {work}")
         print(f"note:   files in {root} that were never committed are not in the working copy; read them from there by full path")
@@ -193,7 +202,9 @@ def cmd_close(topic, how, title):
     notes = sorted(f for f in os.listdir(os.path.join(folder, "sessions")) if f.endswith(".md")) if os.path.isdir(os.path.join(folder, "sessions")) else []
     if not notes:
         die("no session note yet: write sessions/<date>-<title>.md from the template first")
-    for f in [os.path.join(folder, "README.md"), os.path.join(folder, "sessions", notes[-1])]:
+    check = [os.path.join(folder, f) for f in sorted(os.listdir(folder)) if f.endswith(".md")]
+    check += [os.path.join(folder, "sessions", f) for f in notes]
+    for f in check:
         left = re.findall(r"\{\{[^}]*\}\}", open(f, encoding="utf-8").read())
         if left:
             die(f"{f} still has unfilled placeholders: {', '.join(left[:4])}")
@@ -237,6 +248,60 @@ def cmd_close(topic, how, title):
     return 0
 
 
+def cmd_note(current, other, text):
+    """Something about another topic came up. Leave it where that topic's next session finds it.
+
+    It is written inside the open desk's own working copy, one small file per
+    note, so no second branch is created and two sessions that both leave a
+    note for the same topic can never collide when they are merged.
+    """
+    current, other = slug(current), slug(other)
+    if not text.strip():
+        die("say what came up", 2)
+    root, is_git = main_root()
+    cfg = settings(root)
+    droot = cfg.get("desk root", "desks/").strip("/")
+    lv = level(root, is_git, cfg)
+    work = root if lv == "folder" else worktree_of(root, f"desk/{current}")
+    if not work:
+        die(f"no open desk named {current}")
+    inbox = os.path.join(work, droot, other, "inbox")
+    os.makedirs(inbox, exist_ok=True)
+    stamp = datetime.datetime.now().strftime("%Y-%m-%d-%H%M%S")
+    path = os.path.join(inbox, f"{stamp}-from-{current}.md")
+    open(path, "w", encoding="utf-8").write(f"From the desk `{current}`, {stamp[:10]}:\n\n{text.strip()}\n")
+    print(f"noted for {other}: {path}")
+    return 0
+
+
+def cmd_set(key, value):
+    """Record a setup answer as `- Key: value` in the Desk block of the main folder's CLAUDE.md.
+
+    The block lives in the main folder, not in a topic's working copy, because
+    every Desk reads it from there. When the file is under git it is saved by
+    itself, so a later close never finds the main folder half-edited.
+    """
+    root, is_git = main_root()
+    path = os.path.join(root, "CLAUDE.md")
+    try:
+        text = open(path, encoding="utf-8").read()
+    except OSError:
+        die("no CLAUDE.md in the main folder; run the install first")
+    m = re.search(r"(<!-- desk:start -->)(.*?)(<!-- desk:end -->)", text, flags=re.S)
+    if not m:
+        die("CLAUDE.md has no Desk block; run the install first")
+    key, value = key.strip().rstrip(":"), value.strip()
+    body, line = m.group(2), f"- {key}: {value}"
+    pat = re.compile(rf"^\s*-\s*{re.escape(key)}:.*$", flags=re.M | re.I)
+    body = pat.sub(line, body, count=1) if pat.search(body) else body.rstrip("\n") + "\n" + line + "\n"
+    open(path, "w", encoding="utf-8").write(text[:m.start(2)] + body + text[m.end(2):])
+    print(f"recorded in {path}: {line}")
+    if is_git and run(["git", "ls-files", "--error-unmatch", "CLAUDE.md"], cwd=root)[0] == 0:
+        rc, _, err = run(["git", "commit", "--only", "CLAUDE.md", "-m", f"desk: record {key}"], cwd=root)
+        print("saved to history" if rc == 0 else "not saved to history (" + (err.splitlines() or ["nothing to save"])[-1] + ")")
+    return 0
+
+
 def cmd_tidy():
     """Remove working copies whose branch is already merged. Never touches unmerged work."""
     root, is_git = main_root()
@@ -263,6 +328,10 @@ def main(a):
     if len(a) >= 4 and a[1] == "close" and a[3] in ("--merge", "--pr"):
         title = a[a.index("--title") + 1] if "--title" in a and a.index("--title") + 1 < len(a) else ""
         return cmd_close(a[2], a[3], title)
+    if len(a) >= 4 and a[1] == "set":
+        return cmd_set(a[2], " ".join(a[3:]))
+    if len(a) >= 5 and a[1] == "note":
+        return cmd_note(a[2], a[3], " ".join(a[4:]))
     if len(a) >= 2 and a[1] == "tidy":
         return cmd_tidy()
     print(__doc__, file=sys.stderr)

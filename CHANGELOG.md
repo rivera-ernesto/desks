@@ -1,9 +1,24 @@
 # Changelog
 
+## 0.1.3 (2026-10-11)
+
+Found by running a full Desk on the installed skill, and by reviewing 0.1.2's own new rule.
+
+- **Fixed:** noting something for another topic no longer opens a second branch from inside a
+  session. `desk.py note` leaves it in that topic's `inbox/`; the next Desk there folds it in.
+- `desk.py set` records a setup answer in the main folder and saves it by itself, so a later
+  close is not blocked by a half-edited `CLAUDE.md`.
+- The dispositions file is `<packet>-dispositions.md`, no longer confusable with the answers
+  folder. Adopting reviewers' findings needs no second review.
+- Close checks every note of the topic for placeholders; `decisions.md` is created with the topic.
+- Reviews wait less for slow models; a wrong packet path says so.
+
+**Migration from 0.1.2:** none required. Existing `<packet>-reviews.md` files can stay as they are.
+
 ## 0.1.2 (2026-10-11)
 
 - A Desk can hold more than one topic: what comes up in passing is filed under its own topic
-  instead of being refused.
+  instead of being refused. (Its first wording had a defect, fixed in 0.1.3.)
 
 No migration needed.
 

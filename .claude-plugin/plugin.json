@@ -1,6 +1,6 @@
 {
   "name": "desk",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Focused working sessions for Claude Code: work sorted by topic, answers reviewed by other AI vendors, cheap workers, and a written close.",
   "author": { "name": "Ernesto Rivera" },
   "license": "MIT",

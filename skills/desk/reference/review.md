@@ -28,7 +28,7 @@ python3 <skill folder>/scripts/review.py desks/<topic>/reviews/<packet>.md "what
 ```
 
 It picks one free model per vendor from the live list, asks them in parallel, retries once, and
-tops up with other vendors until three have answered. It writes the answers to
+tops up with other vendors until three have answered. Expect two to four minutes. It writes the answers to
 `<packet>-reviews/` with a ledger and a receipt, and prints the label line.
 
 - **Some will fail.** Free endpoints are often busy. The script keeps going; you do not need to.
@@ -43,10 +43,12 @@ tops up with other vendors until three have answered. It writes the answers to
 1. Read every answer file, not the summary.
 2. List the findings. For each one: **adopted** (and what changed), **rejected** (and why, in one
    line), or **left to the user** (a real disagreement about what they want).
-3. Write that table to `<packet>-reviews.md`, next to the packet.
+3. Write that table to `<packet>-dispositions.md`, next to the packet. (`<packet>-reviews/` is the
+   folder of raw answers the script wrote; leave it as it is.)
 4. Reviewers are sometimes plainly wrong about facts or misread the packet. Say so and move on. Do
    not average a disagreement away to look balanced.
-5. Rewrite your answer. If it changed in substance after the review, it needs a new review.
+5. Rewrite your answer. Adopting findings needs no second review. A new claim the reviewers never
+   saw does.
 
 ## The reply
 

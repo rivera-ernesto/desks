@@ -38,3 +38,4 @@ taking one photo with the camera.
 - `decisions.md`: what was decided, when and why
 - `sessions/`: one short note per working session
 - `reviews/`: packets sent for review, the answers, and what was done with them
+- `inbox/`: notes left by other Desks; the next session here folds them in and deletes them

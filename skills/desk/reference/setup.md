@@ -2,8 +2,9 @@
 
 Desk configures itself with the user as the work goes. Ask each question **the first time it
 matters**, never all at the start, unless they typed `desk setup`. Each question comes with a
-recommended default and one line on what it buys. Record every answer as a line in the Desk block
-of `CLAUDE.md`, so no session asks twice. Start with `python3 <skill folder>/scripts/desk.py status`
+recommended default and one line on what it buys. Record every answer with
+`desk.py set "<Key>" "<value>"`, which writes the line in the Desk block of the main folder's
+`CLAUDE.md` and saves it by itself, so no session asks twice and a later close is not blocked. Start with `python3 <skill folder>/scripts/desk.py status`
 and `scripts/review.py --check`: do not ask what you can detect.
 
 | When it first matters | Question | Recommended default | Line recorded |
