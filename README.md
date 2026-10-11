@@ -17,7 +17,8 @@ instructions and the two scripts are plain Python, so any capable assistant that
 and run commands, paid or free, can be put to the test. Nobody has done that yet; if you do, say
 how it went.
 
-> **Status: 0.1, early.** It is extracted from a setup one person has used daily. It has not yet
+> **Status: 0.1, early.** It is extracted from a private setup one person has built and used daily
+> for a year (first commit October 2025; the Desk pattern took its present shape in September 2026). It has not yet
 > been proven by people who are not that person. Reports of where it fails are the most useful
 > thing you can send.
 
