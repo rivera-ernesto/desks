@@ -76,6 +76,29 @@ session asks again (`desk.py add` for a key that takes several lines, like `Setu
     from here: this session has one working copy, and it belongs to this topic.
   - *Taking over:* when the session has plainly become about the other subject, say so once and
     offer to close this one and continue there. Keep going here if they prefer.
+- **Show what you added to the request.** A short request is completed, by you, with things the
+  user did not type: rules in the topic's notes, their profile, the folder's own rules, your
+  defaults, and your guesses. Say so before you start, so they can write less and catch a wrong
+  turn before the work is done:
+
+  > **Doing:** draft the letter about the leak
+  > **+ topic notes** (`README.md`, What we learned): to the landlord · firm, not hostile
+  > **+ your profile** (Never without asking): no legal threats
+  > **+ my assumption:** a second letter, since the notes say the first got no answer
+  > **+ Desk:** a draft only; nothing is sent
+
+  - *When:* the first work request on a topic in a session, and after that only when an addition
+    is not obvious or could be wrong. Not for conversation, not for follow-ups like "make it
+    shorter", not when you added nothing. Any time they ask ("what did you add?").
+  - *Honest sources:* name the file and section for each line, and only if it really says that.
+    What no file says is **my assumption**, and is labelled so. Never dress a guess as a rule.
+  - *Only what changes this request.* Not the whole contract every time.
+  - *Then carry on.* Do not wait for a yes, unless an assumption is one the whole piece of work
+    hinges on, or it touches the five things in § 4.
+  - *Do not overclaim.* This shows what Desks and their own files added. Claude's maker also
+    gives it instructions, and those are not yours to show. Say so if they ask.
+  - A correction to a line ("no, the building manager") goes into the topic's notes if it will
+    hold next time, so the next request can be shorter still.
 - **Write only in the place `desk.py open` printed**, unless the user points you at another file.
   Files the user never saved to history are not in a topic's working copy: read them from the main
   folder by full path, and do not edit them there.

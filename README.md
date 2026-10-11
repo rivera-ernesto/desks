@@ -20,7 +20,7 @@ Code tab, or the terminal). It is not made by, or affiliated with, Anthropic.
 Open the folder you want to work in with Claude Code and paste:
 
 ```text
-Set up Desks in this folder. Get version v0.1.5 of https://github.com/rivera-ernesto/desks, read its INSTALL.md and follow it. First show me the list of files you will create or change, and wait for my yes. Keep everything I already have.
+Set up Desks in this folder. Get version v0.1.6 of https://github.com/rivera-ernesto/desks, read its INSTALL.md and follow it. First show me the list of files you will create or change, and wait for my yes. Keep everything I already have.
 ```
 
 Read [INSTALL.md](INSTALL.md) first if you like to know what a prompt will do; it is short.
@@ -36,6 +36,7 @@ desk my-first-topic
 
 | | |
 |---|---|
+| **You see what was added** | A short request gets completed with your notes, your profile and the folder's rules. Desks shows you those additions, each with its source, before it starts, so you can write less and correct sooner. |
 | **Sorted for you** | Write the way you think, several subjects at once. Each one is filed under its own topic, so nothing said in passing is lost. |
 | **One topic, one folder** | `desks/<topic>/` holds the state, the decisions and a note per session. Plain files you can read. History, branches and pull requests happen under the hood when git is there. You never type it. |
 | **Reviewed answers** | Advice and anything high-stakes is sent, with names removed, to free models from other vendors. Claude answers their objections before you see the result, and the reply carries a label you can verify. |

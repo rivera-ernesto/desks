@@ -44,6 +44,21 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
   </div>
   <p class="note">An invented example. Claude sorts what you said, checks what can be checked, says what it could not verify, and keeps the "don't" as a rule for the whole topic. If you had also mentioned your tax return, it would have filed that under its own topic and carried on.</p>
 
+  <h2>Short requests, completed in the open</h2>
+  <p>Every assistant adds things to what you type. A Desk shows you what it added, and where each addition came from, before it starts:</p>
+  <div class="chat">
+    <div class="turn"><div class="who">You</div><p>Draft the letter about the leak.</p></div>
+    <div class="turn"><div class="who">Claude</div>
+      <p><strong>Doing:</strong> draft the letter about the leak<br />
+      <span class="added"><strong>+ topic notes</strong> (README, What we learned): to the landlord · firm, not hostile</span><br />
+      <span class="added"><strong>+ your profile</strong> (Never without asking): no legal threats</span><br />
+      <span class="added"><strong>+ my assumption:</strong> a second letter, since the notes say the first got no answer</span><br />
+      <span class="added"><strong>+ Desk:</strong> a draft only; nothing is sent</span></p>
+    </div>
+    <div class="turn"><div class="who">You</div><p>no, this one goes to the building manager</p></div>
+  </div>
+  <p class="note">An invented example. A guess is labelled as a guess, never as a rule. As the notes on a topic grow, what you have to type shrinks. It shows what Desks and your own files added: the instructions Claude gets from its maker are not ours to show.</p>
+
   <h2>What you get</h2>
   <div class="grid">
     <div class="card"><h3>Reviewed answers</h3><p>Advice and anything high-stakes goes, with names removed, to free models from other vendors. Claude has to answer each objection, and the reply says how it was reviewed.</p></div>

@@ -51,6 +51,7 @@ th { color: var(--muted); font-weight: 600; font-size: 0.85rem; }
 .chat .turn:last-child { border-bottom: 0; }
 .chat .who { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 2px; }
 .chat p { margin: 4px 0; }
+.chat .added { color: var(--accent); }
 .chat .receipt { font-family: var(--mono); font-size: 0.85rem; color: var(--ok); }
 .status { display: inline-block; font-size: 0.82rem; border: 1px solid var(--line); border-radius: 999px; padding: 2px 12px; color: var(--warn); margin-bottom: 18px; }
 footer.site { border-top: 1px solid var(--line); color: var(--muted); font-size: 0.9rem; padding: 24px 0 40px; }

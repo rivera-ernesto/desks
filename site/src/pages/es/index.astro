@@ -44,6 +44,21 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
   </div>
   <p class="note">Ejemplo inventado. Claude ordena lo que dijiste, verifica lo que se puede verificar, dice lo que no pudo comprobar y guarda el "no" como regla para todo el tema. Si además hubieras mencionado tu declaración de impuestos, la habría anotado en su propio tema y habría seguido.</p>
 
+  <h2>Pedidos cortos, completados a la vista</h2>
+  <p>Todo asistente le añade cosas a lo que escribes. Un Desk te muestra lo que añadió, y de dónde salió cada cosa, antes de empezar:</p>
+  <div class="chat">
+    <div class="turn"><div class="who">Tú</div><p>Redacta la carta por la gotera.</p></div>
+    <div class="turn"><div class="who">Claude</div>
+      <p><strong>Haciendo:</strong> redactar la carta por la gotera<br />
+      <span class="added"><strong>+ notas del tema</strong> (README, lo aprendido): al casero · firme, no hostil</span><br />
+      <span class="added"><strong>+ tu perfil</strong> (nunca sin preguntar): sin amenazas legales</span><br />
+      <span class="added"><strong>+ supongo:</strong> es una segunda carta, porque las notas dicen que la primera no tuvo respuesta</span><br />
+      <span class="added"><strong>+ Desk:</strong> solo un borrador; no se envía nada</span></p>
+    </div>
+    <div class="turn"><div class="who">Tú</div><p>no, esta va para el administrador del edificio</p></div>
+  </div>
+  <p class="note">Ejemplo inventado. Una suposición se marca como suposición, nunca como regla. A medida que crecen las notas de un tema, lo que tienes que escribir se achica. Muestra lo que añadieron Desks y tus propios archivos: las instrucciones que Claude recibe de su fabricante no nos corresponde mostrarlas.</p>
+
   <h2>Qué obtienes</h2>
   <div class="grid">
     <div class="card"><h3>Respuestas revisadas</h3><p>Los consejos y todo lo importante van, sin nombres, a modelos gratuitos de otras empresas. Claude tiene que responder a cada objeción, y la respuesta dice cómo fue revisada.</p></div>

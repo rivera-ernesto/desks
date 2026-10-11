@@ -27,7 +27,7 @@ Use whichever applies:
 
 - The user gave you a local path to an unzipped copy: use it as `SRC`.
 - Otherwise clone to a temporary folder:
-  `git clone --depth 1 --branch v0.1.5 https://github.com/rivera-ernesto/desks <temp>/desks` and use
+  `git clone --depth 1 --branch v0.1.6 https://github.com/rivera-ernesto/desks <temp>/desks` and use
   that as `SRC`. A version tag does not move; do not install from the moving `main` branch unless
   the user asks for the development version.
   If `git` is missing or the clone is refused, ask the user to download the zip from the
@@ -68,7 +68,7 @@ When my first message is `desk <topic>` (or `/desk`, `open desk`, `abre desk`), 
 work on a topic, load the `desk` skill and follow it for the whole session.
 
 - Desk root: `desks/`
-- Version: 0.1.5
+- Version: 0.1.6
 - Where my own instructions in this file and the Desk contract disagree, mine win; tell me where.
 <!-- desk:end -->
 ```

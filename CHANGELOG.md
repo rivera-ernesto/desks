@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.6 (2026-10-11)
+
+- A Desk shows what it added to a short request, each addition with its source and guesses
+  labelled as guesses, before it starts.
+
+No migration needed.
+
 ## 0.1.5 (2026-10-11)
 
 Found by a second full test Desk, in a folder that already had rules, an agent and client folders.

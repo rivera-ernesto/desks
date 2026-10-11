@@ -1,13 +1,13 @@
 // One source for everything that is repeated across pages and checked by
 // scripts/qa-check.mjs against the README.
 export const REPO = 'https://github.com/rivera-ernesto/desks';
-export const VERSION = 'v0.1.5';
+export const VERSION = 'v0.1.6';
 
 export const INSTALL_PROMPT =
-  `Set up Desks in this folder. Get version v0.1.5 of ${REPO}, read its INSTALL.md and follow it. First show me the list of files you will create or change, and wait for my yes. Keep everything I already have.`;
+  `Set up Desks in this folder. Get version v0.1.6 of ${REPO}, read its INSTALL.md and follow it. First show me the list of files you will create or change, and wait for my yes. Keep everything I already have.`;
 
 export const INSTALL_PROMPT_ES =
-  `Instala Desks en esta carpeta. Obtén la versión v0.1.5 de ${REPO}, lee su INSTALL.md y síguelo. Primero muéstrame la lista de archivos que vas a crear o cambiar, y espera mi sí. Conserva todo lo que ya tengo. Respóndeme en español.`;
+  `Instala Desks en esta carpeta. Obtén la versión v0.1.6 de ${REPO}, lee su INSTALL.md y síguelo. Primero muéstrame la lista de archivos que vas a crear o cambiar, y espera mi sí. Conserva todo lo que ya tengo. Respóndeme en español.`;
 
 // Where "work with me" points. A repository link until the author chooses a contact channel.
 export const CONTACT = 'https://github.com/rivera-ernesto';
