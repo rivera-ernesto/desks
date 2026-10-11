@@ -1,0 +1,20 @@
+// One source for everything that is repeated across pages and checked by
+// scripts/qa-check.mjs against the README.
+export const REPO = 'https://github.com/rivera-ernesto/desk';
+export const VERSION = 'v0.1.0';
+
+export const INSTALL_PROMPT =
+  `Set up Desk in this folder. Get version v0.1.0 of ${REPO}, read its INSTALL.md and follow it. First show me the list of files you will create or change, and wait for my yes. Keep everything I already have.`;
+
+export const INSTALL_PROMPT_ES =
+  `Instala Desk en esta carpeta. Obtén la versión v0.1.0 de ${REPO}, lee su INSTALL.md y síguelo. Primero muéstrame la lista de archivos que vas a crear o cambiar, y espera mi sí. Conserva todo lo que ya tengo. Respóndeme en español.`;
+
+// Where "work with me" points. A repository link until the author chooses a contact channel.
+export const CONTACT = 'https://github.com/rivera-ernesto';
+
+export const NAV = [
+  { href: 'how/', label: 'How it works' },
+  { href: 'examples/', label: 'Examples' },
+  { href: 'install/', label: 'Install' },
+  { href: 'about/', label: 'About' },
+];

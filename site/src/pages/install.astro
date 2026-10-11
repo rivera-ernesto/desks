@@ -1,0 +1,41 @@
+---
+import Base from '../layouts/Base.astro';
+import Prompt from '../components/Prompt.astro';
+import { INSTALL_PROMPT, REPO } from '../data/site';
+---
+<Base title="Install Desk" description="One prompt to paste into Claude Code. What it does, step by step, and how to remove it.">
+  <h1>Install</h1>
+  <ol class="steps">
+    <li><strong>Open a folder in Claude Code.</strong> A new empty folder, or one you already work in. Desk keeps what is there.</li>
+    <li><strong>Paste this.</strong>
+      <Prompt id="install" text={INSTALL_PROMPT} />
+    </li>
+    <li><strong>Start a new session in the same folder</strong> and type <code>desk</code> followed by a short topic name, for example <code>desk my-first-topic</code>.</li>
+    <li><strong>When it offers a review key, say yes.</strong> Three minutes, free, and it is what turns a second Claude into several other vendors.</li>
+  </ol>
+
+  <h2>What the prompt does</h2>
+  <p>You are telling an AI agent to follow instructions from the internet. Be suspicious of any prompt like that, from anyone, and look first. <a href={`${REPO}/blob/main/INSTALL.md`}>INSTALL.md</a> is about a hundred lines, and this is all of it:</p>
+  <ul>
+    <li>Downloads one fixed version of the repository to a temporary folder.</li>
+    <li>Shows you the list of files it will create or change, and waits for your yes.</li>
+    <li>Copies one skill folder and three worker files into <code>.claude/</code> in your folder.</li>
+    <li>Adds one clearly marked block to <code>CLAUDE.md</code>, or creates the file with only that block.</li>
+    <li>Creates an empty <code>desks/</code> folder.</li>
+    <li>Reports which files it created or changed.</li>
+  </ul>
+  <p>It installs no software, changes no settings, creates no account, and asks before touching any file that already exists. Nothing runs from the network afterwards: the scripts are two plain Python files in the skill folder that you can read.</p>
+
+  <h2>Other ways</h2>
+  <ul>
+    <li><strong>As a plugin</strong>, in a terminal session: <code>/plugin marketplace add rivera-ernesto/desk</code>, then <code>/plugin install desk@desk</code>.</li>
+    <li><strong>From a downloaded copy</strong>: download the zip from GitHub, unzip it, and tell Claude where it is in place of the address.</li>
+  </ul>
+
+  <h2>Already have a setup?</h2>
+  <p>After installing, type <code>desk adopt</code>. It reads your rules, agents, plugins, connected tools and folders, and proposes how to fit around them. Where your rules and Desk's disagree, yours win.</p>
+
+  <h2>Update and remove</h2>
+  <p><strong>Update:</strong> type <code>desk update</code>. It shows what changed and replaces only Desk's own folder.</p>
+  <p><strong>Remove:</strong> delete <code>.claude/skills/desk/</code>, the three <code>desk-*.md</code> files in <code>.claude/agents/</code>, and the marked block in <code>CLAUDE.md</code>. Your <code>desks/</code> folder is yours.</p>
+</Base>

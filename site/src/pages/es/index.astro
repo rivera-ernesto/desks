@@ -1,0 +1,33 @@
+---
+import Base from '../../layouts/Base.astro';
+import Prompt from '../../components/Prompt.astro';
+import { INSTALL_PROMPT_ES, REPO } from '../../data/site';
+---
+<Base lang="es" title="Desk: una forma de trabajar con Claude Code" description="Un tema por sesión, respuestas revisadas por otras IA antes de que las leas, y un cierre escrito. Código abierto, para Claude Code.">
+  <span class="status">Versión temprana. Usada a diario por una persona, ahora abierta a más.</span>
+  <h1>Las respuestas de Claude, revisadas por otras IA antes de que las leas.</h1>
+  <p class="lede">Desk es una forma de trabajar con Claude Code. Un tema por sesión, recomendaciones cuestionadas por modelos de otras empresas, la lectura pesada en manos de ayudantes más baratos, y un cierre escrito para que la próxima sesión empiece donde quedó esta.</p>
+
+  <Prompt id="install" text={INSTALL_PROMPT_ES} caption="Abre tu carpeta en Claude Code y pega esto" copy="Copiar" done="Copiado" />
+  <p class="note">Copia una habilidad y tres ayudantes a la carpeta y añade un bloque marcado a <code>CLAUDE.md</code>. Pregunta antes de tocar cualquier cosa que ya tengas.</p>
+
+  <h2>Qué obtienes</h2>
+  <div class="grid">
+    <div class="card"><h3>Respuestas revisadas</h3><p>Los consejos y todo lo importante van, sin nombres, a modelos gratuitos de otras empresas. Claude tiene que responder a cada objeción, y la respuesta dice cómo fue revisada.</p></div>
+    <div class="card"><h3>Propuestas, no preguntas</h3><p>Claude resuelve lo que puede y trae una propuesta revisada. Espera tu palabra en cinco cosas: dinero, lo público, contactar a alguien, accesos y lo permanente.</p></div>
+    <div class="card"><h3>Un tema, una carpeta</h3><p>Estado, decisiones y una nota por sesión, en archivos simples. El historial, las ramas y los pull requests ocurren por debajo. Nunca escribes git.</p></div>
+    <div class="card"><h3>Tu plan rinde más</h3><p>Leer, mirar pantallas y procesar salidas largas va a ayudantes con un modelo más pequeño. La sesión propone su propio cierre antes de volverse cara.</p></div>
+    <div class="card"><h3>Retoma donde quedó</h3><p>Al cerrar, las notas del tema se reescriben para que una sesión nueva pueda continuar solo con ellas.</p></div>
+    <div class="card"><h3>Se acomoda a lo tuyo</h3><p>Tus reglas mandan. Desk se suma a lo que tienes y puede usar tus carpetas, tus agentes y otras IA que ya pagues como revisores.</p></div>
+  </div>
+
+  <h2>Primeros pasos</h2>
+  <ol class="steps">
+    <li>Abre una carpeta en Claude Code y pega el texto de arriba.</li>
+    <li>Abre una sesión nueva en la misma carpeta y escribe <code>desk</code> y un tema corto, por ejemplo <code>desk vender-camara</code>.</li>
+    <li>Cuando te ofrezca la clave de revisión, di que sí: tres minutos, gratis.</li>
+    <li>Para cerrar: <code>desk close</code>. Para retomar otro día: <code>desk vender-camara</code>.</li>
+  </ol>
+  <p><a href={`${REPO}/blob/main/docs/es/inicio-rapido.md`}>Guía completa en español</a> · <a href={REPO}>Código en GitHub</a></p>
+  <p class="note">Desk es un proyecto independiente. No es de Anthropic ni está afiliado a Anthropic.</p>
+</Base>

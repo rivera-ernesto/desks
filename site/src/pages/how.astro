@@ -1,0 +1,62 @@
+---
+import Base from '../layouts/Base.astro';
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+---
+<Base title="How Desk works" description="The review loop, the five things that wait for you, the workers, the close, and what leaves your machine.">
+  <h1>How it works</h1>
+  <p class="lede">Desk is not an app. It is a set of instructions Claude Code loads when you open a topic, plus two small scripts. Everything it does, you can read.</p>
+
+  <h2>1. You open a topic</h2>
+  <p>Type <code>desk lisbon-trip</code>. Claude creates or reopens that topic's folder, reads its notes, and proposes the next step. If the folder keeps history with git, the topic gets its own branch and working copy, so the main folder is never left half-edited and several topics can run side by side. You do not see any of that unless you want to.</p>
+
+  <h2>2. Substantive answers are reviewed</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Kind of answer</th><th>Review</th></tr></thead>
+    <tbody>
+      <tr><td>Conversation, a clarification, a small note</td><td>None</td></tr>
+      <tr><td>A recommendation, a draft you will use, a fact you will act on</td><td>At least one pass</td></tr>
+      <tr><td>Strategy, money, public text, anything hard to undo</td><td>Several vendors</td></tr>
+    </tbody>
+  </table></div>
+  <p>Claude writes the question and its proposed answer into one file, with names and contacts removed, and a script sends it to free models from several other vendors. They are weaker than Claude. They are not there to be right. They were trained differently, so they object to different things, and Claude has to deal with each objection in writing before answering you.</p>
+  <p>Every reviewed reply ends with a label:</p>
+  <div class="tablewrap"><table>
+    <tbody>
+      <tr><td class="label">[converged]</td><td>Several vendors answered and each objection was adopted or rejected with a reason</td></tr>
+      <tr><td class="label">[thin]</td><td>Only one vendor answered</td></tr>
+      <tr><td class="label">[same-vendor]</td><td>No review key yet. A second Claude attacked the answer. This catches slips, not blind spots</td></tr>
+      <tr><td class="label">[unreviewed]</td><td>No review ran</td></tr>
+      <tr><td class="label">[quick]</td><td>You asked to skip it</td></tr>
+    </tbody>
+  </table></div>
+  <p>The label comes with a receipt number written by the script next to the raw answers, so a label cannot simply be claimed.</p>
+
+  <h2>3. Five things wait for you</h2>
+  <p>Claude does not hand you questions it could settle. It works the question out, has it reviewed, and brings a proposal. What you do not answer goes ahead on that proposal. Five kinds of thing always wait for your word, however long it takes:</p>
+  <ul>
+    <li><strong>Money</strong>: spending, prices, anything paid.</li>
+    <li><strong>Public</strong>: anything other people will see.</li>
+    <li><strong>Outside</strong>: sending a message, posting, contacting someone, creating an account.</li>
+    <li><strong>Access</strong>: passwords, keys, settings, permissions.</li>
+    <li><strong>Permanent</strong>: deleting, overwriting, anything that cannot be undone.</li>
+  </ul>
+  <p>On your logged-in accounts Claude only reads, unless you ask for a specific kind of action in that session.</p>
+
+  <h2>4. Workers do the reading</h2>
+  <p>The best model stays in the conversation with you. Reading, searching, pulling numbers off a screen and running long commands go to three named workers on a smaller model. Their reading never enters your conversation, which is where most of a plan's allowance is otherwise spent.</p>
+
+  <h2>5. The session closes itself properly</h2>
+  <p>Long sessions cost more per reply, because each turn re-reads everything before it. So at a milestone, Claude proposes the close. It rewrites the topic's notes (where things stand, the next step, what is open, what was learned), writes a short note of the session, and folds the work into the main folder or opens a pull request for you to look at. A new session on the same topic starts from those notes.</p>
+
+  <h2>What leaves your machine</h2>
+  <ul>
+    <li>Only the review file, a single document with identifying details removed, goes to OpenRouter and from there to the model vendors.</li>
+    <li>The script refuses to send a file containing an email address, a phone-like number, something that looks like a key, or any word on your private list.</li>
+    <li>Free models may keep or train on what they receive. Treat a review file as something you would be willing to post anonymously.</li>
+    <li>Material that cannot be made anonymous is reviewed by a second Claude instead, or by a private lane if you set one up.</li>
+  </ul>
+
+  <h2>Setup happens as you go</h2>
+  <p>There is no configuration screen. The first time something matters (keeping history, a review key, a private GitHub copy, a short profile of you), Claude asks that one question with a recommended answer and remembers what you said.</p>
+  <p><a href={`${base}install/`}>Install</a> · <a href={`${base}examples/`}>Examples</a></p>
+</Base>

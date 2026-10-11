@@ -1,0 +1,20 @@
+name: Desk report
+description: How a real Desk went. Two minutes. Please leave out anything private.
+labels: [report]
+body:
+  - type: input
+    attributes: { label: Kind of topic, description: "In general terms: selling an item, planning a trip, writing a proposal...", placeholder: selling a used item }
+    validations: { required: true }
+  - type: dropdown
+    attributes: { label: Review mode, options: [cross-vendor, same-vendor, "I don't know"] }
+    validations: { required: true }
+  - type: textarea
+    attributes: { label: Where it helped, description: One concrete moment. Did a review change an answer? }
+  - type: textarea
+    attributes: { label: Where it got in the way or failed, description: The first thing that confused or annoyed you. }
+    validations: { required: true }
+  - type: textarea
+    attributes: { label: What you already use, description: "Other tools, plugins, AI subscriptions. Did Desk fit around them?" }
+  - type: dropdown
+    attributes: { label: Would you open a second Desk?, options: ["Yes", "Maybe", "No"] }
+    validations: { required: true }

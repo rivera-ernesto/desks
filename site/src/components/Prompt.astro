@@ -1,0 +1,8 @@
+---
+interface Props { id: string; text: string; caption?: string; copy?: string; done?: string; }
+const { id, text, caption = 'Paste into Claude Code', copy = 'Copy', done = 'Copied' } = Astro.props;
+---
+<div class="prompt">
+  <div class="bar"><span>{caption}</span><button class="copy" type="button" data-target={id} data-done={done}>{copy}</button></div>
+  <pre id={id}>{text}</pre>
+</div>

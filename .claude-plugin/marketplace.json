@@ -1,0 +1,16 @@
+{
+  "name": "desk",
+  "owner": {
+    "name": "Ernesto Rivera"
+  },
+  "plugins": [
+    {
+      "name": "desk",
+      "source": "./",
+      "description": "Focused working sessions for Claude Code: one topic, answers reviewed by other AI vendors, cheap workers, and a written close."
+    }
+  ],
+  "metadata": {
+    "description": "Desk: focused, reviewed working sessions for Claude Code."
+  }
+}

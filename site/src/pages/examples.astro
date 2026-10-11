@@ -1,0 +1,39 @@
+---
+import Base from '../layouts/Base.astro';
+import { REPO } from '../data/site';
+---
+<Base title="Desk examples" description="What a topic folder looks like after a real session, and requests that work well.">
+  <h1>Examples</h1>
+  <p class="lede">Every person, place and price here is invented. They show the shape of the work, not anyone's actual affairs.</p>
+
+  <h2>Selling a camera: one session, one review that changed the answer</h2>
+  <p>After the session, the topic folder holds this:</p>
+  <div class="tablewrap"><table>
+    <tbody>
+      <tr><td class="label">README.md</td><td>The goal, where things stand, the next step, what is open, and three rules learned ("sold listings, not asking prices, set the anchor")</td></tr>
+      <tr><td class="label">decisions.md</td><td>Asking 95, floor 80. State the shutter count. Local pickup only. Each with its reason and what was ruled out</td></tr>
+      <tr><td class="label">sessions/</td><td>One short note: done, decided, tried and ruled out, snags and how each ended</td></tr>
+      <tr><td class="label">reviews/</td><td>The file that was sent, each vendor's answer, and a table of what was done with every objection</td></tr>
+      <tr><td class="label">listing.md</td><td>The draft, not posted. Posting waits for the owner's word</td></tr>
+    </tbody>
+  </table></div>
+  <p><a href={`${REPO}/tree/main/examples/sell-camera`}>Read the whole folder on GitHub.</a></p>
+
+  <h2>Requests that work well</h2>
+  <div class="grid">
+    <div class="card"><h3>A decision with money in it</h3><p>"desk quote-kitchen. Three quotes attached. Which one, and what should I ask each before deciding?"</p></div>
+    <div class="card"><h3>A text other people will read</h3><p>"desk landlord-letter. Draft the letter about the leak. Firm, not hostile. Do not send anything."</p></div>
+    <div class="card"><h3>Research where being wrong costs</h3><p>"desk visa-options. Which of these three routes fits my case? Official sources only, and tell me what you could not verify."</p></div>
+    <div class="card"><h3>A small project over weeks</h3><p>"desk garage-sale. Plan it in phases. Start with what is cheap and already waiting."</p></div>
+    <div class="card"><h3>Looking, not touching</h3><p>"desk shop-stats. Open my shop dashboard and tell me which five listings got views but no messages." Read-only by default.</p></div>
+    <div class="card"><h3>Picking up later</h3><p>"desk garage-sale" in a new session, a week on. It reads the notes and proposes the next step.</p></div>
+  </div>
+
+  <h2>Habits that pay off</h2>
+  <ul>
+    <li>One topic per session. A second subject is a second Desk.</li>
+    <li>Say what "done" looks like in the first message.</li>
+    <li>Open one of the review answers now and then. If the objections are never worth having for your kind of work, say so in a report.</li>
+    <li>Let it close. A fresh session on good notes is cheaper and sharper than a long one.</li>
+  </ul>
+</Base>

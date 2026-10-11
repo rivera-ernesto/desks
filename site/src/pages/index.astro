@@ -1,0 +1,45 @@
+---
+import Base from '../layouts/Base.astro';
+import Prompt from '../components/Prompt.astro';
+import { INSTALL_PROMPT, REPO } from '../data/site';
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+---
+<Base title="Desk: a way of working for Claude Code" description="One topic per session, answers checked by other AI vendors before you read them, and a written close. Open source, for Claude Code.">
+  <span class="status">Early version. Tested daily by one person, now opening to others.</span>
+  <h1>Claude's answers, checked by other AIs before you read them.</h1>
+  <p class="lede">Desk is a way of working for Claude Code. One topic per session, recommendations attacked by models from other vendors, heavy reading sent to cheaper workers, and a written close so the next session starts where this one stopped.</p>
+
+  <Prompt id="install" text={INSTALL_PROMPT} caption="Open your folder in Claude Code and paste this" />
+  <p class="note">It copies one skill and three workers into the folder and adds one marked block to <code>CLAUDE.md</code>. It asks before touching anything you already have. <a href={`${base}install/`}>What the prompt does, step by step.</a></p>
+
+  <h2>What a session looks like</h2>
+  <div class="chat">
+    <div class="turn"><div class="who">You</div><p><code>desk sell-camera</code></p></div>
+    <div class="turn"><div class="who">Claude</div><p>sell-camera · new · history on · review: cross-vendor. What are we selling, and by when?</p></div>
+    <div class="turn"><div class="who">You</div><p>My old DSLR kit, this month. What should I ask for it?</p></div>
+    <div class="turn"><div class="who">Claude</div>
+      <p>Ask 95, accept 80. My first number was 120, taken from what similar kits are listed at. Two of three reviewers pointed out that unsold listings show what does <em>not</em> sell. Sold ones went for 70 to 100.</p>
+      <p>One reviewer suggested offering shipping. I did not follow that: you asked for a quick sale, and disputes on a shipped old camera cost more than the extra reach.</p>
+      <p class="receipt">Review: [converged] · 3 vendors · receipt 5d1c0a77e2</p>
+    </div>
+  </div>
+  <p class="note">An invented example. <a href={`${base}examples/`}>See the files this session leaves behind.</a></p>
+
+  <h2>What you get</h2>
+  <div class="grid">
+    <div class="card"><h3>Reviewed answers</h3><p>Advice and anything high-stakes goes, with names removed, to free models from other vendors. Claude has to answer each objection, and the reply says how it was reviewed.</p></div>
+    <div class="card"><h3>Proposals, not questions</h3><p>Claude settles what it can and brings a reviewed proposal. It waits for your word on five things: money, anything public, contacting someone, access, and anything permanent.</p></div>
+    <div class="card"><h3>One topic, one folder</h3><p>State, decisions and a note per session, in plain files. History, branches and pull requests happen under the hood. You never type git.</p></div>
+    <div class="card"><h3>Your plan lasts longer</h3><p>Reading, screen work and long outputs go to workers on a smaller model. The session proposes its own close before it gets expensive.</p></div>
+    <div class="card"><h3>It picks up where it stopped</h3><p>At the close, the topic's notes are rewritten so a fresh session can continue from them alone.</p></div>
+    <div class="card"><h3>It fits around your setup</h3><p>Your rules win. Desk adds to what you have and can use your folders, your agents, and other AI subscriptions you already pay for as reviewers.</p></div>
+  </div>
+
+  <h2>What it needs</h2>
+  <ul>
+    <li>A paid Claude plan and Claude Code (the desktop app's Code tab, or the terminal).</li>
+    <li>For cross-vendor review: Python 3 and a free OpenRouter key. Without them, a second Claude reviews instead, and the reply says so.</li>
+    <li>Nothing else. Git and GitHub are used when they are there.</li>
+  </ul>
+  <p><a href={`${base}how/`}>How it works</a> · <a href={REPO}>Source on GitHub</a></p>
+</Base>

@@ -1,0 +1,14 @@
+{
+  "name": "desk-site",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build && node scripts/qa-check.mjs dist",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "astro": "^6.3.7"
+  }
+}

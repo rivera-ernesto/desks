@@ -1,0 +1,49 @@
+---
+import '../styles/global.css';
+import { NAV, REPO } from '../data/site';
+interface Props { title: string; description: string; lang?: string; }
+const { title, description, lang = 'en' } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const here = Astro.url.pathname;
+---
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" href={`${base}favicon.svg`} type="image/svg+xml" />
+  </head>
+  <body>
+    <header class="site">
+      <div class="wrap">
+        <a class="brand" href={base}>Desk</a>
+        <nav class="main" aria-label="Main">
+          {NAV.map((n) => (
+            <a href={`${base}${n.href}`} aria-current={here === `${base}${n.href}` ? 'page' : undefined}>{n.label}</a>
+          ))}
+          <a href={`${base}es/`} lang="es">Español</a>
+        </nav>
+      </div>
+    </header>
+    <main><div class="wrap"><slot /></div></main>
+    <footer class="site">
+      <div class="wrap">
+        <span>MIT licensed. Not made by, or affiliated with, Anthropic.</span>
+        <a href={REPO}>Source</a>
+        <a href={`${base}about/#work-with-me`}>Work with me</a>
+      </div>
+    </footer>
+    <script is:inline>
+      document.addEventListener('click', async (e) => {
+        const b = e.target.closest('button.copy');
+        if (!b) return;
+        const text = document.getElementById(b.dataset.target).textContent;
+        try { await navigator.clipboard.writeText(text); } catch { return; }
+        const was = b.textContent; b.textContent = b.dataset.done || 'Copied';
+        setTimeout(() => { b.textContent = was; }, 1600);
+      });
+    </script>
+  </body>
+</html>

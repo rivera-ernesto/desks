@@ -1,0 +1,33 @@
+---
+import Base from '../layouts/Base.astro';
+import { REPO, CONTACT } from '../data/site';
+---
+<Base title="About Desk" description="Where Desk comes from, what is proven and what is not, related projects, and how to get help setting one up.">
+  <h1>About</h1>
+  <p class="lede">Desk was extracted from one person's daily setup. This page says what is proven, what is not, and what else is out there.</p>
+
+  <h2>What is proven, and what is not</h2>
+  <ul>
+    <li><strong>Used daily by its author</strong> for a month of non-code work, across some twenty sessions, before being extracted.</li>
+    <li><strong>The figures quoted in the docs</strong> (the share of usage taken by long sessions and by screenshots) are measurements from that one person's sessions. They are evidence, not a benchmark.</li>
+    <li><strong>Not yet proven by other people.</strong> This version is early. If it does not help with your kind of work, that is a result worth reporting.</li>
+  </ul>
+
+  <h2>Related projects</h2>
+  <p>Desk reuses what Claude Code already provides (skills, subagents, plugins, working copies) and does not rebuild it. Others have solved neighbouring problems, and for some needs they are the better choice:</p>
+  <ul>
+    <li><a href="https://github.com/BeehiveInnovations/pal-mcp-server">PAL MCP Server</a>: a full multi-model toolkit for coding, with consensus across paid models.</li>
+    <li><a href="https://github.com/automazeio/ccpm">CCPM</a>: project management for software work, built on GitHub Issues and working copies.</li>
+    <li><a href="https://github.com/obra/superpowers">Superpowers</a>: a software-development method as a set of skills.</li>
+    <li><a href="https://github.com/ballred/obsidian-claude-pkm">obsidian-claude-pkm</a>: personal planning in an Obsidian vault.</li>
+  </ul>
+  <p>What Desk adds is the combination: free review across vendors with a receipt, a short fixed list of things that wait for a person, and a focus on work that is not code.</p>
+
+  <h2>Contributing</h2>
+  <p>The most useful contribution is a report of how a real session went, especially where it failed. New surfaces (how to drive a tool well) and new review lanes are welcome. <a href={`${REPO}/blob/main/CONTRIBUTING.md`}>How to contribute.</a> It is MIT licensed: fork it and make it yours.</p>
+
+  <h2 id="work-with-me">Work with me</h2>
+  <p>Desk is free and you can set it up yourself. If you would like it built around how you or your team already work (your tools, your accounts, your own rules and review lanes), I do that as private work. <a href={CONTACT}>Get in touch.</a></p>
+
+  <p class="note">Desk is an independent project. It is not made by, endorsed by, or affiliated with Anthropic. Claude and Claude Code are Anthropic's names.</p>
+</Base>
