@@ -8,7 +8,8 @@ reading to cheaper workers, and when the session gets long, writes down where th
 next session picks up without you explaining anything.
 
 Desks is the project; a Desk is one session. It is for real work that is mostly not code: selling something, planning, drafting, researching a
-decision, running a small project. It needs a paid Claude plan and Claude Code (the desktop app's
+decision, running a small project. **It is free and open source (MIT)**: no account, no
+subscription, and the review runs on models that cost nothing. It needs a paid Claude plan and Claude Code (the desktop app's
 Code tab, or the terminal). It is not made by, or affiliated with, Anthropic.
 
 > **Status: 0.1, early.** It is extracted from a setup one person has used daily. It has not yet
