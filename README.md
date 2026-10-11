@@ -96,13 +96,13 @@ What is untested, what is proposed and what is only an idea are all in the
 
 ## Related projects
 
-Desk reuses what Claude Code already provides (skills, subagents, plugins, working copies). For
+Desks reuses what Claude Code already provides (skills, subagents, plugins, working copies). For
 neighbouring needs, others may fit better:
 [PAL MCP Server](https://github.com/BeehiveInnovations/pal-mcp-server) (multi-model toolkit for
 coding), [CCPM](https://github.com/automazeio/ccpm) (issue-driven project management for software),
 [Superpowers](https://github.com/obra/superpowers) (a software-development method as skills),
 [obsidian-claude-pkm](https://github.com/ballred/obsidian-claude-pkm) (planning in an Obsidian
-vault). What Desk adds is the combination: free review across vendors with a receipt, a short fixed
+vault). What Desks adds is the combination: free review across vendors with a receipt, a short fixed
 list of things that wait for a person, and a focus on work that is not code.
 
 Want something different? It is MIT: fork it and make it yours.
