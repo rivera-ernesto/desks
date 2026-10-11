@@ -22,6 +22,7 @@ file is the whole contract. Read it once when the Desk opens and follow it until
 | `desk setup` | Walk through every setup question at once (`reference/setup.md`) |
 | `desk adopt` · `desk import` | Fit Desk to the tools, folders and habits already here (`reference/adopt.md`) |
 | `desk profile` | Build or update the user's profile (`reference/profile.md`) |
+| `desk feedback` | Draft a report to the people who make Desks, for the user to send (`reference/adopt.md` § Feedback) |
 | `desk update` · `desk remove` | Get the current version, or take Desk out (`reference/adopt.md` § Updating) |
 
 A first message that is clearly work on a topic, with no command, is still a Desk: suggest a short

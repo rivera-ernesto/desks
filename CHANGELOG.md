@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- `desk feedback`: the Desk drafts a report of the session with the private parts removed; the
+  person sends it, or does not.
+- Unit tests for both scripts, run in CI. `close` refuses an empty README.
+
 ## 0.1.7 (2026-10-11)
 
 - The Desk leads: it opens with a read and a proposed move, carries the habits itself, offers

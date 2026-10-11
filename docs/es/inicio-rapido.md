@@ -84,6 +84,9 @@ revisor adicional.
 
 ## Qué contar después de probarlo
 
+Escribe `desk feedback` en cualquier Desk: redacta el reporte de la sesión sin lo privado, te lo
+muestra y no envía nada si no dices que sí. Lo más útil:
+
 - El primer momento en que algo no se entendió.
 - Una revisión que mejoró una respuesta, o una que fue puro ruido.
 - Algo que Desk hizo sin que se lo pidieras.
