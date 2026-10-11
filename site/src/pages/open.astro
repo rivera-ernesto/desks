@@ -1,0 +1,24 @@
+---
+import Base from '../layouts/Base.astro';
+import { REPO } from '../data/site';
+---
+<Base title="Desks, in the open" description="Where to see everything about Desks: what is planned, what changed, what was tested, and what reviewers objected to.">
+  <h1>In the open</h1>
+  <p class="lede">Nothing about Desks is kept somewhere you cannot see. This page says where each thing is.</p>
+
+  <div class="tablewrap"><table>
+    <tbody>
+      <tr><td><a href={`${REPO}/issues`}>Issues</a></td><td>Every plan, idea, untested path and open question. There is no other list.</td></tr>
+      <tr><td><a href={`${REPO}/pulls`}>Pull requests</a></td><td>Every change on its way in, with what it claims and what was checked.</td></tr>
+      <tr><td><a href={`${REPO}/blob/main/CHANGELOG.md`}>Changelog</a></td><td>What each version changed, and which run or review it came from.</td></tr>
+      <tr><td><a href={`${REPO}/actions`}>Checks</a></td><td>The tests that run on every change: both scripts, and this site.</td></tr>
+      <tr><td><a href={`${REPO}/blob/main/skills/desk/SKILL.md`}>The contract</a></td><td>The instructions a Desk follows. One file. Read it before you install.</td></tr>
+      <tr><td><a href={`${REPO}/blob/main/SECURITY.md`}>Security and privacy</a></td><td>What leaves your machine, what Desks does to your files, and where the weak points are.</td></tr>
+      <tr><td><a href={`${REPO}/tree/main/examples/sell-camera`}>A worked topic</a></td><td>What a Desk leaves behind, reviews and objections included. Invented details.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>You get the same view of your own work</h2>
+  <p>A Desk keeps your work the way this project keeps its own: a folder per topic with where things stand and what is open, a line for every decision, and every review with its objections and what was done about them. If your folder is on GitHub, a Desk closes as a pull request and open items can become issues, so your own repository shows your work the way this one shows ours.</p>
+  <p class="note">That last part is new and not yet designed beyond the basics. It is <a href={`${REPO}/issues/5`}>an open idea</a>, like everything else here.</p>
+</Base>
