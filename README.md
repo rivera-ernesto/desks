@@ -111,7 +111,9 @@ coding), [CCPM](https://github.com/automazeio/ccpm) (issue-driven project manage
 vault). What Desks adds is the combination: free review across vendors with a receipt, a short fixed
 list of things that wait for a person, and a focus on work that is not code.
 
-Want something different? It is MIT: fork it and make it yours.
+Desks is part of open-source and free culture, and proud of it: it exists because others published
+their work for anyone to read, use and change. Want something different? It is MIT: fork it and
+make it yours.
 
 ## Why
 
