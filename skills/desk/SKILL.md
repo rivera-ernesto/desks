@@ -5,7 +5,7 @@ description: Open or continue a Desk, a focused working session on one topic wit
 
 # Desk
 
-A Desk is one working session on one topic. It is for real work that is mostly not code: selling
+A Desk is one working session with a topic at its centre. It is for real work that is mostly not code: selling
 something, planning a trip, drafting posts, researching a decision, running a small project. This
 file is the whole contract. Read it once when the Desk opens and follow it until the Desk closes.
 
@@ -60,6 +60,14 @@ your recommended default first, and record the answer in the Desk block of `CLAU
 session asks again. The questions and their defaults are in `reference/setup.md`.
 
 ## 2) Working rules
+
+- **The user's disorder is welcome; sorting it is your job.** People think in several subjects at
+  once. When something that belongs to another topic comes up, do not refuse it and do not ask
+  them to open another Desk. Small: answer it here. Larger: say in one line where you are filing
+  it, add it to that topic's README under "Open" (create the topic with `desk.py open` if it does
+  not exist), and carry on. A Desk can hold more than one topic; each topic's notes still live in
+  its own folder, so the next session finds them. At the close, each topic touched gets its
+  README updated.
 
 - **Write only in the place `desk.py open` printed**, unless the user points you at another file.
   Files the user never saved to history are not in a topic's working copy: read them from the main

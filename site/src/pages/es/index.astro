@@ -3,10 +3,10 @@ import Base from '../../layouts/Base.astro';
 import Prompt from '../../components/Prompt.astro';
 import { INSTALL_PROMPT_ES, REPO } from '../../data/site';
 ---
-<Base lang="es" title="Desks: una forma de trabajar con Claude Code" description="Un tema por sesión, respuestas revisadas por otras IA antes de que las leas, y un cierre escrito. Código abierto, para Claude Code.">
+<Base lang="es" title="Desks: una forma de trabajar con Claude Code" description="Tu trabajo ordenado por temas, respuestas revisadas por otras IA antes de que las leas, y un cierre escrito. Código abierto, para Claude Code.">
   <span class="status">Versión temprana. Usada a diario por una persona, ahora abierta a más.</span>
   <h1>Las respuestas de Claude, revisadas por otras IA antes de que las leas.</h1>
-  <p class="lede">Desks es una forma de trabajar con Claude Code. Un tema por sesión, recomendaciones cuestionadas por modelos de otras empresas, la lectura pesada en manos de ayudantes más baratos, y un cierre escrito para que la próxima sesión empiece donde quedó esta.</p>
+  <p class="lede">Desks es una forma de trabajar con Claude Code. Tu trabajo ordenado por temas, aunque lo cuentes desordenado; recomendaciones cuestionadas por modelos de otras empresas, la lectura pesada en manos de ayudantes más baratos, y un cierre escrito para que la próxima sesión empiece donde quedó esta.</p>
 
   <Prompt id="install" text={INSTALL_PROMPT_ES} caption="Abre tu carpeta en Claude Code y pega esto" copy="Copiar" done="Copiado" />
   <p class="note">Copia una habilidad y tres ayudantes a la carpeta y añade un bloque marcado a <code>CLAUDE.md</code>. Pregunta antes de tocar cualquier cosa que ya tengas.</p>

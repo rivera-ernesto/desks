@@ -1,7 +1,7 @@
 {
   "name": "desk",
-  "version": "0.1.1",
-  "description": "Focused working sessions for Claude Code: one topic, answers reviewed by other AI vendors, cheap workers, and a written close.",
+  "version": "0.1.2",
+  "description": "Focused working sessions for Claude Code: work sorted by topic, answers reviewed by other AI vendors, cheap workers, and a written close.",
   "author": { "name": "Ernesto Rivera" },
   "license": "MIT",
   "keywords": ["workflow", "review", "second-opinion", "subagents", "usage"]

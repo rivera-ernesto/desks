@@ -1,6 +1,6 @@
 # Desks
 
-**A way of working for Claude Code: one topic per session, answers checked by other AI vendors, a written close.**
+**A way of working for Claude Code: work sorted by topic, answers checked by other AI vendors, a written close.**
 
 You type `desk sell-camera`. Claude opens a folder for that topic, works on it with you, has its
 recommendations attacked by models from other companies before you read them, sends the heavy
@@ -20,7 +20,7 @@ Code tab, or the terminal). It is not made by, or affiliated with, Anthropic.
 Open the folder you want to work in with Claude Code and paste:
 
 ```text
-Set up Desks in this folder. Get version v0.1.1 of https://github.com/rivera-ernesto/desks, read its INSTALL.md and follow it. First show me the list of files you will create or change, and wait for my yes. Keep everything I already have.
+Set up Desks in this folder. Get version v0.1.2 of https://github.com/rivera-ernesto/desks, read its INSTALL.md and follow it. First show me the list of files you will create or change, and wait for my yes. Keep everything I already have.
 ```
 
 Read [INSTALL.md](INSTALL.md) first if you like to know what a prompt will do; it is short.
@@ -36,6 +36,7 @@ desk my-first-topic
 
 | | |
 |---|---|
+| **Sorted for you** | Write the way you think, several subjects at once. Each one is filed under its own topic, so nothing said in passing is lost. |
 | **One topic, one folder** | `desks/<topic>/` holds the state, the decisions and a note per session. Plain files you can read. History, branches and pull requests happen under the hood when git is there. You never type it. |
 | **Reviewed answers** | Advice and anything high-stakes is sent, with names removed, to free models from other vendors. Claude answers their objections before you see the result, and the reply carries a label you can verify. |
 | **Proposals, not questions** | Claude settles what it can and brings a reviewed proposal. It stops for your word only on money, anything public, contacting someone, access, and anything permanent. |

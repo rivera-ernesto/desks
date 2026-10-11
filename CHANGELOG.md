@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.2 (2026-10-11)
+
+- A Desk can hold more than one topic: what comes up in passing is filed under its own topic
+  instead of being refused.
+
+No migration needed.
+
 ## 0.1.1 (2026-10-11)
 
 - The project is named Desks; the repository moved to `rivera-ernesto/desks`.
