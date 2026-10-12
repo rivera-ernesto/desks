@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- `[unreviewed]` is no longer a way to finish a piece of advice: the reply says it is not ready to
+  act on, and the review runs before the next advice. A receipt covers one packet; a new
+  recommendation needs its own.
 - `desk feedback`: the Desk drafts a report of the session with the private parts removed; the
   person sends it, or does not.
 - Unit tests for both scripts, run in CI. `close` refuses an empty README.
