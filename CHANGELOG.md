@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **A folder's own closing routine is the close.** `Close: house run <command>` or
+  `Close: house follow <file>`: the routine runs first and must finish, Desk writes nothing and
+  does no git of its own, and the session note only points at the folder's record. Nothing runs
+  on a line the user has not confirmed: `desk.py set` keeps a copy of the confirmed line outside
+  the folder, and a line that arrived or changed some other way stops the close.
+- **Fixed:** a `Close:` line the script did not understand was ignored and the close fell back to
+  a direct merge. It now stops and prints the line.
+- **Fixed:** a settings line with backticks inside its value was not read at all, and
+  `Git: off` followed by a remark was not read as off.
+- `desk.py close <topic>` needs no flag once `Close: merge` or `Close: review` is recorded.
 - `desk feedback`: the Desk drafts a report of the session with the private parts removed; the
   person sends it, or does not.
 - Unit tests for both scripts, run in CI. `close` refuses an empty README.

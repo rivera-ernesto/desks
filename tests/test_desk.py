@@ -43,8 +43,25 @@ class Base(unittest.TestCase):
                       ["config", "user.name", "t"], ["add", "CLAUDE.md"], ["commit", "-qm", "init"]):
                 self.assertEqual(sh(["git", *a], self.root).returncode, 0)
 
+        # what the user confirmed lives outside the folder; keep the tests out of the real one
+        self._conf = tempfile.TemporaryDirectory()
+        self._old_conf = os.environ.get("DESK_CONFIG_DIR")
+        os.environ["DESK_CONFIG_DIR"] = self._conf.name
+
     def tearDown(self):
+        if self._old_conf is None:
+            os.environ.pop("DESK_CONFIG_DIR", None)
+        else:
+            os.environ["DESK_CONFIG_DIR"] = self._old_conf
+        self._conf.cleanup()
         self._tmp.cleanup()
+
+    def block_line(self, line):
+        """A line that reached the block without `desk.py set`: by hand, a clone or a pull."""
+        p = os.path.join(self.root, "CLAUDE.md")
+        put(p, get(p).replace("<!-- desk:end -->", line + "\n<!-- desk:end -->"))
+        if self.git:
+            self.assertEqual(sh(["git", "commit", "-qam", "block"], self.root).returncode, 0)
 
     def work(self, topic):
         return os.path.join(self.root, ".claude", "worktrees", f"desk-{topic}") if self.git else self.root
@@ -275,6 +292,138 @@ class Settings(Base):
     def test_set_without_a_block_is_refused(self):
         put(os.path.join(self.root, "CLAUDE.md"), "# nothing\n")
         self.assertNotEqual(desk(self.root, "set", "Close", "merge").returncode, 0)
+
+
+class HouseClose(Base):
+    """The folder has its own closing routine: that routine is the close."""
+    git = False
+    RAN = "printf '%s' \"$DESK_TOPIC\" > house-ran"
+
+    def ready(self, topic="a"):
+        desk(self.root, "open", topic)
+        return self.fill(topic)
+
+    def test_a_confirmed_routine_runs_and_the_script_writes_nothing(self):
+        folder = self.ready()
+        self.assertEqual(desk(self.root, "set", "Close", "house run " + self.RAN).returncode, 0)
+        before = sorted(os.listdir(os.path.join(folder, "sessions")))
+        r = desk(self.root, "close", "a")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(get(os.path.join(self.root, "house-ran")), "a")  # it ran, from the main folder, knowing the topic
+        self.assertEqual(sorted(os.listdir(os.path.join(folder, "sessions"))), before)
+        self.assertIn("wrote nothing", r.stdout)
+
+    def test_a_failing_routine_stops_the_close(self):
+        self.ready()
+        desk(self.root, "set", "Close", "house run exit 7")
+        r = desk(self.root, "close", "a")
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("failed (exit 7)", r.stderr)
+        self.assertNotIn("closed with", r.stdout)
+
+    def test_a_routine_that_waits_for_an_answer_fails_instead_of_hanging(self):
+        self.ready()
+        desk(self.root, "set", "Close", "house run read answer")
+        self.assertEqual(desk(self.root, "close", "a").returncode, 1)
+
+    def test_a_line_the_user_never_confirmed_does_not_run(self):
+        self.ready()
+        self.block_line("- Close: house run " + self.RAN)
+        r = desk(self.root, "close", "a")
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("has not been confirmed", r.stderr)
+        self.assertIn(self.RAN, r.stderr)  # the exact text, so the user can be shown it
+        self.assertFalse(os.path.exists(os.path.join(self.root, "house-ran")))
+
+    def test_a_line_changed_after_it_was_confirmed_does_not_run(self):
+        self.ready()
+        desk(self.root, "set", "Close", "house run true")
+        p = os.path.join(self.root, "CLAUDE.md")
+        put(p, get(p).replace("house run true", "house run " + self.RAN))
+        r = desk(self.root, "close", "a")
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("house run true", r.stderr)  # says what was confirmed
+        self.assertFalse(os.path.exists(os.path.join(self.root, "house-ran")))
+
+    def test_a_flag_does_not_override_the_routine(self):
+        self.ready()
+        desk(self.root, "set", "Close", "house run " + self.RAN)
+        for flag in ("--merge", "--pr"):
+            r = desk(self.root, "close", "a", flag)
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("does not override", r.stderr)
+        self.assertFalse(os.path.exists(os.path.join(self.root, "house-ran")))
+
+    def test_a_close_line_that_is_not_understood_stops_instead_of_being_ignored(self):
+        self.ready()
+        self.block_line("- Close: our own way, see the handbook")
+        for args in (("close", "a"), ("close", "a", "--merge")):
+            r = desk(self.root, *args)
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("not one this script understands", r.stderr)
+        self.assertEqual(desk(self.root, "set", "Close", "sometimes").returncode, 2)
+        self.assertNotIn("sometimes", get(os.path.join(self.root, "CLAUDE.md")))
+
+    def test_a_command_written_in_backticks_is_read(self):
+        self.ready()
+        desk(self.root, "set", "Close", "house run `" + self.RAN + "`")
+        self.assertEqual(desk(self.root, "close", "a").returncode, 0)
+        self.assertTrue(os.path.exists(os.path.join(self.root, "house-ran")))
+
+    def test_the_gate_on_desk_notes_comes_before_the_routine(self):
+        desk(self.root, "open", "a")  # README still has its placeholders, no session note
+        desk(self.root, "set", "Close", "house run " + self.RAN)
+        self.assertEqual(desk(self.root, "close", "a").returncode, 1)
+        self.assertFalse(os.path.exists(os.path.join(self.root, "house-ran")))
+
+    def test_follow_runs_nothing_and_says_it_checked_nothing(self):
+        self.ready()
+        put(os.path.join(self.root, "closing.md"), "1. Do the thing.\n")
+        desk(self.root, "set", "Close", "house follow closing.md")
+        r = desk(self.root, "close", "a")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("not checked by this script", r.stdout)
+
+    def test_follow_refuses_a_procedure_that_is_not_there(self):
+        self.ready()
+        desk(self.root, "set", "Close", "house follow closing.md")
+        r = desk(self.root, "close", "a")
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("is not there", r.stderr)
+
+    def test_a_long_session_note_is_warned_about_not_refused(self):
+        folder = self.ready()
+        put(os.path.join(folder, "sessions", "2026-01-01-first.md"), "line\n" * 21)
+        desk(self.root, "set", "Close", "house run true")
+        r = desk(self.root, "close", "a")
+        self.assertEqual(r.returncode, 0)
+        self.assertIn("21 lines", r.stdout)
+
+    def test_a_recorded_merge_or_review_needs_no_flag(self):
+        self.ready()
+        self.assertEqual(desk(self.root, "close", "a").returncode, 2)  # nothing recorded, nothing passed
+        desk(self.root, "set", "Close", "merge")
+        self.assertEqual(desk(self.root, "close", "a").returncode, 0)
+
+
+class HouseCloseWithGit(Base):
+    def test_desk_does_no_git_of_its_own(self):
+        desk(self.root, "open", "a")
+        self.fill("a")
+        desk(self.root, "set", "Close", "house run true")
+        head = sh(["git", "rev-parse", "HEAD"], self.root).stdout
+        put(os.path.join(self.work("a"), "unsaved.txt"), "x")  # saving is the routine's business now
+        r = desk(self.root, "close", "a")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(sh(["git", "rev-parse", "HEAD"], self.root).stdout, head)  # nothing merged
+        self.assertTrue(os.path.isdir(self.work("a")))  # working copy left alone
+        self.assertIn("desk/a", sh(["git", "branch"], self.root).stdout)
+
+    def test_git_off_with_a_remark_is_still_off(self):
+        self.block_line("- Git: off (this folder makes its own branches)")
+        r = desk(self.root, "open", "a")
+        self.assertIn("level:  folder", r.stdout)
+        self.assertNotIn("desk/a", sh(["git", "branch"], self.root).stdout)
 
 
 if __name__ == "__main__":

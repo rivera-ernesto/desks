@@ -29,6 +29,13 @@ Look first, then propose a short list, then change only what they agree to.
   If their client cannot run that way, leave it out.
 - **Connected tools** are surfaces like any other: reading is free, anything that sends or changes
   waits for their go (`reference/surfaces.md`).
+- **A closing routine.** If the folder already has a way of closing a session (a script or a
+  `make` target named for closing or handing off, a "closing" section in its rules, a template for
+  a session record), name what you found and propose the line: `Close: house run <command>` when
+  one command does it, `Close: house follow <file>` when it is a written procedure. Never run a
+  candidate to see what it does. Record the line only on their yes to that exact text
+  (`reference/close.md` § A folder with its own close). If the routine also makes its own
+  branches, propose `Git: off` with it.
 - **Memory.** If they use Claude's own memory, keep using it for preferences about how to work.
   What belongs to a topic goes in that topic's README, where the next session reads it.
 
