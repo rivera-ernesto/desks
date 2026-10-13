@@ -221,6 +221,9 @@ To close, read `reference/close.md`. In short:
 5. Save your files, then `desk.py close <topic> --merge`, or `--pr` at the `github` level when the
    user reviews before merging. The script refuses while placeholders or unsaved files remain.
 
+Where the Desk block says `Close: house …`, the folder has its own closing routine and that
+routine is the close: steps 1 to 5 give way to `reference/close.md` § A folder with its own close.
+
 Final reply: what was done, what is open, where the files are, and a title for the conversation.
 
 ## 8) Keeping usage low
