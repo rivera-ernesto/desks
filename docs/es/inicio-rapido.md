@@ -27,13 +27,15 @@ Al terminar te dirá qué archivos creó. Abre una **sesión nueva** en la misma
 
 ## 2) Tu primer Desk
 
-Escribe, con un tema real que tengas pendiente:
+Cuenta, con tus palabras, algo real que tengas pendiente:
 
 ```text
-desk vender-camara
+Quiero vender mi cámara vieja este mes
 ```
 
-Claude crea `desks/vender-camara/`, anota el objetivo y empieza. Trabaja normal. Cuando te dé una
+Claude propone un nombre corto para el tema (`vender-camara`) y, cuando le dices que sí, crea
+`desks/vender-camara/`, anota el objetivo y empieza. Si ya sabes el nombre, `desk vender-camara`
+hace lo mismo. Trabaja normal. Cuando te dé una
 recomendación, mira la última línea de la respuesta: dice cómo fue revisada.
 
 ## 3) Activar la revisión con otros modelos (tres minutos, gratis)
