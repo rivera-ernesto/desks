@@ -25,6 +25,9 @@
 - Unit tests for both scripts, run in CI. `close` refuses an empty README.
 - The Desk block can live in `CLAUDE.local.md`, for a shared project whose `CLAUDE.md` is not
   yours to change.
+- README, site and Spanish quickstart open with what a person would say ("I want to sell my old
+  camera") and Claude proposing the topic name; `desk <topic>` is shown as the way back in.
+  "With names removed" now reads "with names and contact details removed".
 
 ## 0.1.7 (2026-10-11)
 
