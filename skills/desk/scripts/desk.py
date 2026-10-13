@@ -353,7 +353,7 @@ def cmd_close(topic, how, title):
         if left:
             die(f"{f} still has unfilled placeholders: {', '.join(left[:4])}")
     if house:
-        return close_house(root, topic, folder, notes[-1], mode, arg)
+        return close_house(root, topic, folder, notes[-1], mode, arg, cfg.get("close", "").strip())
     if lv == "folder":
         print("closed (folder level): nothing to merge. The README is the state.")
         return 0
@@ -394,7 +394,7 @@ def cmd_close(topic, how, title):
     return 0
 
 
-def close_house(root, topic, folder, note, mode, arg):
+def close_house(root, topic, folder, note, mode, arg, line):
     """The folder has its own closing routine, so that routine is the close.
 
     This script writes nothing here and does no git: no merge, no push, no
@@ -402,14 +402,13 @@ def close_house(root, topic, folder, note, mode, arg):
     `follow` names a written procedure the session carries out itself; this
     script cannot see that, and says so instead of pretending to have checked.
     """
-    line = f"{mode} {arg}"
-    was = confirmed_close(root)
+    was = confirmed_close(root)  # the whole value as it was read back when they said yes, not a tidied form of it
     if was != line:
         die("this folder's closing routine has not been confirmed by the user in this exact form:\n"
-            f"    Close: house {line}\n"
-            + (f"The form they confirmed was:\n    Close: house {was}\n" if was else "")
+            f"    Close: {line}\n"
+            + (f"The form they confirmed was:\n    Close: {was}\n" if was else "")
             + "Show them the line. Only on their yes, record it:\n"
-            f"    desk.py set Close {shlex.quote('house ' + line)}\nNothing was run.")
+            f"    desk.py set Close {shlex.quote(line)}\nNothing was run.")
     lines = [x for x in open(os.path.join(folder, "sessions", note), encoding="utf-8").read().splitlines() if x.strip()]
     if len(lines) > 20:
         print(f"note:   sessions/{note} is {len(lines)} lines. With a house close the session note only points at "
@@ -491,8 +490,9 @@ def cmd_set(key, value, append=False):
     open(path, "w", encoding="utf-8").write(text[:m.start(2)] + body + text[m.end(2):])
     print(f"recorded in {path}: {line}")
     if mode in ("run", "follow"):  # the user's yes to this exact text, kept where a pull cannot reach it
-        confirm_close(root, f"{mode} {arg}", yes)
-        print(f"confirmed for this folder: house {mode} {arg}")
+        read_back = settings(root).get("close", "").strip()  # exactly what a close will read from the file
+        confirm_close(root, read_back, yes)
+        print(f"confirmed for this folder: {read_back}")
     elif yes is not None:  # the routine is no longer this folder's close: an old yes must not come back with it
         confirm_close(root, "", yes)
     if is_git and run(["git", "ls-files", "--error-unmatch", name], cwd=root)[0] == 0:

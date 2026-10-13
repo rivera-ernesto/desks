@@ -389,6 +389,16 @@ class HouseClose(Base):
             p = os.path.join(self.root, "CLAUDE.md")
             put(p, get(p).replace("- Close: house run " + self.RAN + "\n", ""))
 
+    def test_a_line_changed_only_in_its_backticks_does_not_run(self):
+        self.ready()
+        desk(self.root, "set", "Close", "house run `" + self.RAN + "`")
+        p = os.path.join(self.root, "CLAUDE.md")
+        put(p, get(p).replace("house run `" + self.RAN + "`", "house run " + self.RAN))
+        r = desk(self.root, "close", "a")
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("has not been confirmed", r.stderr)
+        self.assertFalse(os.path.exists(os.path.join(self.root, "house-ran")))
+
     def test_a_line_changed_after_it_was_confirmed_does_not_run(self):
         self.ready()
         desk(self.root, "set", "Close", "house run true")
@@ -461,6 +471,16 @@ class HouseClose(Base):
 
 
 class HouseCloseWithGit(Base):
+    def test_a_recorded_review_opens_a_pull_request_and_never_merges(self):
+        desk(self.root, "open", "a")
+        folder = self.fill("a")
+        desk(self.root, "set", "Close", "review")
+        r = desk(self.root, "close", "a")
+        self.assertNotEqual(r.returncode, 0)  # no GitHub here, so the pull request path stops
+        self.assertIn("no GitHub remote", r.stderr)
+        self.assertTrue(os.path.isdir(folder))  # the working copy is still there
+        self.assertNotIn("Merge", sh(["git", "log", "--oneline", "main"], self.root).stdout)  # and nothing was merged
+
     def test_desk_does_no_git_of_its_own(self):
         desk(self.root, "open", "a")
         self.fill("a")

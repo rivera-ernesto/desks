@@ -66,8 +66,10 @@ In both forms:
    of the session is.
 3. **Write the session note from `templates/session-house.md`**: a few lines that point at that
    record. Do not retell the session; the script warns when the note is long.
-4. **Run `desk.py close <topic>`, with no flag.** It checks Desk's own notes first, so a
-   placeholder left in the README cannot stop the close after the routine has already run. It
+4. **Run `desk.py close <topic>`, with no flag.** It checks Desk's own notes first. With `run`,
+   that is before the command, so a placeholder left in the README stops the close before anything
+   has run. With `follow`, the procedure is already done by then: a failed check undoes nothing
+   and repeats nothing. Fix the note and run the close again. It
    writes nothing and does no merge, push or pull request: saving is the routine's business.
    A folder whose routine also makes its own branches records `Git: off` as well.
 5. Steps 4, 5 and 7 above (snags, what you noticed, final reply) still apply. A snag the folder's
@@ -76,7 +78,7 @@ In both forms:
 **Nothing runs on a line the user has not confirmed.** `desk.py set Close "house …"`, run only
 after their yes to that exact line, records it and keeps a copy outside the folder
 (`~/.config/desk/house-close.json`). A line that arrived another way, by hand, a clone or a pull,
-or that changed since, makes the close stop and print it. Show the user the line; record it only
+or that changed since in any character, makes the close stop and print it. Show the user the line; record it only
 on their yes. This is `[needs you: access]`. The copy covers the line, not what the line points
 at: a script the command runs, or a procedure file, can change with a pull and the line stays the
 same. If you notice it changed, say so before the close. Setting `Close:` to anything else forgets
