@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Commands are written in English only.** The Spanish aliases `cierra` and `abre desk` are gone
+  from the command table. A command plainly given in the user's own language still works, and so
+  does a word their Desk block records as theirs. Ordinary talk ("enough for today") is a reason
+  to offer the close, never to start it.
+- A test checks that the version is the same everywhere a person copies it from.
 - **A folder's own closing routine is the close.** `Close: house run <command>` or
   `Close: house follow <file>`: the routine must finish for the Desk to be closed, Desk writes nothing and
   does no git of its own, and the session note only points at the folder's record. Nothing runs
