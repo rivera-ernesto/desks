@@ -77,8 +77,10 @@ In both forms:
 after their yes to that exact line, records it and keeps a copy outside the folder
 (`~/.config/desk/house-close.json`). A line that arrived another way, by hand, a clone or a pull,
 or that changed since, makes the close stop and print it. Show the user the line; record it only
-on their yes. This is `[needs you: access]`. The copy covers the line, not the contents of a
-procedure file: if that file changed, say so when you notice.
+on their yes. This is `[needs you: access]`. The copy covers the line, not what the line points
+at: a script the command runs, or a procedure file, can change with a pull and the line stays the
+same. If you notice it changed, say so before the close. Setting `Close:` to anything else forgets
+the yes; a procedure file is a file inside the folder.
 
 **No `Close:` line, but the folder looks like it has a routine** (a closing script, a "closing"
 section in its rules): ask once, proposing the line. With no answer, close the Desk way and say

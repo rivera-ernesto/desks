@@ -26,6 +26,7 @@ import datetime
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -128,20 +129,50 @@ def confirmed_close(root):
     arrive with a clone or a pull, and nothing that arrives that way may run.
     """
     try:
-        return json.load(open(confirmed_file(), encoding="utf-8")).get(os.path.realpath(root), "")
+        with open(confirmed_file(), encoding="utf-8") as f:
+            data = json.load(f)
     except (OSError, ValueError):
         return ""
+    return data.get(os.path.realpath(root), "") if isinstance(data, dict) else ""
 
 
-def confirm_close(root, line):
+def confirmed_all():
+    """Every folder's confirmed line, for rewriting. A file that cannot be read is never replaced:
+    it holds other folders' confirmations too."""
     path = confirmed_file()
+    if not os.path.exists(path):
+        return {}
     try:
-        data = json.load(open(path, encoding="utf-8"))
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
     except (OSError, ValueError):
-        data = {}
-    data[os.path.realpath(root)] = line
+        data = None
+    if not isinstance(data, dict):
+        die(f"{path} cannot be read as the list of confirmed closing routines. Move it aside and "
+            "confirm again. Nothing was recorded.")
+    return data
+
+
+def confirm_close(root, line, data=None):
+    """Record the user's yes for this folder, or forget it when `line` is empty."""
+    data = confirmed_all() if data is None else data
+    key, path = os.path.realpath(root), confirmed_file()
+    if line:
+        data[key] = line
+    elif key not in data:
+        return
+    else:
+        del data[key]
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    json.dump(data, open(path, "w", encoding="utf-8"), indent=1, sort_keys=True)
+    with open(path + ".tmp", "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=1, sort_keys=True)
+    os.replace(path + ".tmp", path)
+
+
+def inside(root, rel):
+    """True when `rel`, read from `root`, stays inside it."""
+    top = os.path.realpath(root)
+    return os.path.commonpath([top, os.path.realpath(os.path.join(top, rel))]) == top
 
 
 def default_branch(root):
@@ -378,12 +409,14 @@ def close_house(root, topic, folder, note, mode, arg):
             f"    Close: house {line}\n"
             + (f"The form they confirmed was:\n    Close: house {was}\n" if was else "")
             + "Show them the line. Only on their yes, record it:\n"
-            f"    desk.py set Close \"house {line}\"\nNothing was run.")
+            f"    desk.py set Close {shlex.quote('house ' + line)}\nNothing was run.")
     lines = [x for x in open(os.path.join(folder, "sessions", note), encoding="utf-8").read().splitlines() if x.strip()]
     if len(lines) > 20:
         print(f"note:   sessions/{note} is {len(lines)} lines. With a house close the session note only points at "
               "the folder's own record of the session; it does not retell it.")
     if mode == "follow":
+        if not inside(root, arg):
+            die(f"the closing procedure this folder names is outside it: {arg}. Nothing was run.")
         if not os.path.isfile(os.path.join(root, arg)):
             die(f"the closing procedure this folder names is not there: {os.path.join(root, arg)}. Nothing was run.")
         print(f"closed with this folder's own routine: {arg}")
@@ -444,17 +477,24 @@ def cmd_set(key, value, append=False):
     if mode == "?":
         die(f"`Close: {value}` is not one this script understands. It reads `merge`, `review`, "
             "`house run <command>` or `house follow <file>`. Nothing was recorded.", 2)
+    if len(value.splitlines()) > 1:
+        die("a setting is one line. Put a longer routine in a script and name the script. Nothing was recorded.", 2)
+    if mode == "follow" and not inside(root, arg):
+        die(f"`{arg}` is outside this folder. A closing procedure is a file inside it. Nothing was recorded.", 2)
+    yes = confirmed_all() if key.lower() == "close" else None  # before anything is written
     body, line = m.group(2), f"- {key}: {value}"
     pat = re.compile(rf"^[ \t]*-[ \t]*{re.escape(key)}:.*$", flags=re.M | re.I)
     if pat.search(body) and not append:
-        body = pat.sub(line, body, count=1)
+        body = pat.sub(lambda _: line, body, count=1)
     elif line not in body:
         body = body.rstrip("\n") + "\n" + line + "\n"
     open(path, "w", encoding="utf-8").write(text[:m.start(2)] + body + text[m.end(2):])
     print(f"recorded in {path}: {line}")
     if mode in ("run", "follow"):  # the user's yes to this exact text, kept where a pull cannot reach it
-        confirm_close(root, f"{mode} {arg}")
+        confirm_close(root, f"{mode} {arg}", yes)
         print(f"confirmed for this folder: house {mode} {arg}")
+    elif yes is not None:  # the routine is no longer this folder's close: an old yes must not come back with it
+        confirm_close(root, "", yes)
     if is_git and run(["git", "ls-files", "--error-unmatch", name], cwd=root)[0] == 0:
         rc, _, err = run(["git", "commit", "--only", name, "-m", f"desk: record {key}"], cwd=root)
         print("saved to history" if rc == 0 else "not saved to history (" + (err.splitlines() or ["nothing to save"])[-1] + ")")

@@ -12,6 +12,10 @@
 - **Fixed:** a settings line with backticks inside its value was not read at all, and
   `Git: off` followed by a remark was not read as off.
 - `desk.py close <topic>` needs no flag once `Close: merge` or `Close: review` is recorded.
+- **Fixed before release** (found reading this change as code): a backslash in a recorded value
+  was mangled when it replaced an existing line; the command printed for confirming a line was
+  not safe to paste; `house follow` accepted a file outside the folder; an unreadable list of
+  confirmations was silently replaced; setting `Close:` to something else did not forget the old yes.
 - `desk feedback`: the Desk drafts a report of the session with the private parts removed; the
   person sends it, or does not.
 - Unit tests for both scripts, run in CI. `close` refuses an empty README.

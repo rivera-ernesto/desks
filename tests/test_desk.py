@@ -3,7 +3,9 @@
     python3 -m unittest discover tests
 """
 import os
+import json
 import re
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -333,7 +335,59 @@ class HouseClose(Base):
         self.assertEqual(r.returncode, 1)
         self.assertIn("has not been confirmed", r.stderr)
         self.assertIn(self.RAN, r.stderr)  # the exact text, so the user can be shown it
+        hint = [x for x in r.stderr.splitlines() if "desk.py set Close" in x][0]  # and a command safe to paste
+        self.assertEqual(shlex.split(hint)[-1], "house run " + self.RAN)
         self.assertFalse(os.path.exists(os.path.join(self.root, "house-ran")))
+
+    def test_a_backslash_in_the_command_is_kept_as_written(self):
+        self.ready()
+        desk(self.root, "set", "Close", "merge")  # so the next set replaces a line instead of adding one
+        cmd = "printf 'a\\n' > house-ran"
+        self.assertEqual(desk(self.root, "set", "Close", "house run " + cmd).returncode, 0)
+        self.assertIn("- Close: house run " + cmd + "\n", get(os.path.join(self.root, "CLAUDE.md")))
+        self.assertEqual(desk(self.root, "close", "a").returncode, 0)
+        self.assertEqual(get(os.path.join(self.root, "house-ran")), "a\n")
+
+    def test_a_setting_of_two_lines_is_refused(self):
+        r = desk(self.root, "set", "Close", "house run true\n- Git: off")
+        self.assertEqual(r.returncode, 2)
+        self.assertNotIn("Git: off", get(os.path.join(self.root, "CLAUDE.md")))
+
+    def test_a_procedure_outside_the_folder_is_refused(self):
+        self.ready()
+        outside = os.path.join(self._conf.name, "steps.md")
+        put(outside, "do things\n")
+        for path in (outside, os.path.join("..", os.path.basename(self._conf.name), "steps.md")):
+            r = desk(self.root, "set", "Close", "house follow " + path)
+            self.assertEqual(r.returncode, 2, path)
+            self.assertIn("outside this folder", r.stderr)
+        self.assertNotIn("Close:", get(os.path.join(self.root, "CLAUDE.md")))
+
+    def test_changing_the_close_forgets_the_old_yes(self):
+        self.ready()
+        desk(self.root, "set", "Close", "house run " + self.RAN)
+        desk(self.root, "set", "Close", "merge")
+        self.block_line("- Close: house run " + self.RAN)  # the old line comes back with a pull
+        p = os.path.join(self.root, "CLAUDE.md")
+        put(p, get(p).replace("- Close: merge\n", ""))
+        r = desk(self.root, "close", "a")
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("has not been confirmed", r.stderr)
+        self.assertFalse(os.path.exists(os.path.join(self.root, "house-ran")))
+
+    def test_an_unreadable_list_of_confirmations_is_not_replaced(self):
+        store = os.path.join(self._conf.name, "house-close.json")
+        for broken in ("{not json", "[]"):
+            put(store, broken)
+            r = desk(self.root, "set", "Close", "house run true")
+            self.assertNotEqual(r.returncode, 0, broken)
+            self.assertEqual(get(store), broken)
+            self.assertNotIn("Close:", get(os.path.join(self.root, "CLAUDE.md")))
+            self.ready()
+            self.block_line("- Close: house run " + self.RAN)
+            self.assertEqual(desk(self.root, "close", "a").returncode, 1)  # and nothing runs on it
+            p = os.path.join(self.root, "CLAUDE.md")
+            put(p, get(p).replace("- Close: house run " + self.RAN + "\n", ""))
 
     def test_a_line_changed_after_it_was_confirmed_does_not_run(self):
         self.ready()
