@@ -17,6 +17,9 @@
   not safe to paste; `house follow` accepted a file outside the folder; an unreadable list of
   confirmations was silently replaced; setting `Close:` to something else did not forget the old yes;
   the confirmed line was compared in a tidied form, so backticks added or removed by hand went unnoticed.
+- `[unreviewed]` is no longer a way to finish a piece of advice: the reply says it is not ready to
+  act on, and the review runs before the next advice. A receipt covers one packet; a new
+  recommendation needs its own.
 - `desk feedback`: the Desk drafts a report of the session with the private parts removed; the
   person sends it, or does not.
 - Unit tests for both scripts, run in CI. `close` refuses an empty README.
