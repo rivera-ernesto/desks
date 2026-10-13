@@ -14,10 +14,11 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 
   <h2>What a session looks like</h2>
   <div class="chat">
-    <div class="turn"><div class="who">You</div><p><code>desk sell-camera</code></p></div>
-    <div class="turn"><div class="who">Claude</div><p>sell-camera · new · history on · review: cross-vendor. What are we selling, and by when?</p></div>
-    <div class="turn"><div class="who">You</div><p>My old DSLR kit, this month. What should I ask for it?</p></div>
+    <div class="turn"><div class="who">You</div><p>I want to sell my old DSLR kit this month.</p></div>
+    <div class="turn"><div class="who">Claude</div><p>I would call this topic <code>sell-camera</code>. Shall I open it?</p></div>
+    <div class="turn"><div class="who">You</div><p>Yes. What should I ask for it?</p></div>
     <div class="turn"><div class="who">Claude</div>
+      <p>sell-camera · new · history on · review: cross-vendor.</p>
       <p>Ask 95, accept 80. My first number was 120, taken from what similar kits are listed at. Two of three reviewers pointed out that unsold listings show what does <em>not</em> sell. Sold ones went for 70 to 100.</p>
       <p>One reviewer suggested offering shipping. I did not follow that: you asked for a quick sale, and disputes on a shipped old camera cost more than the extra reach.</p>
       <p class="receipt">Review: [converged] · 3 vendors · receipt 5d1c0a77e2</p>
@@ -61,7 +62,7 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 
   <h2>What you get</h2>
   <div class="grid">
-    <div class="card"><h3>Reviewed answers</h3><p>Advice and anything high-stakes goes, with names removed, to free models from other vendors. Claude has to answer each objection, and the reply says how it was reviewed.</p></div>
+    <div class="card"><h3>Reviewed answers</h3><p>Advice and anything high-stakes goes, with names and contact details removed, to free models from other vendors. Claude has to answer each objection, and the reply says how it was reviewed.</p></div>
     <div class="card"><h3>It leads</h3><p>It opens with where things stand and the move it would make next, carries the good habits for you, and offers what you did not ask for when it has evidence. One sentence turns that off.</p></div>
     <div class="card"><h3>Proposals, not questions</h3><p>Claude settles what it can and brings a reviewed proposal. It waits for your word on five things: money, anything public, contacting someone, access, and anything permanent.</p></div>
     <div class="card"><h3>One topic, one folder</h3><p>State, decisions and a note per session, in plain files. History, branches and pull requests happen under the hood. You never type git.</p></div>

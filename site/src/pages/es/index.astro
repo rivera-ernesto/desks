@@ -14,10 +14,11 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 
   <h2>Cómo se ve una sesión</h2>
   <div class="chat">
-    <div class="turn"><div class="who">Tú</div><p><code>desk vender-camara</code></p></div>
-    <div class="turn"><div class="who">Claude</div><p>vender-camara · nuevo · con historial · revisión: entre empresas. ¿Qué vendemos y para cuándo?</p></div>
-    <div class="turn"><div class="who">Tú</div><p>Mi cámara réflex vieja con su lente, este mes. ¿Cuánto pido?</p></div>
+    <div class="turn"><div class="who">Tú</div><p>Quiero vender mi cámara réflex vieja con su lente este mes.</p></div>
+    <div class="turn"><div class="who">Claude</div><p>A este tema le pondría <code>vender-camara</code>. ¿Lo abro?</p></div>
+    <div class="turn"><div class="who">Tú</div><p>Sí. ¿Cuánto pido?</p></div>
     <div class="turn"><div class="who">Claude</div>
+      <p>vender-camara · nuevo · con historial · revisión: entre empresas.</p>
       <p>Pide 95, acepta 80. Mi primer número fue 120, sacado de lo que piden otros anuncios parecidos. Dos de tres revisores señalaron que los anuncios sin vender muestran lo que <em>no</em> se vende. Los vendidos salieron entre 70 y 100.</p>
       <p>Un revisor sugirió ofrecer envío. No lo seguí: pediste una venta rápida, y un reclamo por una cámara vieja enviada cuesta más que el alcance extra.</p>
       <p class="receipt">Review: [converged] · 3 vendors · receipt 5d1c0a77e2</p>
@@ -61,7 +62,7 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 
   <h2>Qué obtienes</h2>
   <div class="grid">
-    <div class="card"><h3>Respuestas revisadas</h3><p>Los consejos y todo lo importante van, sin nombres, a modelos gratuitos de otras empresas. Claude tiene que responder a cada objeción, y la respuesta dice cómo fue revisada.</p></div>
+    <div class="card"><h3>Respuestas revisadas</h3><p>Los consejos y todo lo importante van, sin nombres ni datos de contacto, a modelos gratuitos de otras empresas. Claude tiene que responder a cada objeción, y la respuesta dice cómo fue revisada.</p></div>
     <div class="card"><h3>Lleva la iniciativa</h3><p>Abre con dónde están las cosas y el paso que daría ahora, lleva los buenos hábitos por ti y te ofrece lo que no pediste cuando tiene evidencia. Una frase lo apaga.</p></div>
     <div class="card"><h3>Propuestas, no preguntas</h3><p>Claude resuelve lo que puede y trae una propuesta revisada. Espera tu palabra en cinco cosas: dinero, lo público, contactar a alguien, accesos y lo permanente.</p></div>
     <div class="card"><h3>Un tema, una carpeta</h3><p>Estado, decisiones y una nota por sesión, en archivos simples. El historial, las ramas y los pull requests ocurren por debajo. Nunca escribes git.</p></div>

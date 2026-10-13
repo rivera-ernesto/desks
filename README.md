@@ -2,10 +2,12 @@
 
 **A way of working for Claude Code: work sorted by topic, answers checked by other AI vendors, a written close.**
 
-You type `desk sell-camera`. Claude opens a folder for that topic, works on it with you, has its
+You say what you want to get done: "I want to sell my old camera." Claude proposes a short name
+for the topic, `sell-camera`, and on your yes opens a folder for it, works on it with you, has its
 recommendations attacked by models from other companies before you read them, sends the heavy
 reading to cheaper workers, and when the session gets long, writes down where things stand so the
-next session picks up without you explaining anything.
+next session picks up without you explaining anything. To come back another day, type
+`desk sell-camera`.
 
 Desks is the project; a Desk is one session. It is for real work that is mostly not code: selling something, planning, drafting, researching a
 decision, running a small project. **It is free and open source (MIT)**: no account, no
@@ -47,7 +49,7 @@ desk my-first-topic
 | **It leads** | It opens with where things stand and the move it would make next. It carries the good habits so you do not have to learn them, and offers what you did not ask for when it has evidence. One word turns that off. |
 | **Sorted for you** | Write the way you think, several subjects at once. Each one is filed under its own topic, so nothing said in passing is lost. |
 | **One topic, one folder** | `desks/<topic>/` holds the state, the decisions and a note per session. Plain files you can read. History, branches and pull requests happen under the hood when git is there. You never type it. |
-| **Reviewed answers** | Advice and anything high-stakes is sent, with names removed, to free models from other vendors. Claude answers their objections before you see the result, and the reply carries a label you can verify. |
+| **Reviewed answers** | Advice and anything high-stakes is sent, with names and contact details removed, to free models from other vendors. Claude answers their objections before you see the result, and the reply carries a label you can verify. |
 | **Proposals, not questions** | Claude settles what it can and brings a reviewed proposal. It stops for your word only on money, anything public, contacting someone, access, and anything permanent. |
 | **Nothing sent without your go** | Reading is free. Posting, sending, buying and deleting wait for you. Your logged-in accounts are read-only unless you say otherwise. |
 | **Cheaper sessions** | Reading, screen work and long outputs go to workers on a smaller model. The session proposes its own close before it gets expensive. |
