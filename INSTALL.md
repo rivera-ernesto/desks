@@ -64,7 +64,7 @@ is already there, replace just that block.
 <!-- desk:start -->
 ## Desk
 
-When my first message is `desk <topic>` (or `/desk`, `open desk`, `abre desk`), or is clearly real
+When my first message is `desk <topic>` (or `/desk`, `open desk`, or the same in my own language), or is clearly real
 work on a topic, load the `desk` skill and follow it for the whole session.
 
 - Desk root: `desks/`

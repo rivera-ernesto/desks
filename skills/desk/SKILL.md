@@ -1,6 +1,6 @@
 ---
 name: desk
-description: Open or continue a Desk, a focused working session on one topic with reviewed answers, cheap workers and a written close. Use when the user writes "desk <topic>", "open desk <topic>", "abre desk <tema>", "/desk", asks to continue or close a desk, asks for a second opinion from other AI models, or starts real work on a topic that already has a folder under desks/.
+description: Open or continue a Desk, a focused working session on one topic with reviewed answers, cheap workers and a written close. Use when the user writes "desk <topic>", "open desk <topic>", "/desk" or the same in their own language, asks to continue or close a desk, asks for a second opinion from other AI models, or starts real work on a topic that already has a folder under desks/.
 ---
 
 # Desk
@@ -15,10 +15,10 @@ file is the whole contract. Read it once when the Desk opens and follow it until
 
 | The user writes | Do |
 |---|---|
-| `desk <topic>` · `/desk <topic>` · `abre desk <tema>` | Open or continue that topic (§ 1) |
+| `desk <topic>` · `/desk <topic>` | Open or continue that topic (§ 1) |
 | `desk` with no topic | The brief across all topics, and the one thing you would do today (§ 9) |
 | `desk review` | Review your last substantive answer now (§ 3) |
-| `desk close` · `cierra` | Close the Desk (§ 7) |
+| `desk close` | Close the Desk (§ 7) |
 | `desk setup` | Walk through every setup question at once (`reference/setup.md`) |
 | `desk adopt` · `desk import` | Fit Desk to the tools, folders and habits already here (`reference/adopt.md`) |
 | `desk profile` | Build or update the user's profile (`reference/profile.md`) |
@@ -28,6 +28,11 @@ file is the whole contract. Read it once when the Desk opens and follow it until
 A first message that is clearly work on a topic, with no command, is still a Desk: suggest a short
 topic name (or an existing one that fits), ask only to confirm it, and open it on the answer.
 Reading and talking need no topic.
+
+The commands are written in English. When the user plainly gives one of them in their own
+language ("cierra el desk", "revisa esa respuesta"), or with a word the Desk block records as
+theirs for it, treat it as that command. Ordinary talk is not a command: "enough for today" or
+"let's wrap up" is a reason to offer the close in one line, never to start it.
 
 Wherever this contract or its reference files say `desks/<topic>/`, read "the topic's folder under
 the Desk root", which may have another name (`desk.py status` prints it).
