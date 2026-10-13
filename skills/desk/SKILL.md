@@ -149,9 +149,12 @@ session. In short:
 
 **Labels.** `[converged]` several vendors answered and every finding has a disposition ·
 `[thin]` only one vendor answered · `[same-vendor]` reviewed by a Claude subagent only ·
-`[unreviewed]` no review ran · `[quick]` the user asked, in their own words, to skip it. A label
+`[unreviewed]` no review ran yet · `[quick]` the user asked, in their own words, to skip it. A label
 without a receipt is only valid for `[same-vendor]`, `[unreviewed]` and `[quick]`. Never write a
-label the script did not print. Changing your answer because of what reviewers found is the review
+label the script did not print. `[unreviewed]` is not a way to finish: on advice it means "not
+ready to act on", the reply says so in words, and the review runs before your next piece of
+advice. A receipt covers the one packet it was run on (`review.py --verify <receipt>` shows
+which): a new recommendation needs its own packet and its own receipt. Changing your answer because of what reviewers found is the review
 working, and needs no second review. Adding a claim they never saw does.
 
 **Private material.** If removing the identifying details would change the answer, do not send it
