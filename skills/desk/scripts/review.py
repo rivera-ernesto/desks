@@ -16,7 +16,8 @@ Setup lives outside any project, so a key is never committed by accident:
     ~/.config/desk/apple-shortcut   name of a macOS Shortcut (private lane)
 
 Environment: DESK_REVIEW_N vendors to ask at once (6) · DESK_REVIEW_MIN answers
-wanted (3) · DESK_REVIEW_MODELS comma list instead of the live catalogue.
+wanted (3) · DESK_REVIEW_MODELS comma list instead of the live catalogue ·
+DESK_REVIEW_KEY=proxy a network proxy attaches the key; the script sends none.
 
 Exit codes: 0 at least one vendor answered · 1 packet refused · 2 usage
             3 no key and no other lane · 4 nobody answered
@@ -37,6 +38,8 @@ import urllib.error
 import urllib.request
 
 API = "https://openrouter.ai/api/v1"
+PROXY = "proxy"  # DESK_REVIEW_KEY=proxy: a flag, not a key. The network adds the real one.
+NOT_ATTACHED = "key not attached in this environment"
 CONF = os.path.join(os.path.expanduser("~"), ".config", "desk")
 SYSTEM = (
     "You are an independent reviewer from a different model vendor than the author. "
@@ -67,6 +70,8 @@ def conf(name):
 
 
 def api_key():
+    if os.environ.get("DESK_REVIEW_KEY", "").strip() == PROXY:
+        return PROXY
     return os.environ.get("OPENROUTER_API_KEY", "").strip() or conf("openrouter.key")
 
 
@@ -86,7 +91,7 @@ def private_hits(text):
 
 def http(url, payload=None, key=None, timeout=100):
     headers = {"Content-Type": "application/json", "X-Title": "Desk review"}
-    if key:
+    if key and key != PROXY:
         headers["Authorization"] = "Bearer " + key
     data = json.dumps(payload).encode() if payload is not None else None
     req = urllib.request.Request(url, data=data, headers=headers)
@@ -106,7 +111,7 @@ def past_rates(folder):
                 continue
             for r in rows[1:]:
                 c = r.split("\t")
-                if len(c) >= 5 and c[3] != "apple":
+                if len(c) >= 5 and c[3] != "apple" and c[4] != "not-attached":  # not the vendor's fault
                     calls[c[3]] = calls.get(c[3], 0) + 1
                     ok[c[3]] = ok.get(c[3], 0) + (c[4] == "answered")
     return calls, ok
@@ -163,11 +168,16 @@ def ask_openrouter(model, packet_text, focus, key):
             r = http(API + "/chat/completions", body, key)
             if "error" in r:
                 last = json.dumps(r["error"])[:400]
+                code = r["error"].get("code") if isinstance(r["error"], dict) else None
+                if key == PROXY and code in (401, 403):
+                    return "not-attached", f"HTTP {code}: {NOT_ATTACHED}. {last}"
             else:
                 text = (r["choices"][0]["message"].get("content") or "").strip()
                 return ("answered" if substantive(text) else "thin-answer"), text
         except urllib.error.HTTPError as e:
             last = f"HTTP {e.code}: " + e.read().decode("utf-8", "replace")[:400]
+            if key == PROXY and e.code in (401, 403):
+                return "not-attached", f"HTTP {e.code}: {NOT_ATTACHED}. {last}"
         except Exception as e:  # network, timeout, malformed answer
             last = f"{type(e).__name__}: {e}"
             if "timed out" in last.lower():
@@ -264,9 +274,30 @@ def verify(receipt, root):
     return 1
 
 
+def proxy_status():
+    """One live call through the proxy: (working, what to print after "review key:")."""
+    try:
+        data = http(API + "/key", key=PROXY, timeout=30).get("data") or {}
+    except urllib.error.HTTPError as e:
+        return False, f"via proxy, NOT attached (HTTP {e.code})"
+    except Exception as e:  # no answer at all: DNS, refused, timeout
+        return False, f"via proxy, not reached ({type(e).__name__}: {e})"
+    about = []
+    if data.get("label"):
+        about.append(f'label "{data["label"]}"')
+    if "limit" in data:
+        about.append("limit " + ("none" if data["limit"] is None else str(data["limit"])))
+    return True, "via proxy, working" + (f" ({', '.join(about)})" if about else "")
+
+
 def check():
     key, lanes, apple = api_key(), command_lanes(), conf("apple-shortcut")
-    print("review key:      " + ("set" if key else "not set  ->  run `desk setup`"))
+    if key == PROXY:
+        working, said = proxy_status()
+        print("review key:      " + said)
+        key = key if working else ""
+    else:
+        print("review key:      " + ("set" if key else "not set  ->  run `desk setup`"))
     print("your own lanes:  " + (", ".join(n for n, _ in lanes) or "none"))
     print("private lane:    " + (f'Shortcut "{apple}"' if apple else "none"))
     print("private terms:   " + (f"{len(conf('private-terms.txt').splitlines())} lines" if conf("private-terms.txt") else "none"))
@@ -348,11 +379,13 @@ def main(argv):
     # until enough have answered or the list runs out.
     topped = []
     capped = any(s == "account-cap" for _, _, s, _ in results)
+    detached = any(s == "not-attached" for _, _, s, _ in results)
     for m in models[n:]:
-        if len(answered()) >= want or capped:
+        if len(answered()) >= want or capped or detached:
             break
-        if record(m.split("/")[0], m, lambda m=m: ask_openrouter(m, text, focus, key)) == "account-cap":
-            capped = True
+        status = record(m.split("/")[0], m, lambda m=m: ask_openrouter(m, text, focus, key))
+        capped = capped or status == "account-cap"
+        detached = detached or status == "not-attached"
         topped.append(m.split("/")[0])
 
     print()
@@ -365,27 +398,33 @@ def main(argv):
         print("ACCOUNT CAP: OpenRouter refused on the daily limit for free models. Another model will not help.\n"
               "  It is 50 requests a day, or 1000 a day once the account has bought 10 USD of credit\n"
               "  (the credit is not spent by free models). Otherwise wait for the daily reset.")
+    if detached:
+        print(f"REVIEW KEY: DESK_REVIEW_KEY=proxy, but the aggregator refused: {NOT_ATTACHED}.\n"
+              "  Its lane stopped. Run `review.py --check` to see what the proxy sends.")
     vendors = answered()
     apple_ok = any(v == "apple" and s == "answered" for v, _, s, _ in results)
     sha = hashlib.sha256(text.encode()).hexdigest()
     rid = hashlib.sha256(f"{sha}{time.time()}{len(vendors)}".encode()).hexdigest()[:10]
     if vendors:
-        label = "thin" if len(vendors) == 1 else "open"
+        label = "thin" if len(vendors) == 1 or detached else "open"  # a lane refused for want of a key is not agreement
     else:
         label = "private-lane-only" if apple_ok else "unreviewed"
+    why = f" · {NOT_ATTACHED}" if detached else ""
     with open(os.path.join(out, f"receipt-{rid}.txt"), "w", encoding="utf-8") as f:
         f.write(f"receipt {rid}\ndate {datetime.datetime.now():%Y-%m-%d %H:%M:%S}\npacket {packet}\n"
                 f"packet_sha256 {sha}\nlabel {label}\nvendors_answered {len(vendors)}\n"
-                f"vendors {' '.join(vendors)}\nprivate_lane {'answered, both codes repeated' if apple_ok else 'no'}\n")
+                f"vendors {' '.join(vendors)}\nprivate_lane {'answered, both codes repeated' if apple_ok else 'no'}\n"
+                + (f"review_key {NOT_ATTACHED}\n" if detached else ""))
     plus = " + private lane" if apple_ok and vendors else ""
     print()
     if label == "unreviewed":
-        print(f"Label line: Review: [unreviewed] · receipt {rid}   (nobody answered)")
+        print(f"Label line: Review: [unreviewed]{why} · receipt {rid}   (nobody answered)")
         return 4
     if label == "private-lane-only":
-        print(f"Label line: Review: [thin] · private lane only · receipt {rid}")
+        print(f"Label line: Review: [thin] · private lane only{why} · receipt {rid}")
     elif label == "thin":
-        print(f"Label line: Review: [thin] · 1 vendor{plus} · receipt {rid}")
+        many = "1 vendor" if len(vendors) == 1 else f"{len(vendors)} vendors"
+        print(f"Label line: Review: [thin] · {many}{plus}{why} · receipt {rid}")
     else:
         print(f"Label line: Review: [converged] · {len(vendors)} vendors{plus} · receipt {rid}\n"
               f"  Earn it first: give every finding a disposition in {stem}-dispositions.md, next to the packet.\n"

@@ -36,6 +36,9 @@ tops up with other vendors until three have answered. Expect two to four minutes
   The limit is 50 requests a day, or 1000 once the account has bought 10 USD of credit. Free
   models do not spend that credit. This is the user's money and the user's decision
   (`[needs you: money]`); never suggest paid models as the way around it.
+- **"key not attached in this environment"** means `DESK_REVIEW_KEY=proxy` is set but the network
+  did not add the key: OpenRouter refused, its lane stopped, and the label is never `[converged]`.
+  `reference/setup.md` § A key the session never sees.
 - **Check a label** someone doubts: `review.py --verify <receipt> desks/`.
 
 ## Reading the answers

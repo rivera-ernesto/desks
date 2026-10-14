@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **A cloud session on this repository runs as a Desk.** It loads the skill and workers from
+  copies in `.claude/` (a test keeps them identical), and `DESK_REVIEW_KEY=proxy` lets the review
+  use a key the network adds, one the session never sees; `review.py --check` says whether it is attached.
 - **Commands are written in English only.** The Spanish aliases `cierra` and `abre desk` are gone
   from the command table. A command plainly given in the user's own language still works, and so
   does a word their Desk block records as theirs. Ordinary talk ("enough for today") is a reason
