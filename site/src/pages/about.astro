@@ -11,6 +11,8 @@ import { REPO, CONTACT } from '../data/site';
     <li><strong>A year in the making, without knowing it.</strong> Desks grew out of the author's private working repository: first commit in October 2025, more than 1,200 commits since. The Desk pattern took its present shape there in September 2026 and ran in some twenty sessions of non-code work before being extracted.</li>
     <li><strong>The figures quoted in the docs</strong> (the share of usage taken by long sessions and by screenshots) are measurements from that one person's sessions. They are evidence, not a benchmark.</li>
     <li><strong>Tested on one setup only:</strong> Claude Code with a paid Claude plan, on a Mac. Nothing in the contract or the scripts depends on that, but no other assistant has been tried.</li>
+    <li><strong>The scripts have unit tests</strong> that run on every change. They check what the scripts do. They do not show that a session goes well.</li>
+    <li><strong>Newer parts are not yet tried in real use.</strong> Closing with your folder's own routine, and the rule that advice cannot finish unreviewed, were reviewed before they went in, and the script side has tests. Neither has been used in a real session yet. Each pull request says what was tried.</li>
     <li><strong>Not yet proven by other people.</strong> This version is early. If it does not help with your kind of work, that is a result worth reporting.</li>
   </ul>
 
@@ -34,7 +36,13 @@ import { REPO, CONTACT } from '../data/site';
   <p>The most useful contribution is a report of how a real session went, especially where it failed. Type <code>desk feedback</code> in any Desk: it drafts the report with the private parts removed and sends nothing unless you say so. New surfaces (how to drive a tool well) and new review lanes are welcome. <a href={`${REPO}/blob/main/CONTRIBUTING.md`}>How to contribute.</a> It is MIT licensed: fork it and make it yours.</p>
 
   <h2 id="work-with-me">Work with me</h2>
-  <p>Desk is free and you can set it up yourself. If you would like it built around how you or your team already work (your tools, your accounts, your own rules and review lanes), I do that as private work. <a href={CONTACT}>Get in touch.</a></p>
+  <p>Desks is free and you can set it up yourself. This is what you can hire me for:</p>
+  <ul>
+    <li><strong>Fit it to how you already work.</strong> You have folders, habits and rules that came first. I set Desks up around them: where your own way of opening, reviewing and closing work exists, Desks uses it. Some habits may need a small change, and I will say which. You get a short written list of what changed and what did not. I did this on my own workspace; what it turned up is public in <a href={`${REPO}/issues`}>the project's issues</a>.</li>
+    <li><strong>One piece of work, with an end.</strong> Something gets in your way, or you need something Desks does not do yet. We agree what "done" looks like and a price. It is built in the open project, so the fix is yours and everyone's.</li>
+    <li><strong>A conversation.</strong> An hour on how you work and whether Desks fits. If it does not, I will say so.</li>
+  </ul>
+  <p><a href={CONTACT}>Get in touch.</a></p>
 
   <p class="note">Desk is an independent project. It is not made by, endorsed by, or affiliated with Anthropic. Claude and Claude Code are Anthropic's names.</p>
 </Base>
