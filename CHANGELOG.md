@@ -33,6 +33,8 @@
 - README, site and Spanish quickstart open with what a person would say ("I want to sell my old
   camera") and Claude proposing the topic name; `desk <topic>` is shown as the way back in.
   "With names removed" now reads "with names and contact details removed".
+- Site: a button in the header switches between light and dark by hand and remembers the choice.
+  Without a choice, or with JavaScript off, the site follows the system setting as before.
 
 ## 0.1.7 (2026-10-11)
 

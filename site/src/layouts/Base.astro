@@ -10,12 +10,23 @@ const es = lang === 'es';
 const nav = es ? NAV_ES : NAV;
 const back = Object.entries(PAIRS).find(([, v]) => v === rel)?.[0];
 const other = es ? (back ?? '') : (PAIRS[rel] ?? 'es/');
+const toggle = es ? 'Cambiar entre claro y oscuro' : 'Switch between light and dark';
 ---
 <!doctype html>
 <html lang={lang}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script is:inline>
+      // Before first paint: a theme chosen by hand wins over the system. Without one, the CSS follows the system.
+      try {
+        const t = localStorage.getItem('theme');
+        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+      } catch {}
+    </script>
+    <noscript><style>header.site .theme-toggle { display: none; }</style></noscript>
+    <meta name="theme-color" content="#fbfaf7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#161614" media="(prefers-color-scheme: dark)" />
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="icon" href={`${base}favicon.svg`} type="image/svg+xml" />
@@ -31,6 +42,12 @@ const other = es ? (back ?? '') : (PAIRS[rel] ?? 'es/');
           ))}
           <a href={`${base}${other}`} lang={es ? 'en' : 'es'}>{es ? 'English' : 'Español'}</a>
         </nav>
+        <button class="theme-toggle" type="button" aria-label={toggle} title={toggle}>
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path class="sun" d="M12 7a5 5 0 1 0 0 10a5 5 0 1 0 0-10zM12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+            <path class="moon" d="M21 12.79A9 9 0 1 1 11.21 3A7 7 0 0 0 21 12.79z" />
+          </svg>
+        </button>
       </div>
     </header>
     <main><div class="wrap"><slot /></div></main>
@@ -42,6 +59,13 @@ const other = es ? (back ?? '') : (PAIRS[rel] ?? 'es/');
       </div>
     </footer>
     <script is:inline>
+      document.querySelector('.theme-toggle').addEventListener('click', () => {
+        const root = document.documentElement;
+        const system = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        const next = (root.dataset.theme || system) === 'dark' ? 'light' : 'dark';
+        root.dataset.theme = next;
+        try { localStorage.setItem('theme', next); } catch {}
+      });
       document.addEventListener('click', async (e) => {
         const b = e.target.closest('button.copy');
         if (!b) return;
