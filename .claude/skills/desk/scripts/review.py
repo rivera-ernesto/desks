@@ -89,6 +89,18 @@ def private_hits(text):
     return hits
 
 
+def proxy_error(e):
+    """The X-Proxy-Error header a refusal carries: there, a secret matched but its value failed."""
+    said = (e.headers.get("X-Proxy-Error") or "") if getattr(e, "headers", None) else ""
+    return re.sub(r"[\x00-\x1f\x7f]", " ", said).strip()[:300]
+
+
+def proxy_advice(said):
+    if said:
+        return f"proxy says: {said}\n  A secret matched this host but its value was refused: re-enter the secret."
+    return "no proxy note: probably no secret is set for openrouter.ai; add one."
+
+
 def http(url, payload=None, key=None, timeout=100):
     headers = {"Content-Type": "application/json", "X-Title": "Desk review"}
     if key and key != PROXY:
@@ -177,7 +189,8 @@ def ask_openrouter(model, packet_text, focus, key):
         except urllib.error.HTTPError as e:
             last = f"HTTP {e.code}: " + e.read().decode("utf-8", "replace")[:400]
             if key == PROXY and e.code in (401, 403):
-                return "not-attached", f"HTTP {e.code}: {NOT_ATTACHED}. {last}"
+                said = proxy_error(e)
+                return "not-attached", f"HTTP {e.code}: {NOT_ATTACHED}.\n" + (f"X-Proxy-Error: {said}\n" if said else "") + last
         except Exception as e:  # network, timeout, malformed answer
             last = f"{type(e).__name__}: {e}"
             if "timed out" in last.lower():
@@ -279,7 +292,10 @@ def proxy_status():
     try:
         data = http(API + "/key", key=PROXY, timeout=30).get("data") or {}
     except urllib.error.HTTPError as e:
-        return False, f"via proxy, NOT attached (HTTP {e.code})"
+        line = f"via proxy, NOT attached (HTTP {e.code})"
+        if e.code in (401, 403):
+            line += "\n                 " + proxy_advice(proxy_error(e)).replace("\n  ", "\n                 ")
+        return False, line
     except Exception as e:  # no answer at all: DNS, refused, timeout
         return False, f"via proxy, not reached ({type(e).__name__}: {e})"
     about = []
@@ -341,6 +357,7 @@ def main(argv):
         open(ledger, "w", encoding="utf-8").write("date\tpacket\tmodel\tvendor\tstatus\tseconds\n")
     today = datetime.date.today().isoformat()
     results = []  # (vendor, model, status, seconds)
+    proxy_said = set()  # X-Proxy-Error headers from refusals
 
     def record(vendor, model, fn):
         t0 = time.time()
@@ -351,6 +368,8 @@ def main(argv):
         with open(ledger, "a", encoding="utf-8") as f:
             f.write(f"{today}\t{stem}\t{model}\t{vendor}\t{status}\t{secs}\n")
         results.append((vendor, model, status, secs))
+        if status == "not-attached":
+            proxy_said.update(l[len("X-Proxy-Error: "):] for l in body.splitlines() if l.startswith("X-Proxy-Error: "))
         return status
 
     n = int(os.environ.get("DESK_REVIEW_N", "6"))
@@ -400,7 +419,8 @@ def main(argv):
               "  (the credit is not spent by free models). Otherwise wait for the daily reset.")
     if detached:
         print(f"REVIEW KEY: DESK_REVIEW_KEY=proxy, but the aggregator refused: {NOT_ATTACHED}.\n"
-              "  Its lane stopped. Run `review.py --check` to see what the proxy sends.")
+              "  Its lane stopped. Run `review.py --check` to see what the proxy sends.\n"
+              "  " + proxy_advice(sorted(proxy_said)[0] if proxy_said else ""))
     vendors = answered()
     apple_ok = any(v == "apple" and s == "answered" for v, _, s, _ in results)
     sha = hashlib.sha256(text.encode()).hexdigest()

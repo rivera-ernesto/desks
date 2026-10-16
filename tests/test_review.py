@@ -210,8 +210,11 @@ class Labels(Sandbox):
         self.assertIn("packet not found", err)
 
 
-def refused(code):
-    return urllib.error.HTTPError("https://openrouter.ai/api/v1", code, "no", {}, io.BytesIO(b'{"error":"no"}'))
+def refused(code, headers=None):
+    return urllib.error.HTTPError("https://openrouter.ai/api/v1", code, "no", headers or {}, io.BytesIO(b'{"error":"no"}'))
+
+
+SAID = 'upstream auth failed: connection "a-secret", host "openrouter.ai"'
 
 
 class Proxy(Sandbox):
@@ -282,6 +285,19 @@ class Proxy(Sandbox):
             self.assertIn(f"review key:      via proxy, NOT attached (HTTP {status})", out)
             self.assertIn("same-vendor", out)
 
+    def test_check_prints_the_proxy_error_header(self):
+        self.fake_key(refused(401, {"X-Proxy-Error": SAID}))
+        code, out, _ = self.run_main("--check")
+        self.assertEqual(code, 3)
+        self.assertIn("via proxy, NOT attached (HTTP 401)\n", out)
+        self.assertIn("proxy says: " + SAID, out)
+        self.assertIn("re-enter the secret", out)
+
+    def test_check_without_the_header_says_no_secret_matched(self):
+        self.fake_key(refused(403))
+        _, out, _ = self.run_main("--check")
+        self.assertIn("no proxy note: probably no secret is set for openrouter.ai", out)
+
     def test_check_not_attached_with_another_lane_still_exits_0(self):
         self.conf("reviewers.txt", self.lane("mine"))
         self.fake_key(refused(401))
@@ -316,6 +332,15 @@ class Proxy(Sandbox):
             self.assertEqual(len(calls), 1)  # no retry, no top-up
             self.assertIn("not-attached", out)
             self.assertIn("Review: [unreviewed] · key not attached in this environment · receipt", out)
+
+    def test_a_refusal_during_review_prints_the_proxy_error_header(self):
+        os.environ["DESK_REVIEW_N"] = "1"
+        self.chat(refused(401, {"X-Proxy-Error": SAID + "\x1b[2J"}))
+        _, out, _ = self.run_main(self.packet())
+        self.assertIn("proxy says: " + SAID, out)
+        self.assertNotIn("\x1b", out)  # the header is shown, never obeyed by the terminal
+        answers = os.path.join(self.dir, "reviews", "2026-01-01-price-reviews")
+        self.assertTrue(any(SAID in open(os.path.join(answers, f)).read() for f in os.listdir(answers) if f.endswith(".txt")))
 
     def test_a_refusal_means_never_converged(self):
         self.conf("reviewers.txt", self.lane("one") + self.lane("two"))

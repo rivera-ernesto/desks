@@ -78,6 +78,9 @@ network adds it". Never put a real key in that variable.
 - `review.py --check` then makes one real call and says either `via proxy, working` (with the
   key's label and limit) or `via proxy, NOT attached (HTTP 401)`. Not attached means the secret
   is missing or not set for openrouter.ai: the user fixes it in the environment's settings.
+  If the proxy explains why (its `X-Proxy-Error` header), the script prints it: a secret matched
+  but its value was refused, so re-enter it. No explanation usually means no secret is set for
+  openrouter.ai.
   `via proxy, not reached` means the session cannot reach openrouter.ai at all: the environment's
   network access must allow it.
 - If a review is refused the same way, the script stops asking OpenRouter, the label line says
