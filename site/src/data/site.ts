@@ -16,17 +16,19 @@ export const NAV_ES = [
   { href: 'es/como/', label: 'Cómo funciona' },
   { href: 'es/ejemplos/', label: 'Ejemplos' },
   { href: 'es/instalar/', label: 'Instalar' },
+  { href: 'es/abierto/', label: 'A la vista' },
   { href: 'es/acerca/', label: 'Acerca' },
 ];
 
 // Each page and its counterpart in the other language.
 export const PAIRS: Record<string, string> = {
-  '': 'es/', 'how/': 'es/como/', 'examples/': 'es/ejemplos/', 'install/': 'es/instalar/', 'about/': 'es/acerca/',
+  '': 'es/', 'how/': 'es/como/', 'examples/': 'es/ejemplos/', 'install/': 'es/instalar/', 'open/': 'es/abierto/', 'about/': 'es/acerca/',
 };
 
 export const NAV = [
   { href: 'how/', label: 'How it works' },
   { href: 'examples/', label: 'Examples' },
   { href: 'install/', label: 'Install' },
+  { href: 'open/', label: 'In the open' },
   { href: 'about/', label: 'About' },
 ];

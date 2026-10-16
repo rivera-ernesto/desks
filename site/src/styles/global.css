@@ -5,8 +5,14 @@
   --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
+/* Dark: chosen by hand with the header button, or by the system when nothing was chosen.
+   A saved choice wins over the system in both directions. Keep the two blocks the same. */
+:root[data-theme='dark'] {
+  --bg: #161614; --surface: #1f1f1c; --ink: #eceae4; --muted: #a5a299; --line: #34332e;
+  --accent: #8cc3b1; --accent-ink: #10201b; --code-bg: #262622; --ok: #8cc3b1; --warn: #e0b260;
+}
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --bg: #161614; --surface: #1f1f1c; --ink: #eceae4; --muted: #a5a299; --line: #34332e;
     --accent: #8cc3b1; --accent-ink: #10201b; --code-bg: #262622; --ok: #8cc3b1; --warn: #e0b260;
   }
@@ -22,6 +28,21 @@ header.site .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 8p
 nav.main { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-left: auto; font-size: 0.95rem; }
 nav.main a { color: var(--muted); text-decoration: none; }
 nav.main a:hover, nav.main a[aria-current="page"] { color: var(--ink); }
+.theme-toggle { display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0; background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 7px; cursor: pointer; }
+.theme-toggle:hover { color: var(--ink); }
+/* Narrow screens: the button stays on the line of the name, the menu goes below. */
+@media (max-width: 720px) {
+  header.site .theme-toggle { order: 1; margin-left: auto; }
+  nav.main { order: 2; flex-basis: 100%; margin-left: 0; }
+}
+/* The icon shows the theme in use: the sun in light, the moon in dark. */
+.theme-toggle .moon { display: none; }
+:root[data-theme='dark'] .theme-toggle .sun { display: none; }
+:root[data-theme='dark'] .theme-toggle .moon { display: inline; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .theme-toggle .sun { display: none; }
+  :root:not([data-theme='light']) .theme-toggle .moon { display: inline; }
+}
 main { padding: 48px 0 64px; }
 h1 { font-size: clamp(2rem, 5vw, 3rem); line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 16px; text-wrap: balance; }
 h2 { font-size: 1.5rem; line-height: 1.25; letter-spacing: -0.01em; margin: 56px 0 12px; }
@@ -37,7 +58,7 @@ code { font-family: var(--mono); font-size: 0.9em; background: var(--code-bg); p
 .prompt .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 8px 8px 16px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; }
 .prompt pre { margin: 0; padding: 16px; font: 0.95rem/1.55 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
 button.copy { font: inherit; font-size: 0.85rem; background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 7px; padding: 6px 14px; cursor: pointer; }
-button.copy:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.copy:focus-visible, .theme-toggle:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .steps { counter-reset: s; list-style: none; padding: 0; }
 .steps li { counter-increment: s; position: relative; padding: 0 0 18px 44px; }
 .steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); display: grid; place-items: center; font-size: 0.85rem; color: var(--muted); }
@@ -51,7 +72,9 @@ th { color: var(--muted); font-weight: 600; font-size: 0.85rem; }
 .chat .turn:last-child { border-bottom: 0; }
 .chat .who { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 2px; }
 .chat p { margin: 4px 0; }
-.chat .added { color: var(--accent); }
+.added { color: var(--accent); }
+.card .said { color: var(--ink); font-size: 1.02rem; margin-bottom: 8px; }
+.card .added { font-size: 0.9rem; }
 .chat .receipt { font-family: var(--mono); font-size: 0.85rem; color: var(--ok); }
 .status { display: inline-block; font-size: 0.82rem; border: 1px solid var(--line); border-radius: 999px; padding: 2px 12px; color: var(--warn); margin-bottom: 18px; }
 footer.site { border-top: 1px solid var(--line); color: var(--muted); font-size: 0.9rem; padding: 24px 0 40px; }

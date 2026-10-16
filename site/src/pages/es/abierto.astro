@@ -1,0 +1,24 @@
+---
+import Base from '../../layouts/Base.astro';
+import { REPO } from '../../data/site';
+---
+<Base lang="es" title="Desks, a la vista" description="Dónde ver todo sobre Desks: qué está planeado, qué cambió, qué se probó y qué objetaron los revisores.">
+  <h1>A la vista</h1>
+  <p class="lede">Nada de Desks se guarda donde no lo puedas ver. Esta página dice dónde está cada cosa (el repositorio está en inglés).</p>
+
+  <div class="tablewrap"><table>
+    <tbody>
+      <tr><td><a href={`${REPO}/issues`}>Issues</a></td><td>Cada plan, idea, camino sin probar y pregunta abierta. No hay otra lista.</td></tr>
+      <tr><td><a href={`${REPO}/pulls`}>Pull requests</a></td><td>Cada cambio que está por entrar, con lo que afirma y lo que se comprobó.</td></tr>
+      <tr><td><a href={`${REPO}/blob/main/CHANGELOG.md`}>Historial de cambios</a></td><td>Qué cambió en cada versión, y de qué prueba o revisión salió.</td></tr>
+      <tr><td><a href={`${REPO}/actions`}>Comprobaciones</a></td><td>Lo que corre con cada cambio: las pruebas unitarias de los dos scripts, y una construcción de este sitio con sus comprobaciones.</td></tr>
+      <tr><td><a href={`${REPO}/blob/main/skills/desk/SKILL.md`}>El contrato</a></td><td>Las instrucciones que sigue un Desk. Un solo archivo. Léelo antes de instalar.</td></tr>
+      <tr><td><a href={`${REPO}/blob/main/SECURITY.md`}>Seguridad y privacidad</a></td><td>Qué sale de tu equipo, qué hace Desks con tus archivos y dónde están los puntos débiles.</td></tr>
+      <tr><td><a href={`${REPO}/tree/main/examples/sell-camera`}>Un tema trabajado</a></td><td>Lo que deja un Desk, con revisiones y objeciones. Datos inventados.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Tienes la misma vista de tu propio trabajo</h2>
+  <p>Un Desk guarda tu trabajo como este proyecto guarda el suyo: una carpeta por tema con dónde están las cosas y qué queda abierto, una línea por cada decisión, y cada revisión con sus objeciones y lo que se hizo con ellas. Si tu carpeta está en GitHub, un Desk se cierra como pull request y lo abierto puede volverse Issues, así tu propio repositorio muestra tu trabajo como este muestra el nuestro.</p>
+  <p class="note">Esa última parte es nueva y todavía no está diseñada más allá de lo básico. Es <a href={`${REPO}/issues/5`}>una idea abierta</a>, como todo lo demás aquí.</p>
+</Base>

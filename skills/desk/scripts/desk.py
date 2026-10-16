@@ -4,6 +4,7 @@
     python3 desk.py status
     python3 desk.py open  <topic>
     python3 desk.py close <topic> --merge | --pr [--title "Five Words At Most"]
+    python3 desk.py close <topic>              (the recorded `Close:` line decides)
     python3 desk.py note  <open-topic> <other-topic> "what came up, in a sentence or two"
     python3 desk.py set   "Close" "merge"      (records a setup answer in CLAUDE.md)
     python3 desk.py add   "Setup" "use my researcher agent for reading"   (adds a line, keeps earlier ones)
@@ -22,8 +23,10 @@ repository unless told to, never forces, never deletes unmerged work.
 Standard library only.
 """
 import datetime
+import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -52,19 +55,124 @@ def main_root():
     return os.path.dirname(common) if os.path.basename(common) == ".git" else os.getcwd(), True
 
 
+BLOCK = re.compile(r"(<!-- desk:start -->)(.*?)(<!-- desk:end -->)", flags=re.S)
+
+
+def block_file(root):
+    """The file that holds the Desk block. `CLAUDE.local.md` wins when it has one:
+    that is where the block goes in a shared project whose `CLAUDE.md` is not
+    yours to change. It is personal and stays out of the project's history."""
+    for name in ("CLAUDE.local.md", "CLAUDE.md"):
+        path = os.path.join(root, name)
+        try:
+            if BLOCK.search(open(path, encoding="utf-8").read()):
+                return path
+        except OSError:
+            pass
+    return None
+
+
 def settings(root):
-    """Lines like `- Desk root: desks/` inside the marked block of CLAUDE.md."""
+    """Lines like `- Desk root: desks/` inside the marked block."""
     out = {}
-    try:
-        text = open(os.path.join(root, "CLAUDE.md"), encoding="utf-8").read()
-    except OSError:
+    path = block_file(root)
+    if not path:
         return out
-    m = re.search(r"<!-- desk:start -->(.*?)<!-- desk:end -->", text, flags=re.S)
-    for line in (m.group(1) if m else "").splitlines():
-        k = re.match(r"\s*-\s*([A-Za-z ]+):\s*`?([^`\n]+?)`?\s*$", line)
+    m = BLOCK.search(open(path, encoding="utf-8").read())
+    for line in m.group(2).splitlines():
+        k = re.match(r"\s*-\s*([A-Za-z ]+):\s*(.+?)\s*$", line)
         if k:
-            out[k.group(1).strip().lower()] = k.group(2).strip()
+            v = k.group(2)
+            if len(v) > 1 and v[0] == v[-1] == "`" and "`" not in v[1:-1]:
+                v = v[1:-1].strip()
+            out[k.group(1).strip().lower()] = v
     return out
+
+
+def is_off(cfg, key):
+    """`off`, or `off` followed by a remark: `- Git: off (the folder has its own branches)`.
+    Only the first word is read, and only to switch something of Desk's off, never on."""
+    return re.match(r"off\b", cfg.get(key, "").strip().lower()) is not None
+
+
+def close_mode(cfg):
+    """How this folder closes, from its `Close:` line.
+
+    ('', '') no line · ('merge', '') · ('review', '') · ('run', command) ·
+    ('follow', file) · ('?', the line) when it is none of those. A line this
+    script does not understand is never treated as if it were not there.
+    """
+    raw = cfg.get("close", "").strip()
+    if not raw:
+        return "", ""
+    if raw.lower() in ("merge", "review"):
+        return raw.lower(), ""
+    m = re.match(r"house\s+(run|follow)\s+(.+)$", raw)
+    if m:
+        arg = m.group(2).strip()
+        if len(arg) > 1 and arg[0] == arg[-1] == "`":
+            arg = arg[1:-1].strip()
+        if arg:
+            return m.group(1), arg
+    return "?", raw
+
+
+def confirmed_file():
+    conf = os.environ.get("DESK_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".config", "desk")
+    return os.path.join(conf, "house-close.json")
+
+
+def confirmed_close(root):
+    """The house close the user said yes to for this folder, as recorded by `desk.py set`.
+
+    It is kept outside the folder on purpose: a `Close: house ...` line can
+    arrive with a clone or a pull, and nothing that arrives that way may run.
+    """
+    try:
+        with open(confirmed_file(), encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return ""
+    return data.get(os.path.realpath(root), "") if isinstance(data, dict) else ""
+
+
+def confirmed_all():
+    """Every folder's confirmed line, for rewriting. A file that cannot be read is never replaced:
+    it holds other folders' confirmations too."""
+    path = confirmed_file()
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        data = None
+    if not isinstance(data, dict):
+        die(f"{path} cannot be read as the list of confirmed closing routines. Move it aside and "
+            "confirm again. Nothing was recorded.")
+    return data
+
+
+def confirm_close(root, line, data=None):
+    """Record the user's yes for this folder, or forget it when `line` is empty."""
+    data = confirmed_all() if data is None else data
+    key, path = os.path.realpath(root), confirmed_file()
+    if line:
+        data[key] = line
+    elif key not in data:
+        return
+    else:
+        del data[key]
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path + ".tmp", "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=1, sort_keys=True)
+    os.replace(path + ".tmp", path)
+
+
+def inside(root, rel):
+    """True when `rel`, read from `root`, stays inside it."""
+    top = os.path.realpath(root)
+    return os.path.commonpath([top, os.path.realpath(os.path.join(top, rel))]) == top
 
 
 def default_branch(root):
@@ -89,12 +197,12 @@ def github(root):
 
 
 def level(root, is_git, cfg):
-    if not is_git or cfg.get("git", "").lower() == "off":
+    if not is_git or is_off(cfg, "git"):
         return "folder"
     if run(["git", "rev-parse", "--verify", "--quiet", "HEAD"], cwd=root)[0] != 0:
         return "folder"  # a repository with no commit yet cannot branch
     remote, gh_ok, _ = github(root)
-    return "github" if (remote and gh_ok and cfg.get("github", "").lower() != "off") else "git"
+    return "github" if (remote and gh_ok and not is_off(cfg, "github")) else "git"
 
 
 def slug(topic):
@@ -135,6 +243,7 @@ def cmd_status():
     print(f"folder:   {root}")
     print(f"level:    {lv}")
     print(f"desk root: {cfg.get('desk root', 'desks/')}")
+    print(f"settings: {block_file(root) or 'none (defaults)'}")
     if is_git:
         remote, gh_ok, vis = github(root)
         print(f"branch:   {default_branch(root)} (default)")
@@ -213,6 +322,18 @@ def cmd_close(topic, how, title):
     cfg = settings(root)
     droot = cfg.get("desk root", "desks/").strip("/")
     lv = level(root, is_git, cfg)
+    mode, arg = close_mode(cfg)
+    if mode == "?":
+        die(f"the `Close:` line of this folder is not one this script understands:\n    Close: {arg}\n"
+            "It reads `merge`, `review`, `house run <command>` or `house follow <file>`. Nothing was run.")
+    house = mode in ("run", "follow")
+    if house and how:
+        die(f"this folder closes with its own routine (`Close: house {mode} {arg}`), and {how} does not "
+            "override it. Run `desk.py close <topic>` with no flag. Nothing was run.")
+    if not house and not how:
+        how = {"merge": "--merge", "review": "--pr"}.get(mode, "")
+        if not how:
+            die("no `Close:` line is recorded for this folder: pass --merge or --pr, or record one with `desk.py set`", 2)
     branch = f"desk/{topic}"
     work = root if lv == "folder" else worktree_of(root, branch)
     if not work:
@@ -223,12 +344,16 @@ def cmd_close(topic, how, title):
     notes = sorted(f for f in os.listdir(os.path.join(folder, "sessions")) if f.endswith(".md")) if os.path.isdir(os.path.join(folder, "sessions")) else []
     if not notes:
         die("no session note yet: write sessions/<date>-<title>.md from the template first")
+    if not open(os.path.join(folder, "README.md"), encoding="utf-8").read().strip():
+        die(f"{os.path.join(folder, 'README.md')} is empty: the next session would start from nothing")
     check = [os.path.join(folder, f) for f in sorted(os.listdir(folder)) if f.endswith(".md")]
     check += [os.path.join(folder, "sessions", f) for f in notes]
     for f in check:
         left = re.findall(r"\{\{[^}]*\}\}", open(f, encoding="utf-8").read())
         if left:
             die(f"{f} still has unfilled placeholders: {', '.join(left[:4])}")
+    if house:
+        return close_house(root, topic, folder, notes[-1], mode, arg, cfg.get("close", "").strip())
     if lv == "folder":
         print("closed (folder level): nothing to merge. The README is the state.")
         return 0
@@ -269,6 +394,43 @@ def cmd_close(topic, how, title):
     return 0
 
 
+def close_house(root, topic, folder, note, mode, arg, line):
+    """The folder has its own closing routine, so that routine is the close.
+
+    This script writes nothing here and does no git: no merge, no push, no
+    pull request. `run` executes the recorded command and stops if it fails.
+    `follow` names a written procedure the session carries out itself; this
+    script cannot see that, and says so instead of pretending to have checked.
+    """
+    was = confirmed_close(root)  # the whole value as it was read back when they said yes, not a tidied form of it
+    if was != line:
+        die("this folder's closing routine has not been confirmed by the user in this exact form:\n"
+            f"    Close: {line}\n"
+            + (f"The form they confirmed was:\n    Close: {was}\n" if was else "")
+            + "Show them the line. Only on their yes, record it:\n"
+            f"    desk.py set Close {shlex.quote(line)}\nNothing was run.")
+    lines = [x for x in open(os.path.join(folder, "sessions", note), encoding="utf-8").read().splitlines() if x.strip()]
+    if len(lines) > 20:
+        print(f"note:   sessions/{note} is {len(lines)} lines. With a house close the session note only points at "
+              "the folder's own record of the session; it does not retell it.")
+    if mode == "follow":
+        if not inside(root, arg):
+            die(f"the closing procedure this folder names is outside it: {arg}. Nothing was run.")
+        if not os.path.isfile(os.path.join(root, arg)):
+            die(f"the closing procedure this folder names is not there: {os.path.join(root, arg)}. Nothing was run.")
+        print(f"closed with this folder's own routine: {arg}")
+        print("That routine was reported done by the session, not checked by this script, which wrote nothing and did no git.")
+        return 0
+    print(f"running this folder's closing routine: {arg}", flush=True)
+    env = dict(os.environ, DESK_TOPIC=topic, DESK_TOPIC_FOLDER=folder)
+    rc = subprocess.run(arg, shell=True, cwd=root, stdin=subprocess.DEVNULL, env=env).returncode
+    if rc != 0:
+        die(f"this folder's closing routine failed (exit {rc}). The Desk is not closed, and this script changed "
+            "nothing. Fix what it reported; run it again only if that routine is safe to run twice.")
+    print("closed with this folder's own routine. This script wrote nothing and did no git.")
+    return 0
+
+
 def cmd_note(current, other, text):
     """Something about another topic came up. Leave it where that topic's next session finds it.
 
@@ -303,25 +465,38 @@ def cmd_set(key, value, append=False):
     itself, so a later close never finds the main folder half-edited.
     """
     root, is_git = main_root()
-    path = os.path.join(root, "CLAUDE.md")
-    try:
-        text = open(path, encoding="utf-8").read()
-    except OSError:
-        die("no CLAUDE.md in the main folder; run the install first")
-    m = re.search(r"(<!-- desk:start -->)(.*?)(<!-- desk:end -->)", text, flags=re.S)
-    if not m:
-        die("CLAUDE.md has no Desk block; run the install first")
+    path = block_file(root)
+    if not path:
+        die("no Desk block in CLAUDE.md or CLAUDE.local.md of the main folder; run the install first")
+    text = open(path, encoding="utf-8").read()
+    m = BLOCK.search(text)
+    name = os.path.basename(path)
     key, value = key.strip().rstrip(":"), value.strip()
+    mode, arg = close_mode({"close": value}) if key.lower() == "close" else ("", "")
+    if mode == "?":
+        die(f"`Close: {value}` is not one this script understands. It reads `merge`, `review`, "
+            "`house run <command>` or `house follow <file>`. Nothing was recorded.", 2)
+    if len(value.splitlines()) > 1:
+        die("a setting is one line. Put a longer routine in a script and name the script. Nothing was recorded.", 2)
+    if mode == "follow" and not inside(root, arg):
+        die(f"`{arg}` is outside this folder. A closing procedure is a file inside it. Nothing was recorded.", 2)
+    yes = confirmed_all() if key.lower() == "close" else None  # before anything is written
     body, line = m.group(2), f"- {key}: {value}"
     pat = re.compile(rf"^[ \t]*-[ \t]*{re.escape(key)}:.*$", flags=re.M | re.I)
     if pat.search(body) and not append:
-        body = pat.sub(line, body, count=1)
+        body = pat.sub(lambda _: line, body, count=1)
     elif line not in body:
         body = body.rstrip("\n") + "\n" + line + "\n"
     open(path, "w", encoding="utf-8").write(text[:m.start(2)] + body + text[m.end(2):])
     print(f"recorded in {path}: {line}")
-    if is_git and run(["git", "ls-files", "--error-unmatch", "CLAUDE.md"], cwd=root)[0] == 0:
-        rc, _, err = run(["git", "commit", "--only", "CLAUDE.md", "-m", f"desk: record {key}"], cwd=root)
+    if mode in ("run", "follow"):  # the user's yes to this exact text, kept where a pull cannot reach it
+        read_back = settings(root).get("close", "").strip()  # exactly what a close will read from the file
+        confirm_close(root, read_back, yes)
+        print(f"confirmed for this folder: {read_back}")
+    elif yes is not None:  # the routine is no longer this folder's close: an old yes must not come back with it
+        confirm_close(root, "", yes)
+    if is_git and run(["git", "ls-files", "--error-unmatch", name], cwd=root)[0] == 0:
+        rc, _, err = run(["git", "commit", "--only", name, "-m", f"desk: record {key}"], cwd=root)
         print("saved to history" if rc == 0 else "not saved to history (" + (err.splitlines() or ["nothing to save"])[-1] + ")")
     return 0
 
@@ -349,9 +524,10 @@ def main(a):
         return cmd_status()
     if len(a) >= 3 and a[1] == "open":
         return cmd_open(" ".join(a[2:]))
-    if len(a) >= 4 and a[1] == "close" and a[3] in ("--merge", "--pr"):
+    if len(a) >= 3 and a[1] == "close" and (len(a) == 3 or a[3] in ("--merge", "--pr", "--title")):
         title = a[a.index("--title") + 1] if "--title" in a and a.index("--title") + 1 < len(a) else ""
-        return cmd_close(a[2], a[3], title)
+        how = a[3] if len(a) > 3 and a[3] in ("--merge", "--pr") else ""
+        return cmd_close(a[2], how, title)
     if len(a) >= 4 and a[1] in ("set", "add"):
         return cmd_set(a[2], " ".join(a[3:]), append=(a[1] == "add"))
     if len(a) >= 5 and a[1] == "note":

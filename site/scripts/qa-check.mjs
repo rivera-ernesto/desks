@@ -11,7 +11,7 @@ const walk = (d) => readdirSync(d).flatMap((f) => {
 const pages = walk(dist);
 const errors = [];
 
-const EXPECTED = ['index.html', 'how/index.html', 'examples/index.html', 'install/index.html', 'about/index.html', 'es/index.html', 'es/como/index.html', 'es/ejemplos/index.html', 'es/instalar/index.html', 'es/acerca/index.html', '404.html'];
+const EXPECTED = ['index.html', 'how/index.html', 'examples/index.html', 'install/index.html', 'about/index.html', 'open/index.html', 'es/abierto/index.html', 'es/index.html', 'es/como/index.html', 'es/ejemplos/index.html', 'es/instalar/index.html', 'es/acerca/index.html', '404.html'];
 
 // Both languages from day one: every page says which language it is in, and each has its pair.
 for (const p of pages) {

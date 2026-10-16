@@ -19,15 +19,17 @@ import { REPO } from '../data/site';
   </table></div>
   <p><a href={`${REPO}/tree/main/examples/sell-camera`}>Read the whole folder on GitHub.</a></p>
 
-  <h2>Requests that work well</h2>
+  <h2>Short requests, and what the Desk adds</h2>
+  <p>You type the line in quotes. The Desk completes it from your notes, your profile and its own rules, shows you what it added, and starts.</p>
   <div class="grid">
-    <div class="card"><h3>A decision with money in it</h3><p>"desk quote-kitchen. Three quotes attached. Which one, and what should I ask each before deciding?"</p></div>
-    <div class="card"><h3>A text other people will read</h3><p>"desk landlord-letter. Draft the letter about the leak. Firm, not hostile. Do not send anything."</p></div>
-    <div class="card"><h3>Research where being wrong costs</h3><p>"desk visa-options. Which of these three routes fits my case? Official sources only, and tell me what you could not verify."</p></div>
-    <div class="card"><h3>A small project over weeks</h3><p>"desk garage-sale. Plan it in phases. Start with what is cheap and already waiting."</p></div>
-    <div class="card"><h3>Looking, not touching</h3><p>"desk shop-stats. Open my shop dashboard and tell me which five listings got views but no messages." Read-only by default.</p></div>
-    <div class="card"><h3>Picking up later</h3><p>"desk garage-sale" in a new session, a week on. It reads the notes and proposes the next step.</p></div>
+    <div class="card"><h3>A decision with money in it</h3><p class="said">"Which quote for the kitchen?"</p><p><span class="added"><strong>+ topic notes:</strong> three quotes on file · budget ceiling 4,000 · you want it done before March</span><br /><span class="added"><strong>+ my assumption:</strong> you want the questions to ask each one before deciding</span><br /><span class="added"><strong>+ Desk:</strong> reviewed by other vendors, because it is money</span></p></div>
+    <div class="card"><h3>A text other people will read</h3><p class="said">"Draft the letter about the leak."</p><p><span class="added"><strong>+ topic notes:</strong> to the landlord · firm, not hostile</span><br /><span class="added"><strong>+ your profile:</strong> no legal threats</span><br /><span class="added"><strong>+ Desk:</strong> a draft only; nothing is sent</span></p></div>
+    <div class="card"><h3>Research where being wrong costs</h3><p class="said">"Which visa route fits me?"</p><p><span class="added"><strong>+ your profile:</strong> your nationality and work situation</span><br /><span class="added"><strong>+ topic notes:</strong> the three routes you were already comparing</span><br /><span class="added"><strong>+ Desk:</strong> official sources only; what could not be verified is said</span></p></div>
+    <div class="card"><h3>A small project over weeks</h3><p class="said">"Plan the garage sale."</p><p><span class="added"><strong>+ topic notes:</strong> the 21st · the bikes go as a pair · nothing gets posted yet</span><br /><span class="added"><strong>+ Desk:</strong> in phases, starting with what is cheap and already waiting</span></p></div>
+    <div class="card"><h3>Looking, not touching</h3><p class="said">"How is the shop doing?"</p><p><span class="added"><strong>+ topic notes:</strong> you care about listings with views and no messages</span><br /><span class="added"><strong>+ my assumption:</strong> the last 30 days</span><br /><span class="added"><strong>+ Desk:</strong> read-only on your account</span></p></div>
+    <div class="card"><h3>Picking up later</h3><p class="said">"desk garage-sale"</p><p><span class="added"><strong>+ topic notes:</strong> where it stood a week ago · the permit call is still yours</span><br /><span class="added"><strong>+ Desk:</strong> opens with what went stale and the move it would make next</span></p></div>
   </div>
+  <p class="note">Invented examples. On a new topic there are no notes yet, so the first request needs a little more; it shrinks as the notes grow. What no file says is marked as an assumption, and you can correct any line.</p>
 
   <h2>What the Desk does so you do not have to</h2>
   <p>You should not have to learn habits from a website. The Desk carries them, each at the moment it matters:</p>
@@ -38,6 +40,7 @@ import { REPO } from '../data/site';
     <li><strong>The session got long.</strong> It proposes the close. A fresh session on good notes is cheaper and sharper.</li>
     <li><strong>You come back after a week.</strong> It opens with where things stand, what went stale, and the move it would make next.</li>
     <li><strong>It found something you did not ask about.</strong> A risk, a cheaper path. It says so once, with the evidence, and drops it if you say no.</li>
+    <li><strong>Desks itself got in your way.</strong> A rule that did not fit, a step that confused you. At the close it offers, once, to draft a report for the people who make Desks, with the private parts removed. You read it, and you send it or you do not. <code>desk feedback</code> asks for one at any time.</li>
   </ul>
   <p>Type <code>desk</code> with no topic for a brief across everything: what is waiting on you, what is waiting on someone else, and the one thing it would do today. Prefer an assistant that only does what it is asked? Say "just do what I ask".</p>
 </Base>

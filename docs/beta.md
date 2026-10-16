@@ -20,7 +20,9 @@ something your current way of using Claude Code does not?** A "no" is a useful a
 
 ## What to report
 
-Use the "Desk report" issue form, or just write to the person who invited you. The most useful
+Type `desk feedback` in any Desk: it drafts the report from the session with the private parts
+removed, shows it to you, and sends nothing unless you say so. Or use the "Desk report" issue
+form, or just write to the person who invited you. The most useful
 things:
 
 - the first moment you were confused;

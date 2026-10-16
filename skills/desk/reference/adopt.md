@@ -29,6 +29,13 @@ Look first, then propose a short list, then change only what they agree to.
   If their client cannot run that way, leave it out.
 - **Connected tools** are surfaces like any other: reading is free, anything that sends or changes
   waits for their go (`reference/surfaces.md`).
+- **A closing routine.** If the folder already has a way of closing a session (a script or a
+  `make` target named for closing or handing off, a "closing" section in its rules, a template for
+  a session record), name what you found and propose the line: `Close: house run <command>` when
+  one command does it, `Close: house follow <file>` when it is a written procedure. Never run a
+  candidate to see what it does. Record the line only on their yes to that exact text
+  (`reference/close.md` § A folder with its own close). If the routine also makes its own
+  branches, propose `Git: off` with it.
 - **Memory.** If they use Claude's own memory, keep using it for preferences about how to work.
   What belongs to a topic goes in that topic's README, where the next session reads it.
 
@@ -73,8 +80,20 @@ and nobody asked.
 `desk remove`: list the files from the "Removing" section of the source's `INSTALL.md`, and delete
 them on the user's yes. `desks/` and the profile are theirs and stay.
 
-## When Desk itself gets in the way
+## Feedback
 
-A snag caused by Desk (a rule that did not fit, a script that failed) is worth more upstream than
-in one folder. At the close, offer to draft a "Desk report" for the project's issue tracker, with
-everything private removed. Sending it is the user's call (`[needs you: public]`).
+Desks is early, and what its makers need most is how real sessions went. `desk feedback`, or your
+own offer at a close when a snag was caused by Desks itself (a rule that did not fit, a script
+that failed, a step that confused them). Offer it once per session at most.
+
+1. Draft the report from this session, short: the kind of topic in general terms, the review mode,
+   where it helped, where it got in the way, what they already use, and the Desks version from
+   the Desk block. **Remove everything private**: names, places, amounts, the content of the work.
+   Describe the snag, not their life.
+2. Show them the draft. They edit it or drop it.
+3. Sending is theirs (`[needs you: public]`: the tracker is public). On their yes, whichever is
+   there: `gh issue create --repo rivera-ernesto/desks --title "<title>" --body-file <draft>`, or
+   give them the link `https://github.com/rivera-ernesto/desks/issues/new?template=desk-report.yml`
+   and the text to paste. If they prefer to send it privately to whoever invited them, hand them
+   the text and leave it there.
+4. Never send anything about a session on your own, and never include a review packet or a file.

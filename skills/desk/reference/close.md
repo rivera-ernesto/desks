@@ -37,3 +37,55 @@ the work without asking the user what happened.
    the conversation so the user can find it again.
 
 A Desk that keeps going after its close just closes again later: update the same files.
+
+## A folder with its own close
+
+Some folders had a way of closing a session before Desk arrived: their own record of the session,
+their own branches and review, their own place for lessons. Closing the Desk way there drops all
+of it without a word. So when the block says `Close: house …`, **that routine is the close.** It
+stays the authority and runs unchanged; Desk adds pointers to it and never a second account of the
+session.
+
+Two forms, one line in the block:
+
+- `Close: house run <command>`: the routine is one command (`make close`, a script).
+  `desk.py close <topic>` runs it from the main folder, with `DESK_TOPIC` and `DESK_TOPIC_FOLDER`
+  set and no keyboard input. If it fails the Desk is not closed: stop and say so. Do not run it a
+  second time unless you know that is safe.
+- `Close: house follow <file>`: the routine is a written procedure. Read the file and carry it
+  out to the end before anything below. If a step fails, stop and say so; the Desk is not closed.
+  `desk.py close <topic>` runs nothing in this form and says the routine was reported, not checked.
+  It cannot tell whether you did the procedure. Do not claim more than that either.
+
+In both forms:
+
+1. **What the session made goes where the folder would have put it without Desk.** The topic
+   folder points there. Lessons too: if the folder has a place for durable rules, they land there
+   and "What we learned" points to it.
+2. **Update the topic's README**: state, next step, open items, and where the folder's own record
+   of the session is.
+3. **Write the session note from `templates/session-house.md`**: a few lines that point at that
+   record. Do not retell the session; the script warns when the note is long.
+4. **Run `desk.py close <topic>`, with no flag.** It checks Desk's own notes first. With `run`,
+   that is before the command, so a placeholder left in the README stops the close before anything
+   has run. With `follow`, the procedure is already done by then: a failed check undoes nothing
+   and repeats nothing. Fix the note and run the close again. It
+   writes nothing and does no merge, push or pull request: saving is the routine's business.
+   A folder whose routine also makes its own branches records `Git: off` as well.
+5. Steps 4, 5 and 7 above (snags, what you noticed, final reply) still apply. A snag the folder's
+   routine already gives an end to is not given a second one.
+
+**Nothing runs on a line the user has not confirmed.** `desk.py set Close "house …"`, run only
+after their yes to that exact line, records it and keeps a copy outside the folder
+(`~/.config/desk/house-close.json`). A line that arrived another way, by hand, a clone or a pull,
+or that changed since in any character, makes the close stop and print it. Show the user the line; record it only
+on their yes. This is `[needs you: access]`. The copy covers the line, not what the line points
+at: a script the command runs, or a procedure file, can change with a pull and the line stays the
+same. For the same reason it does not know when the folder itself was replaced: a different
+project put at the same path with the same line counts as confirmed. If you notice either, say so
+before the close. Setting `Close:` to anything else forgets
+the yes; a procedure file is a file inside the folder.
+
+**No `Close:` line, but the folder looks like it has a routine** (a closing script, a "closing"
+section in its rules): ask once, proposing the line. With no answer, close the Desk way and say
+in the final reply what the folder's routine would have done that this close did not.

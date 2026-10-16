@@ -29,8 +29,9 @@ every line in it costs every user some of their allowance on every Desk.
 
 ## Before you open a pull request
 
+- `python3 -m unittest discover tests` passes. A change to a script comes with a test that fails
+  without it.
 - `claude plugin validate .` passes.
-- `python3 skills/desk/scripts/review.py --check` runs.
 - If you changed the site: `npm run build` in `site/` passes.
 - You ran one real Desk with your change and say in the PR what happened.
 
@@ -43,3 +44,6 @@ rewrite: how the contract gets loaded (here, a skill and one block in `CLAUDE.md
 workers (here, subagent files), and the surfaces file. In a port, the author named in the review
 prompt should be the model you are porting to, and the review should exclude that model's vendor.
 Not every assistant can do all of it. A port that does part of it honestly is still a port.
+
+Want Desks for an assistant or an app that has no port yet? Open an issue proposing it, build it
+and link it there, or hire the author to build it.

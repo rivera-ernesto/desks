@@ -1,5 +1,41 @@
 # Changelog
 
+## Unreleased
+
+- **Commands are written in English only.** The Spanish aliases `cierra` and `abre desk` are gone
+  from the command table. A command plainly given in the user's own language still works, and so
+  does a word their Desk block records as theirs. Ordinary talk ("enough for today") is a reason
+  to offer the close, never to start it.
+- A test checks that the version is the same everywhere a person copies it from.
+- **A folder's own closing routine is the close.** `Close: house run <command>` or
+  `Close: house follow <file>`: the routine must finish for the Desk to be closed, Desk writes nothing and
+  does no git of its own, and the session note only points at the folder's record. Nothing runs
+  on a line the user has not confirmed: `desk.py set` keeps a copy of the confirmed line outside
+  the folder, and a line that arrived or changed some other way stops the close.
+- **Fixed:** a `Close:` line the script did not understand was ignored and the close fell back to
+  a direct merge. It now stops and prints the line.
+- **Fixed:** a settings line with backticks inside its value was not read at all, and
+  `Git: off` followed by a remark was not read as off.
+- `desk.py close <topic>` needs no flag once `Close: merge` or `Close: review` is recorded.
+- **Fixed before release** (found reading this change as code): a backslash in a recorded value
+  was mangled when it replaced an existing line; the command printed for confirming a line was
+  not safe to paste; `house follow` accepted a file outside the folder; an unreadable list of
+  confirmations was silently replaced; setting `Close:` to something else did not forget the old yes;
+  the confirmed line was compared in a tidied form, so backticks added or removed by hand went unnoticed.
+- `[unreviewed]` is no longer a way to finish a piece of advice: the reply says it is not ready to
+  act on, and the review runs before the next advice. A receipt covers one packet; a new
+  recommendation needs its own.
+- `desk feedback`: the Desk drafts a report of the session with the private parts removed; the
+  person sends it, or does not.
+- Unit tests for both scripts, run in CI. `close` refuses an empty README.
+- The Desk block can live in `CLAUDE.local.md`, for a shared project whose `CLAUDE.md` is not
+  yours to change.
+- README, site and Spanish quickstart open with what a person would say ("I want to sell my old
+  camera") and Claude proposing the topic name; `desk <topic>` is shown as the way back in.
+  "With names removed" now reads "with names and contact details removed".
+- Site: a button in the header switches between light and dark by hand and remembers the choice.
+  Without a choice, or with JavaScript off, the site follows the system setting as before.
+
 ## 0.1.7 (2026-10-11)
 
 - The Desk leads: it opens with a read and a proposed move, carries the habits itself, offers

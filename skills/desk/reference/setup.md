@@ -11,6 +11,7 @@ and `scripts/review.py --check`: do not ask what you can detect.
 |---|---|---|---|
 | First Desk in a folder with no git | Keep a history of this folder, so every Desk can be undone and several can run at once? | Yes (§ Starting a history) | `- Git: on` or `- Git: off` |
 | First close at the `git` level | When a Desk closes, fold it into the main folder directly, or keep it for you to look at first? | Fold it in directly (`--merge`) for solo work | `- Close: merge` or `- Close: review` |
+| First close in a folder that already has its own way of closing a session | Close with your own routine, and have Desk only point at what it writes? | Yes: theirs stays the authority (`reference/close.md` § A folder with its own close, `[needs you: access]`) | `- Close: house run <command>` or `- Close: house follow <file>` |
 | The folder has no GitHub remote and the user wants a backup or to work from two machines | Create a **private** GitHub repository for this folder? | Yes, private (`[needs you: outside]`: it creates something on their account) | `- GitHub: on` |
 | First advice-level answer with no review key | Add a free review key so other vendors check my answers? Three minutes. | Yes (§ Review key) | (detected, not recorded) |
 | First topic about the user, their voice or their people | Build a short profile so I stop asking who is who? | Yes, five minutes (`reference/profile.md`) | `- Profile: <path>` |

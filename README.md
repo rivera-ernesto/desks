@@ -2,16 +2,25 @@
 
 **A way of working for Claude Code: work sorted by topic, answers checked by other AI vendors, a written close.**
 
-You type `desk sell-camera`. Claude opens a folder for that topic, works on it with you, has its
+You say what you want to get done: "I want to sell my old camera." Claude proposes a short name
+for the topic, `sell-camera`, and on your yes opens a folder for it, works on it with you, has its
 recommendations attacked by models from other companies before you read them, sends the heavy
 reading to cheaper workers, and when the session gets long, writes down where things stand so the
-next session picks up without you explaining anything.
+next session picks up without you explaining anything. To come back another day, type
+`desk sell-camera`.
 
 Desks is the project; a Desk is one session. It is for real work that is mostly not code: selling something, planning, drafting, researching a
-decision, running a small project. It needs a paid Claude plan and Claude Code (the desktop app's
-Code tab, or the terminal). It is not made by, or affiliated with, Anthropic.
+decision, running a small project. **It is free and open source (MIT)**: no account, no
+subscription, and the review runs on models that cost nothing. It is not made by, or affiliated with, Anthropic.
 
-> **Status: 0.1, early.** It is extracted from a setup one person has used daily. It has not yet
+**Tested with:** Claude Code on a paid Claude plan (the desktop app's Code tab and the terminal),
+on a Mac. That is the only setup it has been run on. **Not tied to it:** the contract is plain
+instructions and the two scripts are plain Python, so any capable assistant that can read files
+and run commands, paid or free, can be put to the test. Nobody has done that yet; if you do, say
+how it went.
+
+> **Status: 0.1, early.** It is extracted from a private setup one person has built and used daily
+> for a year (first commit October 2025; the Desk pattern took its present shape in September 2026). It has not yet
 > been proven by people who are not that person. Reports of where it fails are the most useful
 > thing you can send.
 
@@ -40,7 +49,7 @@ desk my-first-topic
 | **It leads** | It opens with where things stand and the move it would make next. It carries the good habits so you do not have to learn them, and offers what you did not ask for when it has evidence. One word turns that off. |
 | **Sorted for you** | Write the way you think, several subjects at once. Each one is filed under its own topic, so nothing said in passing is lost. |
 | **One topic, one folder** | `desks/<topic>/` holds the state, the decisions and a note per session. Plain files you can read. History, branches and pull requests happen under the hood when git is there. You never type it. |
-| **Reviewed answers** | Advice and anything high-stakes is sent, with names removed, to free models from other vendors. Claude answers their objections before you see the result, and the reply carries a label you can verify. |
+| **Reviewed answers** | Advice and anything high-stakes is sent, with names and contact details removed, to free models from other vendors. Claude answers their objections before you see the result, and the reply carries a label you can verify. |
 | **Proposals, not questions** | Claude settles what it can and brings a reviewed proposal. It stops for your word only on money, anything public, contacting someone, access, and anything permanent. |
 | **Nothing sent without your go** | Reading is free. Posting, sending, buying and deleting wait for you. Your logged-in accounts are read-only unless you say otherwise. |
 | **Cheaper sessions** | Reading, screen work and long outputs go to workers on a smaller model. The session proposes its own close before it gets expensive. |
@@ -75,9 +84,15 @@ skills/desk/scripts/      review.py and desk.py (Python standard library only)
 skills/desk/templates/    topic README, session note, plan, review packet
 agents/                   desk-reader, desk-screen, desk-runner
 examples/                 a worked topic, with invented details
+tests/                    unit tests for both scripts (standard library only)
 docs/                     beta notes, benchmark protocol, guía en español
 site/                     the website
 ```
+
+## Plans
+
+What is untested, what is proposed and what is only an idea are all in the
+[issues](https://github.com/rivera-ernesto/desks/issues). Nothing is planned anywhere else.
 
 ## Docs
 
@@ -90,16 +105,18 @@ site/                     the website
 
 ## Related projects
 
-Desk reuses what Claude Code already provides (skills, subagents, plugins, working copies). For
+Desks reuses what Claude Code already provides (skills, subagents, plugins, working copies). For
 neighbouring needs, others may fit better:
 [PAL MCP Server](https://github.com/BeehiveInnovations/pal-mcp-server) (multi-model toolkit for
 coding), [CCPM](https://github.com/automazeio/ccpm) (issue-driven project management for software),
 [Superpowers](https://github.com/obra/superpowers) (a software-development method as skills),
 [obsidian-claude-pkm](https://github.com/ballred/obsidian-claude-pkm) (planning in an Obsidian
-vault). What Desk adds is the combination: free review across vendors with a receipt, a short fixed
+vault). What Desks adds is the combination: free review across vendors with a receipt, a short fixed
 list of things that wait for a person, and a focus on work that is not code.
 
-Want something different? It is MIT: fork it and make it yours.
+Desks is part of open-source and free culture, and proud of it: it exists because others published
+their work for anyone to read, use and change. Want something different? It is MIT: fork it and
+make it yours.
 
 ## Why
 
@@ -113,7 +130,8 @@ it does.
 
 This repository is the version for Claude Code. The idea is not tied to it: the contract, the
 review script and the templates are plain text and plain Python. If you use another assistant,
-you can use Desks to build your own version for it. See [CONTRIBUTING.md](CONTRIBUTING.md) § Ports.
+you can try Desks with it as it is, build your own version, propose one in an issue, or hire the
+author to build it. See [CONTRIBUTING.md](CONTRIBUTING.md) § Ports.
 
 ## License
 

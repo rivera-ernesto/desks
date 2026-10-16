@@ -1,6 +1,6 @@
 ---
 name: desk
-description: Open or continue a Desk, a focused working session on one topic with reviewed answers, cheap workers and a written close. Use when the user writes "desk <topic>", "open desk <topic>", "abre desk <tema>", "/desk", asks to continue or close a desk, asks for a second opinion from other AI models, or starts real work on a topic that already has a folder under desks/.
+description: Open or continue a Desk, a focused working session on one topic with reviewed answers, cheap workers and a written close. Use when the user writes "desk <topic>", "open desk <topic>", "/desk" or the same in their own language, asks to continue or close a desk, asks for a second opinion from other AI models, or starts real work on a topic that already has a folder under desks/.
 ---
 
 # Desk
@@ -15,18 +15,24 @@ file is the whole contract. Read it once when the Desk opens and follow it until
 
 | The user writes | Do |
 |---|---|
-| `desk <topic>` · `/desk <topic>` · `abre desk <tema>` | Open or continue that topic (§ 1) |
+| `desk <topic>` · `/desk <topic>` | Open or continue that topic (§ 1) |
 | `desk` with no topic | The brief across all topics, and the one thing you would do today (§ 9) |
 | `desk review` | Review your last substantive answer now (§ 3) |
-| `desk close` · `cierra` | Close the Desk (§ 7) |
+| `desk close` | Close the Desk (§ 7) |
 | `desk setup` | Walk through every setup question at once (`reference/setup.md`) |
 | `desk adopt` · `desk import` | Fit Desk to the tools, folders and habits already here (`reference/adopt.md`) |
 | `desk profile` | Build or update the user's profile (`reference/profile.md`) |
+| `desk feedback` | Draft a report to the people who make Desks, for the user to send (`reference/adopt.md` § Feedback) |
 | `desk update` · `desk remove` | Get the current version, or take Desk out (`reference/adopt.md` § Updating) |
 
 A first message that is clearly work on a topic, with no command, is still a Desk: suggest a short
 topic name (or an existing one that fits), ask only to confirm it, and open it on the answer.
 Reading and talking need no topic.
+
+The commands are written in English. When the user plainly gives one of them in their own
+language ("cierra el desk", "revisa esa respuesta"), or with a word the Desk block records as
+theirs for it, treat it as that command. Ordinary talk is not a command: "enough for today" or
+"let's wrap up" is a reason to offer the close in one line, never to start it.
 
 Wherever this contract or its reference files say `desks/<topic>/`, read "the topic's folder under
 the Desk root", which may have another name (`desk.py status` prints it).
@@ -148,9 +154,12 @@ session. In short:
 
 **Labels.** `[converged]` several vendors answered and every finding has a disposition ·
 `[thin]` only one vendor answered · `[same-vendor]` reviewed by a Claude subagent only ·
-`[unreviewed]` no review ran · `[quick]` the user asked, in their own words, to skip it. A label
+`[unreviewed]` no review ran yet · `[quick]` the user asked, in their own words, to skip it. A label
 without a receipt is only valid for `[same-vendor]`, `[unreviewed]` and `[quick]`. Never write a
-label the script did not print. Changing your answer because of what reviewers found is the review
+label the script did not print. `[unreviewed]` is not a way to finish: on advice it means "not
+ready to act on", the reply says so in words, and the review runs before your next piece of
+advice. A receipt covers the one packet it was run on (`review.py --verify <receipt>` shows
+which): a new recommendation needs its own packet and its own receipt. Changing your answer because of what reviewers found is the review
 working, and needs no second review. Adding a claim they never saw does.
 
 **Private material.** If removing the identifying details would change the answer, do not send it
@@ -216,6 +225,9 @@ To close, read `reference/close.md`. In short:
 4. Propose, do not impose, anything you noticed about how the user works (`reference/profile.md`).
 5. Save your files, then `desk.py close <topic> --merge`, or `--pr` at the `github` level when the
    user reviews before merging. The script refuses while placeholders or unsaved files remain.
+
+Where the Desk block says `Close: house …`, the folder has its own closing routine and that
+routine is the close: steps 1 to 5 give way to `reference/close.md` § A folder with its own close.
 
 Final reply: what was done, what is open, where the files are, and a title for the conversation.
 
