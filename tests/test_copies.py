@@ -43,6 +43,17 @@ class CopiesMatch(unittest.TestCase):
         self.check(os.path.join("skills", "desk"), os.path.join(".claude", "skills", "desk"),
                    lambda src, dst: {os.path.join(".claude", "skills", "desk", p) for p in dst - src})
 
+    def test_agent_front_matter_is_plain_yaml(self):
+        """An unquoted ": " or " #" in a value is not valid YAML; a strict loader would skip the agent."""
+        for name in sorted(files("agents")):
+            with open(os.path.join(ROOT, "agents", name), encoding="utf-8") as f:
+                head = f.read().split("---\n")[1]
+            for line in head.splitlines():
+                value = line.split(": ", 1)[1] if ": " in line else ""
+                if value[:1] not in ("'", '"', ">", "|"):
+                    self.assertFalse(": " in value or " #" in value,
+                                     f"agents/{name}: quote this value: {line[:60]}...")
+
     def test_agent_copies(self):
         self.check("agents", os.path.join(".claude", "agents"),
                    lambda src, dst: {os.path.join(".claude", "agents", p) for p in dst - src

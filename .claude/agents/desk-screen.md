@@ -1,6 +1,6 @@
 ---
 name: desk-screen
-description: Extraction worker for browsers and screens in a Desk. "Go to X and pull out Y": numbers from a dashboard, the state of listings, whether something was published, text on a page. Keeps screenshots out of the main conversation. Never for judging how something looks, never for anything that changes state.
+description: 'Extraction worker for browsers and screens in a Desk. "Go to X and pull out Y": numbers from a dashboard, the state of listings, whether something was published, text on a page. Keeps screenshots out of the main conversation. Never for judging how something looks, never for anything that changes state.'
 model: sonnet
 ---
 
