@@ -63,6 +63,29 @@ Tell them plainly:
 - The first time, **show them the packet before it goes**. If they want that every time, record
   `- Review: ask first`.
 
+### A key the session never sees (cloud sessions)
+
+A cloud session runs on a machine that is not the user's, so there is no key file to read.
+Some cloud environments offer a **network secret** instead: the user stores the key once in the
+environment's settings, and the network proxy that every request leaves through adds it to
+requests going to openrouter.ai. The key never enters the session, the files or the chat, so
+nothing in the session can print it or leak it.
+
+The script cannot know that on its own, so the environment tells it with one variable:
+`DESK_REVIEW_KEY=proxy`. That is **a flag, not a key**: it means "send no key of your own; the
+network adds it". Never put a real key in that variable.
+
+- `review.py --check` then makes one real call and says either `via proxy, working` (with the
+  key's label and limit) or `via proxy, NOT attached (HTTP 401)`. Not attached means the secret
+  is missing or not set for openrouter.ai: the user fixes it in the environment's settings.
+  If the proxy explains why (its `X-Proxy-Error` header), the script prints it: a secret matched
+  but its value was refused, so re-enter it. No explanation usually means no secret is set for
+  openrouter.ai.
+  `via proxy, not reached` means the session cannot reach openrouter.ai at all: the environment's
+  network access must allow it.
+- If a review is refused the same way, the script stops asking OpenRouter, the label line says
+  `key not attached in this environment`, and the result is never `[converged]`.
+
 ## Private terms
 
 Ask for the words that must never leave the machine: family names, a client, a street, a company.

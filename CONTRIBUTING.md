@@ -31,9 +31,22 @@ every line in it costs every user some of their allowance on every Desk.
 
 - `python3 -m unittest discover tests` passes. A change to a script comes with a test that fails
   without it.
+- If you changed anything in `skills/desk/` or `agents/`, re-sync the copies in `.claude/` (they
+  are copies, not symlinks, so Windows clones work), from the repository root:
+
+  ```
+  rm -rf .claude/skills/desk .claude/agents/desk-*.md && mkdir -p .claude/skills .claude/agents && cp -R skills/desk .claude/skills/desk && cp agents/*.md .claude/agents/
+  ```
 - `claude plugin validate .` passes.
 - If you changed the site: `npm run build` in `site/` passes.
 - You ran one real Desk with your change and say in the PR what happened.
+
+## Working on Desks in a cloud session
+
+- The session loads the Desk skill and its three workers from `.claude/`, the copies above.
+- This repository is public, so here a Desk keeps its state in Issues and pull requests only.
+- Pushing a branch or opening a pull request here is public: it needs the task's explicit go.
+- Merging, tags and releases are never done from a cloud session.
 
 ## Ports
 
