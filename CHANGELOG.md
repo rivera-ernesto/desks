@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Install text:** a previous install is recognised by the `name: desk` in `SKILL.md`'s front
+  matter (#47); `review.py --check` exiting 3 without a key is expected, not a failed step (#46);
+  INSTALL.md and the site now give the same update path, `desk update`, and say how it relates to
+  pasting the install prompt again (#48).
 - **Fixed, found by the first testers:** `desk.py --help` exits 0 (#50); a git folder with no
   commit says why it runs at the folder level (#45); `status` shows "no next step written yet"
   instead of the template's placeholder (#33); the close names the session template and lists

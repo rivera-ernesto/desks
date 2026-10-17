@@ -46,7 +46,7 @@ Check `SRC/skills/desk/SKILL.md` exists before going on.
 
 | From | To | If it already exists |
 |---|---|---|
-| `SRC/skills/desk/` (the whole folder) | `DEST/skills/desk/` | if its `SKILL.md` begins with `name: desk` it is a previous install: replace the folder. Anything else: ask |
+| `SRC/skills/desk/` (the whole folder) | `DEST/skills/desk/` | if the front matter of its `SKILL.md` (between the `---` lines at the top) has `name: desk`, it is a previous install: replace the folder. Anything else: ask |
 | `SRC/agents/desk-reader.md` | `DEST/agents/desk-reader.md` | ask |
 | `SRC/agents/desk-screen.md` | `DEST/agents/desk-screen.md` | ask |
 | `SRC/agents/desk-runner.md` | `DEST/agents/desk-runner.md` | ask |
@@ -87,7 +87,8 @@ anything during install; tell the user what is new and let them decide.
 1. Confirm `DEST/skills/desk/SKILL.md` and the three agent files exist.
 2. Run `python3 DEST/skills/desk/scripts/review.py --check` (with `DEST` replaced by the real
    path) and report its output. A review key is kept per user, not per folder, so it may already
-   be set from another folder. If `python3`
+   be set from another folder. Without a key it says `same-vendor` and exits 3: that is the
+   expected result of a new install, not a failed step. Report it and go on. If `python3`
    is missing, say that cross-vendor review will need it and that everything else works.
 3. Tell the user, in a few lines:
    - the files created or changed;
@@ -112,7 +113,9 @@ open a Desk there.
 
 ## Updating
 
-Run the install prompt again. Step 3 replaces the Desk skill folder and asks about the agents.
+In a session, type `desk update`: it shows what changed since your version and, on your yes, runs
+these install steps again for you. Pasting the install prompt again does the same without the
+summary. Step 3 replaces the Desk skill folder and asks about the agents.
 Your `desks/` folder, your `CLAUDE.md` outside the marked block, and `~/.config/desk/` are never
 touched by an update.
 
