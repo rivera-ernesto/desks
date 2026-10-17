@@ -102,6 +102,9 @@ class Privacy(Sandbox):
         self.assertTrue(review.private_hits("ask Mara first"))
         self.assertTrue(review.private_hits("near la paz street"))
         self.assertEqual(review.private_hits("a maracuya juice, Amara's shop"), [])
+        self.conf("private-terms.txt", "Inés\n")
+        self.assertTrue(review.private_hits("INÉS arrives at 5"))
+        self.assertEqual(review.private_hits("Inésita arrives at 5"), [])
 
     def test_private_terms_are_case_insensitive_and_comments_ignored(self):
         self.conf("private-terms.txt", "# family\nMontenegro\n")
