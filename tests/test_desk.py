@@ -500,5 +500,50 @@ class HouseCloseWithGit(Base):
         self.assertNotIn("desk/a", sh(["git", "branch"], self.root).stdout)
 
 
+class HouseOpen(Base):
+    """#28: a folder that opens topics its own way gets no second home for the topic from Desks."""
+
+    def snapshot(self):
+        return sorted(os.path.relpath(os.path.join(d, f), self.root)
+                      for d, _, fs in os.walk(self.root) if ".git" not in d.split(os.sep) for f in fs)
+
+    def test_follow_creates_nothing_and_says_where_to_look(self):
+        put(os.path.join(self.root, "opening.md"), "1. Run our opener.\n")
+        self.assertEqual(desk(self.root, "set", "Open", "house follow opening.md").returncode, 0)
+        before, branches = self.snapshot(), sh(["git", "branch"], self.root).stdout
+        r = desk(self.root, "open", "a")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("follow opening.md", r.stdout)
+        self.assertEqual(self.snapshot(), before)
+        self.assertEqual(sh(["git", "branch"], self.root).stdout, branches)
+
+    def test_an_unknown_open_line_stops(self):
+        put(os.path.join(self.root, "CLAUDE.md"), BLOCK.replace("- Version: 0", "- Version: 0\n- Open: our way"))
+        r = desk(self.root, "open", "a")
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("not one this script understands", r.stderr)
+        self.assertFalse(os.path.exists(os.path.join(self.root, "desks", "a")))
+
+    def test_a_missing_procedure_stops_and_set_refuses_outside(self):
+        put(os.path.join(self.root, "CLAUDE.md"), BLOCK.replace("- Version: 0", "- Version: 0\n- Open: house follow gone.md"))
+        self.assertEqual(desk(self.root, "open", "a").returncode, 1)
+        self.assertEqual(desk(self.root, "set", "Open", "house follow ../elsewhere.md").returncode, 2)
+
+    def test_note_goes_where_the_session_works_or_stops(self):
+        put(os.path.join(self.root, "opening.md"), "1. Run our opener.\n")
+        desk(self.root, "set", "Open", "house follow opening.md")
+        r = desk(self.root, "note", "a", "b", "something for b")
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("keeps its topics its own way", r.stderr)
+        os.makedirs(os.path.join(self.root, "desks"))
+        r = desk(self.root, "note", "a", "b", "something for b")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(len(os.listdir(os.path.join(self.root, "desks", "b", "inbox"))), 1)
+
+    def test_without_the_line_open_is_unchanged(self):
+        self.assertEqual(desk(self.root, "open", "a").returncode, 0)
+        self.assertIn("desk/a", sh(["git", "branch"], self.root).stdout)
+
+
 if __name__ == "__main__":
     unittest.main()

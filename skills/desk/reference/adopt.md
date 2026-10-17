@@ -36,6 +36,10 @@ Look first, then propose a short list, then change only what they agree to.
   candidate to see what it does. Record the line only on their yes to that exact text
   (`reference/close.md` § A folder with its own close). If the routine also makes its own
   branches, propose `Git: off` with it.
+- **An opening routine.** If the folder already has its own way of opening a topic (a script that
+  makes a working copy or a branch per topic, an "opening" section in its rules), name it and
+  propose `Open: house follow <file>`, the file that says how. With that line `desk.py open`
+  makes nothing of its own, so the topic is not kept in two places. Record it only on their yes.
 - **Memory.** If they use Claude's own memory, keep using it for preferences about how to work.
   What belongs to a topic goes in that topic's README, where the next session reads it.
 

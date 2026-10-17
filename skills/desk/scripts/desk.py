@@ -117,6 +117,23 @@ def close_mode(cfg):
     return "?", raw
 
 
+def open_mode(cfg):
+    """How this folder opens a topic: ('', '') Desks itself · ('follow', file) the folder's own
+    routine, which the session follows · ('?', the line) a line this script does not understand.
+    There is no `run` form yet: the session reads the file and runs the opener it names (#28)."""
+    raw = cfg.get("open", "").strip()
+    if not raw:
+        return "", ""
+    m = re.match(r"house\s+follow\s+(.+)$", raw)
+    if m:
+        arg = m.group(1).strip()
+        if len(arg) > 1 and arg[0] == arg[-1] == "`":
+            arg = arg[1:-1].strip()
+        if arg:
+            return "follow", arg
+    return "?", raw
+
+
 def confirmed_file():
     conf = os.environ.get("DESK_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".config", "desk")
     return os.path.join(conf, "house-close.json")
@@ -244,6 +261,10 @@ def cmd_status():
     print(f"level:    {lv}")
     print(f"desk root: {cfg.get('desk root', 'desks/')}")
     print(f"settings: {block_file(root) or 'none (defaults)'}")
+    omode, oarg = open_mode(cfg)
+    if omode:
+        print("opens:    " + (f"with this folder's own routine (follow {oarg}); topics it keeps elsewhere are not listed"
+                              if omode == "follow" else f"`Open: {oarg}` is not understood; open will stop"))
     if is_git:
         remote, gh_ok, vis = github(root)
         print(f"branch:   {default_branch(root)} (default)")
@@ -279,6 +300,15 @@ def cmd_open(topic):
     topic = slug(topic)
     root, is_git = main_root()
     cfg = settings(root)
+    omode, oarg = open_mode(cfg)
+    if omode == "?":
+        die(f"`Open: {oarg}` is not one this script understands. It reads `house follow <file>`. Nothing was opened.", 2)
+    if omode == "follow":  # the folder opens topics its own way; making a second home for the topic is the bug (#28)
+        if not inside(root, oarg) or not os.path.isfile(os.path.join(root, oarg)):
+            die(f"this folder opens topics with `{oarg}`, which is not there. Nothing was opened.")
+        print(f"open:   this folder opens topics its own way: follow {oarg} for '{topic}', and work where it says.")
+        print("        Desks made no topic folder, branch or working copy here.")
+        return 0
     droot = cfg.get("desk root", "desks/").strip("/")
     lv = level(root, is_git, cfg)
     if lv == "folder":
@@ -445,7 +475,16 @@ def cmd_note(current, other, text):
     cfg = settings(root)
     droot = cfg.get("desk root", "desks/").strip("/")
     lv = level(root, is_git, cfg)
-    work = root if lv == "folder" else worktree_of(root, f"desk/{current}")
+    omode, oarg = open_mode(cfg)
+    if omode == "follow":
+        # The session works where the folder's opener put it, not in a copy Desks made.
+        top = run(["git", "rev-parse", "--show-toplevel"], cwd=os.getcwd())
+        work = top[1].strip() if top[0] == 0 else os.getcwd()
+        if not os.path.isdir(os.path.join(work, droot)):
+            die(f"this folder keeps its topics its own way (`Open: house follow {oarg}`), and {work} has no "
+                f"{droot}/ to leave a note in. Leave it the way {oarg} says. Nothing was written.")
+    else:
+        work = root if lv == "folder" else worktree_of(root, f"desk/{current}")
     if not work:
         die(f"no open desk named {current}")
     inbox = os.path.join(work, droot, other, "inbox")
@@ -476,6 +515,12 @@ def cmd_set(key, value, append=False):
     if mode == "?":
         die(f"`Close: {value}` is not one this script understands. It reads `merge`, `review`, "
             "`house run <command>` or `house follow <file>`. Nothing was recorded.", 2)
+    if key.lower() == "open":
+        om, oa = open_mode({"open": value})
+        if om == "?":
+            die(f"`Open: {value}` is not one this script understands. It reads `house follow <file>`. Nothing was recorded.", 2)
+        if not inside(root, oa):
+            die(f"`{oa}` is outside this folder. An opening procedure is a file inside it. Nothing was recorded.", 2)
     if len(value.splitlines()) > 1:
         die("a setting is one line. Put a longer routine in a script and name the script. Nothing was recorded.", 2)
     if mode == "follow" and not inside(root, arg):

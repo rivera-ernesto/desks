@@ -49,6 +49,8 @@ path, from the folder the session was opened on.
    - `git`: the topic has its own branch and its own working copy, so the main folder is never
      left half-edited and several Desks can run at once.
    - `github`: as `git`, and the close can open a pull request.
+   Where it prints `open: this folder opens topics its own way`, the Desk block says
+   `Open: house follow <file>`: open the topic as that file says and work where it puts you.
 2. **New topic:** the script copied the README template. Fill the goal in one sentence from what
    the user said. Nothing else yet.
 3. **Existing topic:** read its `README.md` (state, what was learned, next step) and the newest

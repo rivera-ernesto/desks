@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **A folder's own way of opening a topic is the open** (#28). With `Open: house follow <file>`,
+  `desk.py open` makes no topic folder, branch or working copy and says to follow the file, so a
+  topic is no longer kept in two places. `desk.py note` then writes where the session works, or
+  stops and says so when that place keeps no topic folders; `desk.py status` names the routine. A
+  line the script does not understand stops the open. `desk adopt` proposes the line.
 - **Fixed:** dates (`2026-10-15`, with a time, or a range like `2026-10-14..16`) were read as
   phone numbers, and a dated packet was never sent (#24). A real number next to a date is still
   refused.
