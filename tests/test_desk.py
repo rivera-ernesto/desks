@@ -500,6 +500,59 @@ class HouseCloseWithGit(Base):
         self.assertNotIn("desk/a", sh(["git", "branch"], self.root).stdout)
 
 
+class Messages(Base):
+    """What the script says when something is missing: enough to fix it in one go."""
+    git = False
+
+    def test_help_is_not_an_error(self):
+        for h in ("--help", "-h"):
+            r = desk(self.root, h)
+            self.assertEqual(r.returncode, 0)
+            self.assertIn("open", r.stdout)
+        self.assertEqual(desk(self.root).returncode, 2)
+
+    def test_status_does_not_show_a_placeholder_as_the_next_step(self):
+        desk(self.root, "open", "a")
+        r = desk(self.root, "status")
+        self.assertIn("no next step written yet", r.stdout)
+        self.assertNotIn("{{", r.stdout)
+
+    def test_close_names_the_template_and_lists_every_placeholder_at_once(self):
+        desk(self.root, "open", "a")
+        r = desk(self.root, "close", "a", "--merge")
+        self.assertIn(os.path.join("templates", "session.md"), r.stderr)
+        self.assertIn(os.path.join("desks", "a", "sessions"), r.stderr)
+        folder = os.path.join(self.root, "desks", "a")
+        put(os.path.join(folder, "sessions", "2026-01-01-first.md"), "# note {{title}}\n")
+        r = desk(self.root, "close", "a", "--merge")
+        self.assertIn("README.md", r.stderr)
+        self.assertIn("2026-01-01-first.md", r.stderr)
+
+    def test_a_repository_with_no_commit_says_why_it_is_folder_level(self):
+        sh(["git", "init", "-q"], self.root)
+        r = desk(self.root, "status")
+        self.assertIn("no commit yet", r.stdout)
+
+
+class GitIdentity(Base):
+    def test_no_git_identity_is_not_called_a_conflict(self):
+        desk(self.root, "open", "a")
+        self.fill("a")
+        for k in ("user.name", "user.email"):
+            sh(["git", "config", "--unset", k], self.root)
+        sh(["git", "config", "user.useConfigOnly", "true"], self.root)
+        old = {k: os.environ.get(k) for k in ("GIT_CONFIG_GLOBAL", "GIT_CONFIG_NOSYSTEM")}
+        os.environ.update(GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1")
+        try:
+            r = desk(self.root, "close", "a", "--merge")
+        finally:
+            for k, v in old.items():
+                os.environ.pop(k, None) if v is None else os.environ.__setitem__(k, v)
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("does not know who you are", r.stderr)
+        self.assertNotIn("conflicts", r.stderr)
+
+
 class HouseOpen(Base):
     """#28: a folder that opens topics its own way gets no second home for the topic from Desks."""
 

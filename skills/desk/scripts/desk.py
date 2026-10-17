@@ -222,6 +222,14 @@ def level(root, is_git, cfg):
     return "github" if (remote and gh_ok and not is_off(cfg, "github")) else "git"
 
 
+def level_note(root, is_git, cfg, lv):
+    """Why a git folder runs at the folder level, when the reason is not one the user chose (#45)."""
+    if lv == "folder" and is_git and not is_off(cfg, "git") and \
+            run(["git", "rev-parse", "--verify", "--quiet", "HEAD"], cwd=root)[0] != 0:
+        return " (this repository has no commit yet; the git level starts after the first commit)"
+    return ""
+
+
 def slug(topic):
     s = re.sub(r"[^a-z0-9]+", "-", topic.lower()).strip("-")
     if not s:
@@ -258,7 +266,7 @@ def cmd_status():
     cfg = settings(root)
     lv = level(root, is_git, cfg)
     print(f"folder:   {root}")
-    print(f"level:    {lv}")
+    print(f"level:    {lv}{level_note(root, is_git, cfg, lv)}")
     print(f"desk root: {cfg.get('desk root', 'desks/')}")
     print(f"settings: {block_file(root) or 'none (defaults)'}")
     omode, oarg = open_mode(cfg)
@@ -282,6 +290,8 @@ def cmd_status():
             text = open(f, encoding="utf-8").read()
             m = re.search(r"^## Next step\s*\n+(.+?)(?:\n\s*\n|\n## |\Z)", text, flags=re.M | re.S)
             step = " ".join(m.group(1).split())[:160] if m else "(no Next step section)"
+            if "{{" in step:  # the template's own text is not a next step (#33)
+                step = "(no next step written yet: not started)"
             days = int((now - os.path.getmtime(f)) // 86400)
             print(f"  {d}: notes {days} day(s) old · next: {step}")
         waiting = []
@@ -331,7 +341,7 @@ def cmd_open(topic):
             run(args, cwd=root, check=True)
     folder = os.path.join(work, droot, topic)
     new = seed(folder, topic)
-    print(f"level:  {lv}")
+    print(f"level:  {lv}{level_note(root, is_git, cfg, lv)}")
     print(f"topic:  {topic} ({'new' if new else 'continued'})")
     print(f"work in: {folder}")
     inbox = os.path.join(folder, "inbox")
@@ -373,15 +383,20 @@ def cmd_close(topic, how, title):
         die(f"there is no topic '{topic}' under {os.path.join(work, droot)}. Run this from the folder the session was opened on.")
     notes = sorted(f for f in os.listdir(os.path.join(folder, "sessions")) if f.endswith(".md")) if os.path.isdir(os.path.join(folder, "sessions")) else []
     if not notes:
-        die("no session note yet: write sessions/<date>-<title>.md from the template first")
+        die(f"no session note yet: write {os.path.join(folder, 'sessions', '<date>-<title>.md')} from "
+            f"{os.path.join(TEMPLATES, 'session.md')}. Every .md in the topic folder must also have no "
+            "{{…}} placeholder left: the README that open made has some.")
     if not open(os.path.join(folder, "README.md"), encoding="utf-8").read().strip():
         die(f"{os.path.join(folder, 'README.md')} is empty: the next session would start from nothing")
     check = [os.path.join(folder, f) for f in sorted(os.listdir(folder)) if f.endswith(".md")]
     check += [os.path.join(folder, "sessions", f) for f in notes]
+    unfilled = []  # all of them in one run, so it never takes two failed closes to learn what is left (#44)
     for f in check:
         left = re.findall(r"\{\{[^}]*\}\}", open(f, encoding="utf-8").read())
         if left:
-            die(f"{f} still has unfilled placeholders: {', '.join(left[:4])}")
+            unfilled.append(f"  {f}: {', '.join(left[:4])}" + (f" and {len(left) - 4} more" if len(left) > 4 else ""))
+    if unfilled:
+        die("unfilled placeholders, fill or remove each:\n" + "\n".join(unfilled))
     if house:
         return close_house(root, topic, folder, notes[-1], mode, arg, cfg.get("close", "").strip())
     if lv == "folder":
@@ -415,6 +430,9 @@ def cmd_close(topic, how, title):
     rc, _, err = run(["git", "merge", "--no-ff", branch, "-m", f"desk {title}"], cwd=root)
     if rc != 0:
         run(["git", "merge", "--abort"], cwd=root)
+        if "tell me who you are" in err or "auto-detect email" in err:  # not a conflict (#42)
+            die("git does not know who you are, so it cannot record the merge. Nothing was changed. The user sets it once:\n"
+                '  git config --global user.name "Their Name"\n  git config --global user.email their@email')
         die("the merge had conflicts and was undone. Nothing was changed:\n" + err)
     run(["git", "worktree", "remove", work], cwd=root, check=True)
     run(["git", "branch", "-d", branch], cwd=root)
@@ -565,6 +583,9 @@ def cmd_tidy():
 
 
 def main(a):
+    if len(a) >= 2 and a[1] in ("-h", "--help", "help"):  # asking for help is not an error (#50)
+        print(__doc__)
+        return 0
     if len(a) >= 2 and a[1] == "status":
         return cmd_status()
     if len(a) >= 3 and a[1] == "open":

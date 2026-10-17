@@ -105,7 +105,8 @@ def past_rates(folder):
     for d, _, files in os.walk(root):
         if "ledger.tsv" in files:
             try:
-                rows = open(os.path.join(d, "ledger.tsv"), encoding="utf-8").read().splitlines()
+                with open(os.path.join(d, "ledger.tsv"), encoding="utf-8") as fh:  # closed, not left to the collector (#49)
+                    rows = fh.read().splitlines()
             except OSError:
                 continue
             for r in rows[1:]:
@@ -262,7 +263,19 @@ def command_lanes():
 def verify(receipt, root):
     for d, _, files in os.walk(root):
         if f"receipt-{receipt}.txt" in files:
-            print(open(os.path.join(d, f"receipt-{receipt}.txt"), encoding="utf-8").read())
+            with open(os.path.join(d, f"receipt-{receipt}.txt"), encoding="utf-8") as fh:
+                text = fh.read()
+            print(text, end="" if text.endswith("\n") else "\n")
+            # The stored label is the moment the review ran; converged also needs the dispositions now (#29).
+            f = dict(l.split(" ", 1) for l in text.splitlines() if " " in l)
+            pk = f.get("packet", "")
+            disp = os.path.join(os.path.dirname(pk), os.path.splitext(os.path.basename(pk))[0] + "-dispositions.md")
+            if not os.path.isabs(disp):
+                disp = os.path.join(os.path.dirname(d), os.path.basename(disp))
+            has = os.path.isfile(disp)
+            print(f"dispositions {'present' if has else 'missing'}: {disp}")
+            if f.get("label") == "open":
+                print("label now: " + ("converged" if has else "open (give every finding a disposition)"))
             return 0
     print(f"NO RECEIPT {receipt}: the label it backs is unverified", file=sys.stderr)
     return 1

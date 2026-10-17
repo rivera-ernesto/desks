@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Fixed, found by the first testers:** `desk.py --help` exits 0 (#50); a git folder with no
+  commit says why it runs at the folder level (#45); `status` shows "no next step written yet"
+  instead of the template's placeholder (#33); the close names the session template and lists
+  every unfilled placeholder in one run (#44); a merge that fails because git does not know who
+  the user is says so, instead of calling it a conflict (#42); `review.py --verify` reports whether
+  the dispositions exist and says `converged` only then (#29); old ledgers are closed after reading (#49).
 - **A folder's own way of opening a topic is the open** (#28). With `Open: house follow <file>`,
   `desk.py open` makes no topic folder, branch or working copy and says to follow the file, so a
   topic is no longer kept in two places. `desk.py note` then writes where the session works, or

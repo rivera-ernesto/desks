@@ -190,6 +190,28 @@ class Labels(Sandbox):
         self.assertIn("vendors_answered 3", shown)
         self.assertEqual(self.run_main("--verify", "0000000000", self.dir)[0], 1)
 
+    def test_verify_says_converged_only_once_the_dispositions_exist(self):
+        code, out, _ = self.go({"alpha": LONG, "beta": LONG})
+        rid = out.split("receipt ")[1].split()[0]
+        shown = self.run_main("--verify", rid, self.dir)[1]
+        self.assertIn("dispositions missing", shown)
+        self.assertIn("label now: open", shown)
+        put(os.path.join(self.dir, "reviews", "2026-01-01-price-dispositions.md"), "| 1 | adopted |\n")
+        shown = self.run_main("--verify", rid, self.dir)[1]
+        self.assertIn("dispositions present", shown)
+        self.assertIn("label now: converged", shown)
+
+    def test_reading_old_ledgers_leaves_no_file_open(self):
+        import gc, warnings
+        d = os.path.join(self.dir, "reviews", "old-reviews")
+        os.makedirs(d)
+        put(os.path.join(d, "ledger.tsv"), "date\tpacket\tmodel\tvendor\tstatus\tseconds\n")
+        with warnings.catch_warnings(record=True) as seen:
+            warnings.simplefilter("always")
+            review.past_rates(os.path.join(self.dir, "reviews", "x-reviews"))
+            gc.collect()
+        self.assertFalse([w for w in seen if issubclass(w.category, ResourceWarning)])
+
     def test_one_vendor_is_thin(self):
         code, out, _ = self.go({"alpha": LONG})
         self.assertEqual(code, 0)
