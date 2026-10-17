@@ -47,8 +47,8 @@ read "the topic's folder under the Desk root", which may have another name (`des
    - `git`: the topic has its own branch and its own working copy, so the main folder is never
      left half-edited and several Desks can run at once.
    - `github`: as `git`, and the close can open a pull request.
-   Where the Desk block says `Open: house follow <file>`, `desk.py open` makes nothing: open the
-   topic as that file says and work where it puts you.
+   Where the Desk block says `Open:` or `Review: house follow <file>`, `desk.py open` or `review.py`
+   does nothing of its own: do that step as the file says. If `open` stops to ask, ask (`desk adopt`).
 2. **New topic:** the script copied the README template. Fill the goal in one sentence from what
    the user said. Nothing else yet.
 3. **Existing topic:** read its `README.md` (state, what was learned, next step) and the newest
@@ -215,8 +215,8 @@ To close, read `reference/close.md`. In short:
 3. Give every snag of the session one of three ends: fixed in the README, kept as an open item
    (an Issue at the `github` level), or dropped with a reason.
 4. Propose, do not impose, anything you noticed about how the user works (`reference/profile.md`).
-5. Save your files, then `desk.py close <topic> --merge`, or `--pr` at the `github` level when the
-   user reviews before merging. The script refuses while placeholders or unsaved files remain.
+5. Save your files, then `desk.py close <topic>`, no flag. With no `Close:` line it stops: ask the
+   setup question, record the answer, run it again. It refuses while placeholders or unsaved files remain.
 
 Where the Desk block says `Close: house …`, the folder has its own closing routine and that
 routine is the close: steps 1 to 5 give way to `reference/close.md` § A folder with its own close.

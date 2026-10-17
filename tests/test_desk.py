@@ -553,6 +553,53 @@ class GitIdentity(Base):
         self.assertNotIn("conflicts", r.stderr)
 
 
+class Scan(Base):
+    """#53: a folder's own routines are found without being named by the user, and never run."""
+
+    def house(self):
+        put(os.path.join(self.root, "CLAUDE.md"), BLOCK + "\nEvery session: lee `rules/como.md` primero.\n")
+        os.makedirs(os.path.join(self.root, "rules"))
+        os.makedirs(os.path.join(self.root, "scripts"))
+        put(os.path.join(self.root, "rules", "como.md"), "Abrir con scripts/tema.sh, revisar con scripts/compuerta.sh, cerrar con scripts/cierre.sh.\n")
+        for name, head in (("tema.sh", "# Abre un tema nuevo en su propia copia"), ("compuerta.sh", "# Revisa la privacidad antes de mandar a revisores"),
+                           ("cierre.sh", "# Cierra la sesión y arma el traspaso"), ("backup.sh", "# Copies the photos"),
+                           ("other-review.sh", "# Review helper not named anywhere")):
+            put(os.path.join(self.root, "scripts", name), "#!/bin/sh\n" + head + "\ntouch ran-" + name + "\n")
+
+    def test_scan_finds_the_procedure_and_each_step_and_runs_nothing(self):
+        self.house()
+        r = desk(self.root, "scan")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("read first:   rules/como.md", r.stdout)
+        out = r.stdout
+        self.assertLess(out.index("open:"), out.index("scripts/tema.sh"))
+        self.assertLess(out.index("review:"), out.index("scripts/compuerta.sh"))
+        self.assertLess(out.index("close:"), out.index("scripts/cierre.sh"))
+        self.assertNotIn("other-review.sh", out)  # one named in the procedure outranks a name match
+        self.assertNotIn("backup.sh", out)
+        self.assertIn("Open: house follow rules/como.md", out)
+        self.assertFalse([f for f in os.listdir(self.root) if f.startswith("ran-")])
+
+    def test_open_stops_until_the_user_chooses(self):
+        self.house()
+        r = desk(self.root, "open", "a")
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("seems to open topics its own way", r.stderr)
+        self.assertNotIn("desk/a", sh(["git", "branch"], self.root).stdout)
+        self.assertEqual(desk(self.root, "set", "Open", "desks").returncode, 0)
+        self.assertEqual(desk(self.root, "open", "a").returncode, 0)
+
+    def test_a_folder_with_no_routines_says_the_defaults_fit(self):
+        self.assertIn("Desks' defaults fit", desk(self.root, "scan").stdout)
+
+    def test_set_does_not_commit_when_git_is_off(self):
+        desk(self.root, "set", "Git", "off")
+        before = sh(["git", "rev-list", "--count", "HEAD"], self.root).stdout
+        r = desk(self.root, "set", "Lead", "quiet")
+        self.assertIn("Git is off", r.stdout)
+        self.assertEqual(sh(["git", "rev-list", "--count", "HEAD"], self.root).stdout, before)
+
+
 class HouseOpen(Base):
     """#28: a folder that opens topics its own way gets no second home for the topic from Desks."""
 

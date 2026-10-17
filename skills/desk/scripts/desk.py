@@ -117,13 +117,15 @@ def close_mode(cfg):
     return "?", raw
 
 
-def open_mode(cfg):
+def open_mode(cfg, key="open"):
     """How this folder opens a topic: ('', '') Desks itself · ('follow', file) the folder's own
     routine, which the session follows · ('?', the line) a line this script does not understand.
     There is no `run` form yet: the session reads the file and runs the opener it names (#28)."""
-    raw = cfg.get("open", "").strip()
+    raw = cfg.get(key, "").strip()
     if not raw:
         return "", ""
+    if raw.lower() == "desks":  # the user chose Desks' own open in a folder that has its own
+        return "desks", ""
     m = re.match(r"house\s+follow\s+(.+)$", raw)
     if m:
         arg = m.group(1).strip()
@@ -312,7 +314,15 @@ def cmd_open(topic):
     cfg = settings(root)
     omode, oarg = open_mode(cfg)
     if omode == "?":
-        die(f"`Open: {oarg}` is not one this script understands. It reads `house follow <file>`. Nothing was opened.", 2)
+        die(f"`Open: {oarg}` is not one this script understands. It reads `house follow <file>` or `desks`. Nothing was opened.", 2)
+    if omode == "" and not cfg.get("open", "").strip():
+        _, first, found = scan(root)
+        own = [rel for not_named, rel, _ in found["open"] if not not_named]
+        if own:  # #53: the routines exist but nobody recorded them; ask before making a second home
+            die(f"this folder seems to open topics its own way ({', '.join(own[:2])}, named in {first[0]}). "
+                "Ask the user the setup question first: `desk.py scan` shows what was found, and "
+                "`desk.py set \"Open\" \"house follow <file>\"` records their yes. To use Desks' own open "
+                "anyway, record `desk.py set \"Open\" \"desks\"`. Nothing was opened.")
     if omode == "follow":  # the folder opens topics its own way; making a second home for the topic is the bug (#28)
         if not inside(root, oarg) or not os.path.isfile(os.path.join(root, oarg)):
             die(f"this folder opens topics with `{oarg}`, which is not there. Nothing was opened.")
@@ -533,10 +543,10 @@ def cmd_set(key, value, append=False):
     if mode == "?":
         die(f"`Close: {value}` is not one this script understands. It reads `merge`, `review`, "
             "`house run <command>` or `house follow <file>`. Nothing was recorded.", 2)
-    if key.lower() == "open":
+    if key.lower() in ("open", "review"):  # the same two forms for both steps (#28)
         om, oa = open_mode({"open": value})
         if om == "?":
-            die(f"`Open: {value}` is not one this script understands. It reads `house follow <file>`. Nothing was recorded.", 2)
+            die(f"`{key.capitalize()}: {value}` is not one this script understands. It reads `house follow <file>` or `desks`. Nothing was recorded.", 2)
         if not inside(root, oa):
             die(f"`{oa}` is outside this folder. An opening procedure is a file inside it. Nothing was recorded.", 2)
     if len(value.splitlines()) > 1:
@@ -559,8 +569,104 @@ def cmd_set(key, value, append=False):
     elif yes is not None:  # the routine is no longer this folder's close: an old yes must not come back with it
         confirm_close(root, "", yes)
     if is_git and run(["git", "ls-files", "--error-unmatch", name], cwd=root)[0] == 0:
-        rc, _, err = run(["git", "commit", "--only", name, "-m", f"desk: record {key}"], cwd=root)
-        print("saved to history" if rc == 0 else "not saved to history (" + (err.splitlines() or ["nothing to save"])[-1] + ")")
+        _, cur, _ = run(["git", "branch", "--show-current"], cwd=root)
+        if is_off(settings(root), "git"):  # #56: with Git: off the folder's own routine saves, not Desks
+            print(f"not saved to history: Git is off here. {name} changed in {root}; save it the folder's own way.")
+        else:
+            rc, _, err = run(["git", "commit", "--only", name, "-m", f"desk: record {key}"], cwd=root)
+            print(f"saved to history on {cur or 'the checked-out branch'}" if rc == 0
+                  else "not saved to history (" + (err.splitlines() or ["nothing to save"])[-1] + ")")
+    return 0
+
+
+# What a folder's own routines look like, in the words people name and describe them with (#53).
+# Recall matters more than precision here: the session reads every candidate before proposing.
+KINDS = {
+    "open": r"\b(open|opens|start|starts|begin|new topic|worktree|abre|abrir|abrí|inicia|iniciar|nuevo)\b",
+    "review": r"\b(review|reviews|reviewer|reviewers|gate|privacy|revisa|revisar|revisión|compuerta|privacidad)\b",
+    "close": r"\b(close|closes|closing|closeout|wrap|wrap-up|hand ?off|handoff|cierra|cierre|cerrar|traspaso)\b",
+}
+READ_FIRST = re.compile(r"(read|lee|leer|lea)\b[^\n]{0,80}?`?\.?/?([\w./-]+\.md)`?[^\n]{0,40}?\b(first|primero|antes)\b", re.I)
+SCRIPT_DIRS = ("Scripts", "scripts", "bin", "tools", "routines", "hooks")
+
+
+def head_comment(path, n=12):
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            lines = [next(f, "") for _ in range(n)]
+    except OSError:
+        return ""
+    text = " ".join(l.strip().lstrip("#/;-* ").strip() for l in lines
+                    if l.strip().startswith(("#", "//", ";", "--", '"""', "*")) and not l.startswith("#!"))
+    return " ".join(text.split())
+
+
+def scan(root):
+    """The folder's own opening, review and closing routines, found without running anything."""
+    rules = [f for f in ("CLAUDE.md", "CLAUDE.local.md", "AGENTS.md") if os.path.isfile(os.path.join(root, f))]
+    first = []
+    for f in rules:
+        for m in READ_FIRST.finditer(open(os.path.join(root, f), encoding="utf-8", errors="replace").read()):
+            rel = m.group(2).lstrip("./")
+            if os.path.isfile(os.path.join(root, rel)) and rel not in first:
+                first.append(rel)
+    named = " ".join(open(os.path.join(root, f), encoding="utf-8", errors="replace").read() for f in first)
+    found, seen = {k: [] for k in KINDS}, set()
+    wanted = {d.lower() for d in SCRIPT_DIRS}
+    for d in sorted(e for e in os.listdir(root) if e.lower() in wanted):  # the name as it is on disk
+        top = os.path.join(root, d)
+        if not os.path.isdir(top):
+            continue
+        ident = (os.stat(top).st_dev, os.stat(top).st_ino)  # Scripts/ and scripts/ are one folder on a case-blind disk
+        if ident in seen:
+            continue
+        seen.add(ident)
+        for name in sorted(os.listdir(top)):
+            path = os.path.join(top, name)
+            if not os.path.isfile(path) or name.startswith(("test_", "test-", ".")):
+                continue
+            rel = f"{d}/{name}"
+            head = head_comment(path)
+            words = name.replace("-", " ").replace("_", " ").rsplit(".", 1)[0]
+            # The name counts three times the header; a script goes under the step it scores highest on.
+            score = {k: 3 * len(re.findall(pat, words, re.I)) + len(re.findall(pat, head, re.I)) for k, pat in KINDS.items()}
+            best = max(score.values())
+            in_first = name in named
+            for k in KINDS:
+                if best and score[k] == best:
+                    found[k].append((not in_first, -best, rel, head[:90]))
+    for k in found:
+        found[k] = [(a, r, h) for a, _, r, h in sorted(found[k])]
+    return rules, first, found
+
+
+def cmd_scan():
+    root, _ = main_root()
+    rules, first, found = scan(root)
+    print("instructions: " + (", ".join(rules) or "none"))
+    print("read first:   " + (", ".join(first) or "nothing the instructions name as read-first"))
+    any_found = False
+    for k in ("open", "review", "close"):
+        rows = found[k]
+        named = [r for r in rows if not r[0]]
+        shown = named or rows[:3]
+        if shown:
+            any_found = True
+        print(f"{k}:")
+        for _, rel, head in shown:
+            print(f"  {rel}" + ("  (named in " + ", ".join(first) + ")" if named else "") + (f"  -- {head}" if head else ""))
+        if not shown:
+            print("  nothing found")
+        elif not named and len(rows) > 3:
+            print(f"  and {len(rows) - 3} more by name only")
+    if first and any_found:
+        proc = first[0]
+        print(f"suggest:      Open: house follow {proc} · Review: house follow {proc} · Close: house follow {proc}")
+        print("              Read the procedure and each script's header before proposing them; record only on the user's yes.")
+    elif any_found:
+        print("suggest:      read each candidate's header; propose a line only for one that does that step for this folder.")
+    else:
+        print("suggest:      no routines of its own found: Desks' defaults fit (reference/setup.md).")
     return 0
 
 
@@ -598,6 +704,8 @@ def main(a):
         return cmd_set(a[2], " ".join(a[3:]), append=(a[1] == "add"))
     if len(a) >= 5 and a[1] == "note":
         return cmd_note(a[2], a[3], " ".join(a[4:]))
+    if len(a) >= 2 and a[1] == "scan":
+        return cmd_scan()
     if len(a) >= 2 and a[1] == "tidy":
         return cmd_tidy()
     print(__doc__, file=sys.stderr)

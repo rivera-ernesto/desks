@@ -73,8 +73,11 @@ work on a topic, load the `desk` skill and follow it for the whole session.
 <!-- desk:end -->
 ```
 
-**A shared project whose `CLAUDE.md` is not yours to change:** put the block in `CLAUDE.local.md`
-in the same folder instead. Desks reads the block from there first, records its settings there,
+`Version:` is the version you install. Installing from a branch rather than a release tag, write
+`unreleased (<branch>)` instead.
+
+**A shared project, or a `CLAUDE.md` that is tracked by git and has rules of its own:** recommend
+`CLAUDE.local.md` in the same folder instead, and ask which one. Use it when they agree. Desks reads the block from there first, records its settings there,
 and never touches the shared file. Keep `CLAUDE.local.md` out of the project's history.
 
 ## 5) Create the Desk root

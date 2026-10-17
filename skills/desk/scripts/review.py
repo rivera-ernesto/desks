@@ -23,6 +23,7 @@ Exit codes: 0 at least one vendor answered · 1 packet refused · 2 usage
 """
 import concurrent.futures as cf
 import datetime
+import importlib.util
 import hashlib
 import json
 import os
@@ -37,7 +38,7 @@ import urllib.error
 import urllib.request
 
 API = "https://openrouter.ai/api/v1"
-CONF = os.path.join(os.path.expanduser("~"), ".config", "desk")
+CONF = os.environ.get("DESK_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".config", "desk")  # as desk.py (#62)
 SYSTEM = (
     "You are an independent reviewer from a different model vendor than the author. "
     "The author is Claude (Anthropic). Your value is that you think differently: say what "
@@ -291,7 +292,22 @@ def check():
     return 0 if (key or lanes or apple) else 3
 
 
+def house_review():
+    """The folder's own review procedure, when its Desk block says `Review: house follow <file>` (#28)."""
+    try:
+        spec = importlib.util.spec_from_file_location("desk", os.path.join(os.path.dirname(os.path.abspath(__file__)), "desk.py"))
+        desk = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(desk)
+        root, _ = desk.main_root()
+        mode, arg = desk.open_mode(desk.settings(root), "review")
+    except (Exception, SystemExit):
+        return ""
+    return arg if mode == "follow" else ""
+
+
 def main(argv):
+    alongside = "--alongside" in argv  # started by the folder's own review routine, as its second opinion
+    argv = [a for a in argv if a != "--alongside"]
     if len(argv) >= 2 and argv[1] == "--check":
         return check()
     if len(argv) >= 3 and argv[1] == "--verify":
@@ -302,6 +318,11 @@ def main(argv):
     if len(argv) < 2 or argv[1].startswith("-"):
         print(__doc__.split("Setup lives")[0].strip(), file=sys.stderr)
         return 2
+    house = house_review()
+    if house and not alongside:
+        print(f"NOT SENT: this folder reviews its own way: follow {house}. This script runs only as the second "
+              "opinion that routine starts (`--alongside`).", file=sys.stderr)
+        return 5
     packet = argv[1]
     focus = argv[2] if len(argv) > 2 else "Adversarial review: what would the author miss or agree with too easily?"
     text = open(packet, encoding="utf-8").read()

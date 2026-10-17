@@ -6,6 +6,10 @@ Look first, then propose a short list, then change only what they agree to.
 
 ## Look (read-only; use `desk-reader` if it is more than a few files)
 
+- **First, `python3 <skill folder>/scripts/desk.py scan`.** It reads what the folder's instructions
+  say a session must read first, and lists the scripts that open a topic, review or close, by name
+  and first comment lines, in any language. It runs none of them. Read the procedure it names and
+  the header of every candidate it lists before you propose anything from them.
 - `CLAUDE.md` here and in the user's home configuration: rules that already cover what Desk does.
 - `.claude/agents`, `.claude/skills`, installed plugins: workers and skills that overlap.
 - Connected tools (connectors, MCP servers): mail, calendar, drive, trackers, chat.
@@ -29,17 +33,18 @@ Look first, then propose a short list, then change only what they agree to.
   If their client cannot run that way, leave it out.
 - **Connected tools** are surfaces like any other: reading is free, anything that sends or changes
   waits for their go (`reference/surfaces.md`).
-- **A closing routine.** If the folder already has a way of closing a session (a script or a
-  `make` target named for closing or handing off, a "closing" section in its rules, a template for
-  a session record), name what you found and propose the line: `Close: house run <command>` when
-  one command does it, `Close: house follow <file>` when it is a written procedure. Never run a
-  candidate to see what it does. Record the line only on their yes to that exact text
-  (`reference/close.md` § A folder with its own close). If the routine also makes its own
-  branches, propose `Git: off` with it.
-- **An opening routine.** If the folder already has its own way of opening a topic (a script that
-  makes a working copy or a branch per topic, an "opening" section in its rules), name it and
-  propose `Open: house follow <file>`, the file that says how. With that line `desk.py open`
-  makes nothing of its own, so the topic is not kept in two places. Record it only on their yes.
+- **The folder's own routines** (what `scan` found, after you read it). Propose them together, in
+  one short table: step · line · the file it comes from.
+  - `Open: house follow <file>`: the folder opens topics its own way; `desk.py open` then makes
+    nothing, so a topic is not kept in two places.
+  - `Review: house follow <file>`: the folder reviews its own way (often with a stricter privacy
+    check); `review.py` then refuses to send on its own and runs only when that routine calls it.
+  - `Close: house run <command>` when one command closes, `Close: house follow <file>` when it is a
+    written procedure (`reference/close.md` § A folder with its own close).
+  - `Git: off` when the routines make their own branches.
+  When one procedure ties the steps together, each line follows that procedure. Never run a
+  candidate to see what it does. Record each line only on their yes to that exact text. When
+  `scan` finds nothing, say so in one line: Desks' defaults fit.
 - **Memory.** If they use Claude's own memory, keep using it for preferences about how to work.
   What belongs to a topic goes in that topic's README, where the next session reads it.
 
@@ -53,8 +58,13 @@ Look first, then propose a short list, then change only what they agree to.
 ## Record
 
 Record each thing agreed with `desk.py add "Setup" "<one line>"`, and single answers with
-`desk.py set` (`Desk root`, `Close`), so the next session does not ask again. Ask the `Close:`
-question here too (`reference/setup.md`).
+`desk.py set` (`Desk root`, `Open`, `Review`, `Close`), so the next session does not ask again.
+Never write a line into the instructions file by hand. Ask the `Close:` question here too
+(`reference/setup.md`).
+
+- **A standing yes** ("you may always run the two scripts") is a `Setup:` line. Never edit the
+  permission settings yourself: show the user the allow rule, and they add it.
+- **The review key:** check it only with `review.py --check`. Never open a key file or print a key.
 
 ## Importing how the user already works
 

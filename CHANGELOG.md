@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **`desk adopt` finds a folder's own routines** (#53). New `desk.py scan` reads what the
+  folder's instructions say to read first and lists the scripts that open, review or close, by name
+  and first comment lines in several languages, ranking the ones that procedure names; it runs
+  none. `desk.py open` stops before making a second home for a topic when such routines exist and
+  nothing is recorded yet (`Open: desks` keeps Desks' own open).
+- **`Review: house follow <file>`** (#28): `review.py` then refuses to send on its own and runs
+  only as the second opinion the folder's routine starts with `--alongside`.
+- After a house close the session does no git of its own (#60); the close step runs with no flag
+  and asks the `Close:` question when none is recorded (#59); adopt records lines only with
+  `desk.py set`, keeps a standing yes out of permission settings, and checks the key only with
+  `--check` (#54, #55, #61); `desk.py set` does not commit with `Git: off` and says which branch it
+  committed on (#56); install recommends `CLAUDE.local.md` for a tracked `CLAUDE.md` and writes the
+  version actually installed (#57); `review.py` honours `DESK_CONFIG_DIR` (#62).
 - **Install text:** a previous install is recognised by the `name: desk` in `SKILL.md`'s front
   matter (#47); `review.py --check` exiting 3 without a key is expected, not a failed step (#46);
   INSTALL.md and the site now give the same update path, `desk update`, and say how it relates to

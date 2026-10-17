@@ -72,6 +72,8 @@ In both forms:
    and repeats nothing. Fix the note and run the close again. It
    writes nothing and does no merge, push or pull request: saving is the routine's business.
    A folder whose routine also makes its own branches records `Git: off` as well.
+   **After it, do no git of your own:** no merge, no removing the working copy, no commit in the
+   main folder. If the routine leaves the work on a branch, that is its design: say where it is.
 5. Steps 4, 5 and 7 above (snags, what you noticed, final reply) still apply. A snag the folder's
    routine already gives an end to is not given a second one.
 

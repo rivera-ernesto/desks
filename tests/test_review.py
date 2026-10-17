@@ -111,6 +111,19 @@ class Privacy(Sandbox):
         self.assertTrue(review.private_hits("the montenegro account"))
         self.assertEqual(review.private_hits("the family account"), [])
 
+    def test_a_folder_that_reviews_its_own_way_is_not_sent_unless_its_routine_asks(self):
+        old = os.getcwd()
+        os.chdir(self.dir)  # not a git folder: the Desk block is read from here
+        try:
+            put(os.path.join(self.dir, "CLAUDE.md"), "<!-- desk:start -->\n- Review: house follow how.md\n<!-- desk:end -->\n")
+            code, _, err = self.run_main(self.packet())
+            self.assertEqual(code, 5)
+            self.assertIn("reviews its own way: follow how.md", err)
+            code, _, err = self.run_main(self.packet(), "--alongside")
+            self.assertEqual(code, 3)  # it went on: no key here, so it stops at the key, not at the house line
+        finally:
+            os.chdir(old)
+
     def test_a_refused_packet_is_never_sent(self):
         self.conf("openrouter.key", "k")
         calls = self.fake({"alpha": LONG})
