@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Fixed:** dates (`2026-10-15`, with a time, or a range like `2026-10-14..16`) were read as
+  phone numbers, and a dated packet was never sent (#24). A real number next to a date is still
+  refused.
+- **Fixed:** a private term matched inside a longer word ("Mara" in "maracuya"); it now matches
+  whole words and phrases only (#51). Setup asks for the list at the first review, and the review
+  says so when there is no list, since names are then not checked at all.
 - **Commands are written in English only.** The Spanish aliases `cierra` and `abre desk` are gone
   from the command table. A command plainly given in the user's own language still works, and so
   does a word their Desk block records as theirs. Ordinary talk ("enough for today") is a reason

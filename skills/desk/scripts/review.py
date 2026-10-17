@@ -55,6 +55,9 @@ BUILTIN_PRIVATE = [
     (r"(?<![\w.])\+?\d[\d\s().-]{8,}\d(?![\w.])", "a phone-like number"),
     (r"\b(sk|pk|ghp|gho|xox[bp])[-_][A-Za-z0-9_-]{16,}", "something that looks like a key"),
 ]
+# Dates and times are not phone numbers (#24): 2026-10-15, 2026-10-15T09:30, 2026-10-14..16.
+# They are blanked before the scan, so a real number next to a date is still found.
+DATES = re.compile(r"(?<![\w.])\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2})?)?(?:\.\.\d{2})?(?![\w])")
 
 
 def conf(name):
@@ -73,13 +76,14 @@ def api_key():
 def private_hits(text):
     """Why this packet must not be sent, or [] when it may go."""
     hits = []
-    low = text.lower()
     for line in conf("private-terms.txt").splitlines():
         term = line.strip()
-        if term and not term.startswith("#") and term.lower() in low:
+        # A whole word or phrase, not part of a longer word (#51): "Mara" is not in "maracuya".
+        if term and not term.startswith("#") and re.search(r"(?<!\w)" + re.escape(term) + r"(?!\w)", text, re.I):
             hits.append(f'your private term "{term}"')
+    undated = DATES.sub(" ", text)
     for pattern, what in BUILTIN_PRIVATE:
-        if re.search(pattern, text):
+        if re.search(pattern, undated):
             hits.append(what)
     return hits
 
@@ -300,6 +304,8 @@ def main(argv):
             print("Remove it and run again, or review with a subagent and label the reply [same-vendor].", file=sys.stderr)
             return 1
         print("Asking the private lane only.", file=sys.stderr)
+    if public_ok and not conf("private-terms.txt"):
+        print("note: no private-terms list, so names are not checked. Ask the user for them (reference/setup.md, Private terms).", file=sys.stderr)
     if not (key or lanes or apple):
         print("No review key and no other lane. Label the reply [same-vendor] after a subagent pass, or run `desk setup`.", file=sys.stderr)
         return 3

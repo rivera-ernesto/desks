@@ -90,6 +90,19 @@ class Privacy(Sandbox):
     def test_ordinary_text_and_prices_pass(self):
         self.assertEqual(review.private_hits("Ask 95, accept 80. Sold ones went for 70 to 100 in 2026."), [])
 
+    def test_dates_are_not_phone_numbers(self):
+        for ok in ("seen on 2026-10-15 and 2026-10-09", "at 2026-10-15T09:30 and 2026-10-15 09:30:12",
+                   "from 2026-10-14..16"):
+            self.assertEqual(review.private_hits(ok), [], ok)
+        for bad in ("on 2026-10-15 call 555 010 9999", "2026-10-15 +1 (555) 010-9999"):
+            self.assertTrue(review.private_hits(bad), bad)
+
+    def test_private_terms_match_whole_words_only(self):
+        self.conf("private-terms.txt", "Mara\nLa Paz Street\n")
+        self.assertTrue(review.private_hits("ask Mara first"))
+        self.assertTrue(review.private_hits("near la paz street"))
+        self.assertEqual(review.private_hits("a maracuya juice, Amara's shop"), [])
+
     def test_private_terms_are_case_insensitive_and_comments_ignored(self):
         self.conf("private-terms.txt", "# family\nMontenegro\n")
         self.assertTrue(review.private_hits("the montenegro account"))
