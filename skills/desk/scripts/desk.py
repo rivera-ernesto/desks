@@ -406,7 +406,7 @@ def cmd_close(topic, how, title):
     notes = sorted(f for f in os.listdir(os.path.join(folder, "sessions")) if f.endswith(".md")) if os.path.isdir(os.path.join(folder, "sessions")) else []
     if not notes:
         die(f"no session note yet: write {os.path.join(folder, 'sessions', '<date>-<title>.md')} from "
-            f"{os.path.join(TEMPLATES, 'session.md')}. Every .md in the topic folder must also have no "
+            f"{os.path.join(TEMPLATES, 'session-house.md' if house else 'session.md')}. Every .md in the topic folder must also have no "
             "{{…}} placeholder left: the README that open made has some.")
     if not open(os.path.join(folder, "README.md"), encoding="utf-8").read().strip():
         die(f"{os.path.join(folder, 'README.md')} is empty: the next session would start from nothing")

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **The house close's last two steps are in the contract** (#66): after the folder's routine, the
+  short note from `session-house.md`, then `desk.py close`, quoting its line. They lived only in a
+  reference file the session never opened. The stop names `session-house.md` under a house close.
 - **Fixed:** with `Open: house follow`, `desk.py close` looked for the topic in the main folder
   and never in the working copy the folder's own opener made, so every house close failed at its
   last step (#65). A failed close now says "The Desk is not closed".

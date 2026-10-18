@@ -26,8 +26,7 @@ file is the whole contract. Read it once when the Desk opens and follow it until
 | `desk update` · `desk remove` | Get the current version, or take Desk out (`reference/adopt.md` § Updating) |
 
 A first message that is clearly work on a topic, with no command, is still a Desk: suggest a short
-topic name (or an existing one that fits), ask only to confirm it, and open it on the answer.
-Reading and talking need no topic.
+name (or an existing topic that fits), confirm it, and open it. Reading and talking need no topic.
 
 The commands are written in English. When the user plainly gives one of them in their own
 language ("cierra el desk", "revisa esa respuesta"), or with a word the Desk block records as
@@ -219,8 +218,9 @@ To close, read `reference/close.md`. In short:
 5. Save your files, then `desk.py close <topic>`, no flag. With no `Close:` line it stops: ask the
    setup question, record the answer, run it again. It refuses while placeholders or unsaved files remain.
 
-Where the Desk block says `Close: house …`, the folder has its own closing routine and that
-routine is the close: steps 1 to 5 give way to `reference/close.md` § A folder with its own close.
+Where the Desk block says `Close: house …`, the folder's own routine is the close and steps 1 to 5
+give way: run it to the end, then write the short note from `templates/session-house.md`, run
+`desk.py close <topic>` and quote its line (`reference/close.md` § A folder with its own close).
 
 Final reply: what was done, what is open, where the files are, and a title for the conversation.
 
