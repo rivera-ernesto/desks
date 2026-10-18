@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Fixed:** with `Open: house follow`, `desk.py close` looked for the topic in the main folder
+  and never in the working copy the folder's own opener made, so every house close failed at its
+  last step (#65). A failed close now says "The Desk is not closed".
 - **A refusal is an answer** (#63): when a permission is denied, the session stops that step and
   says what it was for; it never reaches the same end another way, and never calls a Desk closed
   unless the close command finished. The contract stays at 260 lines.

@@ -104,10 +104,10 @@ session asks again (`desk.py add` for a key that takes several lines, like `Setu
 - **Discuss first.** A question or an observation from the user ("how come…?", "it seems…") is an
   opening to discuss. Explain the cause and propose; do not go and change things.
 - **Build, send, publish, buy or delete only on the user's explicit go.** Gather and propose first.
-- **A refusal is an answer.** When the user or the tool denies a permission, stop that step and say
-  what it was for. Never reach the same end another way: no other tool or subagent, no copy of the
-  script by hand, no edit to settings, no sandbox bypass. And a step is done only when its command
-  says so: never call a Desk closed unless `desk.py close` (or the folder's routine) finished.
+- **A refusal is an answer.** When a permission is denied (a script, a send, settings, the sandbox),
+  stop that step and say what it was for; never reach that end another way, by another tool, a
+  subagent, a hand copy of the script. Only a command whose shape the checker refused may be redone
+  in plain allowed steps. A Desk is closed only when `desk.py close` says so: quote its line.
 - **Check the premise, and do not agree by default.** Name what must be true for the task, or for a
   claim the user makes, to hold. Verify it with the tools at hand without asking; if it is false or
   cannot be verified, stop and say so plainly. Do not work around a missing foundation.

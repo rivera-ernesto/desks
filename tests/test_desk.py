@@ -646,6 +646,26 @@ class HouseOpen(Base):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(len(os.listdir(os.path.join(self.root, "desks", "b", "inbox"))), 1)
 
+    def test_close_finds_the_topic_in_the_working_copy_the_house_opener_made(self):
+        # #65: with a house open, the topic folder lives in the opener's copy, not in the main folder.
+        put(os.path.join(self.root, "opening.md"), "1. Run our opener.\n")
+        put(os.path.join(self.root, "closing.md"), "1. Close our way.\n")
+        desk(self.root, "set", "Open", "house follow opening.md")
+        desk(self.root, "set", "Close", "house follow closing.md")
+        desk(self.root, "set", "Git", "off")
+        wt = os.path.join(self.root, ".claude", "worktrees", "theirs")
+        self.assertEqual(sh(["git", "worktree", "add", "-q", "-b", "theirs/a", wt], self.root).returncode, 0)
+        folder = os.path.join(wt, "desks", "a")
+        os.makedirs(os.path.join(folder, "sessions"))
+        put(os.path.join(folder, "README.md"), "# a\n\n## Next step\n\nnone\n")
+        put(os.path.join(folder, "sessions", "2026-01-01-first.md"), "# note\n")
+        r = desk(wt, "close", "a")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertFalse(os.path.exists(os.path.join(self.root, "desks", "a")))
+        r = desk(self.root, "close", "b")
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("The Desk is not closed", r.stderr)
+
     def test_without_the_line_open_is_unchanged(self):
         self.assertEqual(desk(self.root, "open", "a").returncode, 0)
         self.assertIn("desk/a", sh(["git", "branch"], self.root).stdout)

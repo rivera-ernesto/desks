@@ -387,12 +387,22 @@ def cmd_close(topic, how, title):
         if not how:
             die("no `Close:` line is recorded for this folder: pass --merge or --pr, or record one with `desk.py set`", 2)
     branch = f"desk/{topic}"
-    work = root if lv == "folder" else worktree_of(root, branch)
+    if open_mode(cfg)[0] == "follow":
+        # #65: the folder's own opener made the working copy; the topic is where the session works.
+        work = house_work()
+        if not os.path.isfile(os.path.join(work, droot, topic, "README.md")) and \
+                os.path.isfile(os.path.join(root, droot, topic, "README.md")):
+            work = root
+    else:
+        work = root if lv == "folder" else worktree_of(root, branch)
     if not work:
         die(f"no open desk named {topic}")
     folder = os.path.join(work, droot, topic)
     if not os.path.isfile(os.path.join(folder, "README.md")):
-        die(f"there is no topic '{topic}' under {os.path.join(work, droot)}. Run this from the folder the session was opened on.")
+        where = "the working copy the folder's own opener made, the one you work in" if open_mode(cfg)[0] == "follow" \
+            else "the folder the session was opened on"
+        die(f"there is no topic '{topic}' under {os.path.join(work, droot)}. Run this from {where}. "
+            "The Desk is not closed.")
     notes = sorted(f for f in os.listdir(os.path.join(folder, "sessions")) if f.endswith(".md")) if os.path.isdir(os.path.join(folder, "sessions")) else []
     if not notes:
         die(f"no session note yet: write {os.path.join(folder, 'sessions', '<date>-<title>.md')} from "
@@ -508,8 +518,7 @@ def cmd_note(current, other, text):
     omode, oarg = open_mode(cfg)
     if omode == "follow":
         # The session works where the folder's opener put it, not in a copy Desks made.
-        top = run(["git", "rev-parse", "--show-toplevel"], cwd=os.getcwd())
-        work = top[1].strip() if top[0] == 0 else os.getcwd()
+        work = house_work()
         if not os.path.isdir(os.path.join(work, droot)):
             die(f"this folder keeps its topics its own way (`Open: house follow {oarg}`), and {work} has no "
                 f"{droot}/ to leave a note in. Leave it the way {oarg} says. Nothing was written.")
@@ -640,6 +649,12 @@ def scan(root):
     for k in found:
         found[k] = [(a, r, h) for a, _, r, h in sorted(found[k])]
     return rules, first, found
+
+
+def house_work():
+    """Under `Open: house follow`, the working copy the folder's own opener made: where the session is."""
+    top = run(["git", "rev-parse", "--show-toplevel"], cwd=os.getcwd())
+    return top[1].strip() if top[0] == 0 else os.getcwd()
 
 
 def cmd_get(key):
