@@ -37,7 +37,7 @@
   Without a choice, or with JavaScript off, the site follows the system setting as before.
 - Site: Astro 7.3.8; canonical addresses, language pairs, a share image per language, a sitemap
   and robots.txt, a not-found page in both languages, and a build that fails when any of them is
-  missing. The pages name the three levels, the three workers, `desk setup` and `desk profile`,
+  missing. The pages name the three kinds of folder, the three workers, `desk setup` and `desk profile`,
   and say what the install runs.
 
 ## 0.1.7 (2026-10-11)

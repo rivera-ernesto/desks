@@ -42,6 +42,7 @@ for (const p of pages) {
   if (is404) {
     if (!html.includes('name="robots" content="noindex"')) errors.push(`${p}: 404 page is not noindex`);
     if (canon) errors.push(`${p}: 404 page has a canonical address`);
+    if (!html.includes('<div lang="es">')) errors.push(`${p}: 404 page has no Spanish part`);
   } else {
     if (!canon || !canon.startsWith(prefix)) errors.push(`${p}: canonical missing or outside ${prefix}`);
     for (const h of ['en', 'es', 'x-default']) {
@@ -70,7 +71,8 @@ for (const p of pages) if (/localStorage\.(get|set)Item\('theme'/.test(readFileS
 // The install prompt has one source. The README must carry the same text.
 const data = readFileSync(new URL('../src/data/site.ts', import.meta.url), 'utf8');
 const repo = data.match(/REPO = '([^']+)'/)[1];
-const prompt = data.match(/INSTALL_PROMPT =\s*`([^`]+)`/)[1].replace('${REPO}', repo);
+const version = data.match(/VERSION = '([^']+)'/)[1];
+const prompt = data.match(/INSTALL_PROMPT =\s*`([^`]+)`/)[1].replace('${REPO}', repo).replace('${VERSION}', version);
 const readme = readFileSync(new URL('../../README.md', import.meta.url), 'utf8');
 if (!readme.includes(prompt)) errors.push('README.md does not contain the install prompt from src/data/site.ts');
 if (!readFileSync(join(dist, 'index.html'), 'utf8').includes(prompt.slice(0, 40))) errors.push('home page does not show the install prompt');
