@@ -7,7 +7,7 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
   <p class="lede">Desks is not an app. It is a set of instructions Claude Code loads when you open a topic, plus two small scripts. Everything it does, you can read.</p>
 
   <h2>1. You open a topic</h2>
-  <p>Say what you want to get done ("I want to plan a trip to Lisbon"). Claude proposes a short name for the topic, <code>lisbon-trip</code>, and on your yes creates that topic's folder. To come back another day, type <code>desk lisbon-trip</code>: Claude reopens the folder, reads its notes, and proposes the next step. If the folder keeps history with git, the topic gets its own branch and working copy, so the main folder is never left half-edited and several topics can run side by side. You do not see any of that unless you want to.</p>
+  <p>Say what you want to get done ("I want to plan a trip to Lisbon"). Claude proposes a short name for the topic, <code>lisbon-trip</code>, and on your yes creates that topic's folder. To come back another day, type <code>desk lisbon-trip</code>: Claude reopens the folder, reads its notes, and proposes the next step. If the folder keeps history with git, the topic gets its own branch and working copy, so the main folder is never left half-edited and several topics can run side by side. If the folder is also on GitHub, the close can open a pull request for you to look at. Desks finds out which of these three your folder is (a plain folder, a folder with git, a folder on GitHub) and never asks you to change it. You do not see any of that unless you want to.</p>
   <p>Commands such as <code>desk</code>, <code>desk review</code> and <code>desk close</code> are written in English. Said plainly in your own language (in Spanish, "cierra el desk"), Claude takes it as the same command. Ordinary talk is not a command: "enough for today" makes Claude offer to close, never close on its own.</p>
 
   <h2>2. Substantive answers are reviewed</h2>
@@ -24,7 +24,7 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
   <div class="tablewrap"><table>
     <tbody>
       <tr><td class="label">[converged]</td><td>Several vendors answered and each objection was adopted or rejected with a reason</td></tr>
-      <tr><td class="label">[thin]</td><td>Only one vendor answered</td></tr>
+      <tr><td class="label">[thin]</td><td>Only one vendor answered. Free models are often busy, so this is common</td></tr>
       <tr><td class="label">[same-vendor]</td><td>No review key yet. A second Claude attacked the answer. This catches slips, not blind spots</td></tr>
       <tr><td class="label">[unreviewed]</td><td>No review ran yet. On advice this means "not ready to act on": the reply says so in words, and the review runs before the next piece of advice. It is never a way to finish</td></tr>
       <tr><td class="label">[quick]</td><td>You asked to skip it</td></tr>
@@ -44,21 +44,21 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
   <p>On your logged-in accounts Claude only reads, unless you ask for a specific kind of action in that session.</p>
 
   <h2>4. Workers do the reading</h2>
-  <p>The best model stays in the conversation with you. Reading, searching, pulling numbers off a screen and running long commands go to three named workers on a smaller model. Their reading never enters your conversation, which is where most of a plan's allowance is otherwise spent.</p>
+  <p>The best model stays in the conversation with you. Reading, searching, pulling numbers off a screen and running long commands go to three named workers on a smaller model: <code>desk-reader</code> reads, searches and drafts, <code>desk-screen</code> pulls things off a browser or a screen, and <code>desk-runner</code> runs commands and reads their output. Their reading never enters your conversation, which is where most of a plan's allowance is otherwise spent.</p>
 
   <h2>5. The session closes itself properly</h2>
   <p>Long sessions cost more per reply, because each turn re-reads everything before it. So at a milestone, Claude proposes the close. It rewrites the topic's notes (where things stand, the next step, what is open, what was learned), writes a short note of the session, and folds the work into the main folder or opens a pull request for you to look at. A new session on the same topic starts from those notes.</p>
-  <p><strong>If your folder already has its own way of closing a session</strong> (a script, or a written procedure), that is the close. Your routine stays the authority and runs unchanged. What Desks adds is small, and you can switch it off: it keeps the topic's notes up to date and writes a few lines that point at what your routine wrote, never a second account of the session. It is one line in the Desk block, <code>Close: house run &lt;command&gt;</code> or <code>Close: house follow &lt;file&gt;</code>, recorded only after you say yes to that exact line. With a command, the script runs it and stops the close if it fails. With a written procedure, Claude follows it and stops if a step fails; the script cannot check that, and only notes that the procedure was reported done. This is new: it is covered by the scripts' tests, but no real session has closed this way yet.</p>
+  <p><strong>If your folder already has its own way of closing a session</strong> (a script, or a written procedure), that is the close. Your routine stays the authority and runs unchanged. What Desks adds is small, and you can switch it off: it keeps the topic's notes up to date and writes a few lines that point at what your routine wrote, never a second account of the session. It is one line in the Desk block (the few lines Desks keeps in your <code>CLAUDE.md</code>), where <em>house</em> means your folder's own routine: <code>Close: house run &lt;command&gt;</code> or <code>Close: house follow &lt;file&gt;</code>, recorded only after you say yes to that exact line. With a command, the script runs it and stops the close if it fails. With a written procedure, Claude follows it and stops if a step fails; the script cannot check that, and only notes that the procedure was reported done. This is new: it is covered by the scripts' tests, but no real session has closed this way yet.</p>
 
   <h2>What leaves your machine</h2>
   <ul>
-    <li>Only the review file, a single document with identifying details removed, goes to OpenRouter and from there to the model vendors.</li>
+    <li>Only the review file, a single document with identifying details removed, goes to <a href="https://openrouter.ai/">OpenRouter</a>, a service that passes one request to many model vendors, and from there to them. Its free key is enough.</li>
     <li>The script refuses to send a file containing an email address, a phone-like number, something that looks like a key, or any word on your private list.</li>
     <li>Free models may keep or train on what they receive. Treat a review file as something you would be willing to post anonymously.</li>
-    <li>Material that cannot be made anonymous is reviewed by a second Claude instead, or by a private lane if you set one up.</li>
+    <li>Material that cannot be made anonymous is reviewed by a second Claude instead, or by a private review service of your own, if you set one up.</li>
   </ul>
 
   <h2>Setup happens as you go</h2>
-  <p>There is no configuration screen. The first time something matters (keeping history, a review key, a private GitHub copy, a short profile of you, closing with your folder's own routine), Claude asks that one question with a recommended answer and remembers what you said.</p>
+  <p>There is no configuration screen. The first time something matters (keeping history, a review key, a private GitHub copy, a short profile of you, closing with your folder's own routine), Claude asks that one question with a recommended answer and remembers what you said. To go through every question at once, type <code>desk setup</code>; <code>desk profile</code> builds or updates the profile.</p>
   <p><a href={`${base}install/`}>Install</a> · <a href={`${base}examples/`}>Examples</a></p>
 </Base>
