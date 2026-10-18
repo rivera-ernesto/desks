@@ -7,7 +7,9 @@
     python3 desk.py close <topic>              (the recorded `Close:` line decides)
     python3 desk.py note  <open-topic> <other-topic> "what came up, in a sentence or two"
     python3 desk.py set   "Close" "merge"      (records a setup answer in CLAUDE.md)
+    python3 desk.py get   "Close"              (prints a recorded answer; exit 1 if none)
     python3 desk.py add   "Setup" "use my researcher agent for reading"   (adds a line, keeps earlier ones)
+    python3 desk.py scan                       (the folder's own open, review and close routines)
     python3 desk.py tidy
 
 Three levels, detected, never required:
@@ -640,6 +642,17 @@ def scan(root):
     return rules, first, found
 
 
+def cmd_get(key):
+    """One recorded answer, as the scripts read it (#64: sessions kept reaching for this)."""
+    root, _ = main_root()
+    value = settings(root).get(key.strip().rstrip(":").lower(), "").strip()
+    if not value:
+        print(f"{key}: not recorded", file=sys.stderr)
+        return 1
+    print(value)
+    return 0
+
+
 def cmd_scan():
     root, _ = main_root()
     rules, first, found = scan(root)
@@ -704,6 +717,8 @@ def main(a):
         return cmd_set(a[2], " ".join(a[3:]), append=(a[1] == "add"))
     if len(a) >= 5 and a[1] == "note":
         return cmd_note(a[2], a[3], " ".join(a[4:]))
+    if len(a) >= 3 and a[1] == "get":
+        return cmd_get(" ".join(a[2:]))
     if len(a) >= 2 and a[1] == "scan":
         return cmd_scan()
     if len(a) >= 2 and a[1] == "tidy":

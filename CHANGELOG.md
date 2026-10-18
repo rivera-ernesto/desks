@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **A refusal is an answer** (#63): when a permission is denied, the session stops that step and
+  says what it was for; it never reaches the same end another way, and never calls a Desk closed
+  unless the close command finished. The contract stays at 260 lines.
+- `desk.py get <Key>` prints a recorded answer (#64).
 - **`desk adopt` finds a folder's own routines** (#53). New `desk.py scan` reads what the
   folder's instructions say to read first and lists the scripts that open, review or close, by name
   and first comment lines in several languages, ranking the ones that procedure names; it runs
