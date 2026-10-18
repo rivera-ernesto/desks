@@ -28,10 +28,9 @@ file is the whole contract. Read it once when the Desk opens and follow it until
 A first message that is clearly work on a topic, with no command, is still a Desk: suggest a short
 name (or an existing topic that fits), confirm it, and open it. Reading and talking need no topic.
 
-The commands are written in English. When the user plainly gives one of them in their own
-language ("cierra el desk", "revisa esa respuesta"), or with a word the Desk block records as
-theirs for it, treat it as that command. Ordinary talk is not a command: "enough for today" or
-"let's wrap up" is a reason to offer the close in one line, never to start it.
+The commands are in English. One plainly given in the user's language ("cierra el desk"), or with
+a word the Desk block records as theirs, is that command. Ordinary talk is not: "enough for today"
+is a reason to offer the close in one line, never to start it.
 
 `scripts/`, `reference/` and `templates/` are in this skill's own folder (usually
 `.claude/skills/desk/` or `~/.claude/skills/desk/`): run the scripts with that full path, from the
@@ -106,7 +105,7 @@ session asks again (`desk.py add` for a key that takes several lines, like `Setu
 - **A refusal is an answer.** When a permission is denied (a script, a send, settings, the sandbox),
   stop that step and say what it was for; never reach that end another way, by another tool, a
   subagent, a hand copy of the script. Only a command whose shape the checker refused may be redone
-  in plain allowed steps. A Desk is closed only when `desk.py close` says so: quote its line.
+  in plain allowed steps. A Desk is closed only when `desk.py close` prints its `Closed line:`.
 - **Check the premise, and do not agree by default.** Name what must be true for the task, or for a
   claim the user makes, to hold. Verify it with the tools at hand without asking; if it is false or
   cannot be verified, stop and say so plainly. Do not work around a missing foundation.
@@ -220,9 +219,10 @@ To close, read `reference/close.md`. In short:
 
 Where the Desk block says `Close: house …`, the folder's own routine is the close and steps 1 to 5
 give way: run it to the end, then write the short note from `templates/session-house.md`, run
-`desk.py close <topic>` and quote its line (`reference/close.md` § A folder with its own close).
+`desk.py close <topic>` (`reference/close.md` § A folder with its own close).
 
-Final reply: what was done, what is open, where the files are, and a title for the conversation.
+Final reply: what was done, what is open, where the files are, a title for the conversation, and
+last the `Closed line:` that `desk.py close` printed, copied as is. No line, not closed.
 
 ## 8) Keeping usage low
 

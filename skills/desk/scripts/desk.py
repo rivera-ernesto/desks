@@ -368,6 +368,11 @@ def cmd_open(topic):
     return 0
 
 
+def closed_line(topic, how):
+    """The one line a session copies into its reply, like a review label (#66): the close happened."""
+    print(f"Closed line: Desk `{topic}` closed · {how}")
+
+
 def cmd_close(topic, how, title):
     topic = slug(topic)
     root, is_git = main_root()
@@ -423,6 +428,7 @@ def cmd_close(topic, how, title):
         return close_house(root, topic, folder, notes[-1], mode, arg, cfg.get("close", "").strip())
     if lv == "folder":
         print("closed (folder level): nothing to merge. The README is the state.")
+        closed_line(topic, "folder level, the README is the state")
         return 0
     _, dirty, _ = run(["git", "status", "--porcelain"], cwd=work)
     if dirty:
@@ -443,6 +449,7 @@ def cmd_close(topic, how, title):
             die("could not open the pull request:\n" + err)
         print("pull request: " + (out or err).splitlines()[-1])
         print("The working copy stays until the pull request is merged; then run `desk.py tidy`.")
+        closed_line(topic, "sent for review as a pull request, not merged yet")
         return 0
     _, cur, _ = run(["git", "branch", "--show-current"], cwd=root)
     _, main_dirty, _ = run(["git", "status", "--porcelain", "--untracked-files=no"], cwd=root)
@@ -461,6 +468,7 @@ def cmd_close(topic, how, title):
     _, sha, _ = run(["git", "rev-parse", "--short", "HEAD"], cwd=root)
     print(f"merged into {base} and tidied. The topic now lives in {os.path.join(root, droot, topic)}")
     print(f"to undo this whole desk later: git revert -m 1 {sha}")
+    closed_line(topic, f"merged into {base} ({sha})")
     return 0
 
 
@@ -490,6 +498,7 @@ def close_house(root, topic, folder, note, mode, arg, line):
             die(f"the closing procedure this folder names is not there: {os.path.join(root, arg)}. Nothing was run.")
         print(f"closed with this folder's own routine: {arg}")
         print("That routine was reported done by the session, not checked by this script, which wrote nothing and did no git.")
+        closed_line(topic, f"this folder's own routine ({arg}), reported done by the session, not checked")
         return 0
     print(f"running this folder's closing routine: {arg}", flush=True)
     env = dict(os.environ, DESK_TOPIC=topic, DESK_TOPIC_FOLDER=folder)
@@ -498,6 +507,7 @@ def close_house(root, topic, folder, note, mode, arg, line):
         die(f"this folder's closing routine failed (exit {rc}). The Desk is not closed, and this script changed "
             "nothing. Fix what it reported; run it again only if that routine is safe to run twice.")
     print("closed with this folder's own routine. This script wrote nothing and did no git.")
+    closed_line(topic, f"this folder's own routine ran and finished ({arg})")
     return 0
 
 

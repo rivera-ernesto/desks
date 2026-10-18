@@ -661,6 +661,7 @@ class HouseOpen(Base):
         put(os.path.join(folder, "sessions", "2026-01-01-first.md"), "# note\n")
         r = desk(wt, "close", "a")
         self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("Closed line: Desk `a` closed · this folder's own routine", r.stdout)
         self.assertFalse(os.path.exists(os.path.join(self.root, "desks", "a")))
         r = desk(self.root, "close", "b")
         self.assertEqual(r.returncode, 1)

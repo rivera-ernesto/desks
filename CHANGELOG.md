@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Every close ends with one `Closed line:` that the session copies into its reply, like the review
+  label: no line, not closed (#66).
 - **The house close's last two steps are in the contract** (#66): after the folder's routine, the
   short note from `session-house.md`, then `desk.py close`, quoting its line. They lived only in a
   reference file the session never opened. The stop names `session-house.md` under a house close.
