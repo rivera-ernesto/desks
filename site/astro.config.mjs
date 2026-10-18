@@ -7,4 +7,6 @@ export default defineConfig({
   site: process.env.SITE_URL || 'http://localhost:4321',
   base: process.env.BASE_PATH || '/',
   trailingSlash: 'always',
+  // Astro 7 defaults to 'jsx' whitespace rules, which can join inline elements ("EN / ES" -> "EN/ES"); keep v6's lossless compression.
+  compressHTML: true,
 });
