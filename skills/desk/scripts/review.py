@@ -301,7 +301,7 @@ def house_review():
         root, _ = desk.main_root()
         mode, arg = desk.open_mode(desk.settings(root), "review")
     except (Exception, SystemExit):
-        return ""
+        return None  # cannot tell: the caller fails closed, never as if there were no house review
     return arg if mode == "follow" else ""
 
 
@@ -319,6 +319,10 @@ def main(argv):
         print(__doc__.split("Setup lives")[0].strip(), file=sys.stderr)
         return 2
     house = house_review()
+    if house is None and not alongside:
+        print("NOT SENT: could not read this folder's Desk block to check for `Review: house`. "
+              "Check that desk.py sits next to this script.", file=sys.stderr)
+        return 5
     if house and not alongside:
         print(f"NOT SENT: this folder reviews its own way: follow {house}. This script runs only as the second "
               "opinion that routine starts (`--alongside`).", file=sys.stderr)

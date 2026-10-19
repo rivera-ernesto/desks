@@ -462,7 +462,7 @@ def cmd_close(topic, how, title):
         if "tell me who you are" in err or "auto-detect email" in err:  # not a conflict (#42)
             die("git does not know who you are, so it cannot record the merge. Nothing was changed. The user sets it once:\n"
                 '  git config --global user.name "Their Name"\n  git config --global user.email their@email')
-        die("the merge had conflicts and was undone. Nothing was changed:\n" + err)
+        die("the merge failed and was undone (a conflict, a hook, or another git error). Nothing was changed:\n" + err)
     run(["git", "worktree", "remove", work], cwd=root, check=True)
     run(["git", "branch", "-d", branch], cwd=root)
     _, sha, _ = run(["git", "rev-parse", "--short", "HEAD"], cwd=root)

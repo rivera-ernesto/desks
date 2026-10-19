@@ -596,7 +596,9 @@ class Scan(Base):
         desk(self.root, "set", "Lead", "quiet")
         r = desk(self.root, "get", "Lead")
         self.assertEqual((r.returncode, r.stdout.strip()), (0, "quiet"))
-        self.assertEqual(desk(self.root, "get", "Close").returncode, 1)
+        r = desk(self.root, "get", "Close")
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("not recorded", r.stderr)
 
     def test_set_does_not_commit_when_git_is_off(self):
         desk(self.root, "set", "Git", "off")

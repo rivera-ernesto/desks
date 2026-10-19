@@ -23,11 +23,12 @@ the work without asking the user what happened.
 5. **Offer what you noticed** about how the user works, as a question (`reference/profile.md`
    § Learning as you go). At most one or two, and only if they would hold next time.
 6. **Save and close.** If no `Close:` line is recorded yet, ask once and record it with
-   `desk.py set` before anything else. Commit your files by path with one plain message, then:
-   - `desk.py close <topic> --merge` folds the Desk into the main folder and removes its working
-     copy. This is the default for solo work.
-   - `desk.py close <topic> --pr` (the `github` level, when the block says `Close: review`) sends
-     the branch and opens a pull request whose text is the session note. Give the user the link.
+   `desk.py set` before anything else. Commit your files by path with one plain message, then run
+   `desk.py close <topic>` with no flag; the recorded line decides:
+   - `Close: merge` folds the Desk into the main folder and removes its working copy. This is the
+     default for solo work.
+   - `Close: review` (the `github` level) sends the branch and opens a pull request whose text is
+     the session note. Give the user the link.
    - At the `github` level, each item still in the README's "Open" list that someone must act on
      can be an Issue: `gh issue create` with a title a stranger would understand. Ask once whether
      they want that; record `- Issues: on`.

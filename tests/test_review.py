@@ -124,6 +124,16 @@ class Privacy(Sandbox):
         finally:
             os.chdir(old)
 
+    def test_when_the_desk_block_cannot_be_read_nothing_is_sent(self):
+        old = review.importlib.util.spec_from_file_location
+        review.importlib.util.spec_from_file_location = lambda *a, **k: (_ for _ in ()).throw(OSError("gone"))
+        try:
+            code, _, err = self.run_main(self.packet())
+        finally:
+            review.importlib.util.spec_from_file_location = old
+        self.assertEqual(code, 5)
+        self.assertIn("could not read this folder's Desk block", err)
+
     def test_a_refused_packet_is_never_sent(self):
         self.conf("openrouter.key", "k")
         calls = self.fake({"alpha": LONG})
