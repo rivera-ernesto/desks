@@ -23,6 +23,7 @@ Exit codes: 0 at least one vendor answered · 1 packet refused · 2 usage
 """
 import concurrent.futures as cf
 import datetime
+import importlib.util
 import hashlib
 import json
 import os
@@ -37,7 +38,7 @@ import urllib.error
 import urllib.request
 
 API = "https://openrouter.ai/api/v1"
-CONF = os.path.join(os.path.expanduser("~"), ".config", "desk")
+CONF = os.environ.get("DESK_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".config", "desk")  # as desk.py (#62)
 SYSTEM = (
     "You are an independent reviewer from a different model vendor than the author. "
     "The author is Claude (Anthropic). Your value is that you think differently: say what "
@@ -55,6 +56,9 @@ BUILTIN_PRIVATE = [
     (r"(?<![\w.])\+?\d[\d\s().-]{8,}\d(?![\w.])", "a phone-like number"),
     (r"\b(sk|pk|ghp|gho|xox[bp])[-_][A-Za-z0-9_-]{16,}", "something that looks like a key"),
 ]
+# Dates and times are not phone numbers (#24): 2026-10-15, 2026-10-15T09:30, 2026-10-14..16.
+# They are blanked before the scan, so a real number next to a date is still found.
+DATES = re.compile(r"(?<![\w.])\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2})?)?(?:\.\.\d{2})?(?![\w])")
 
 
 def conf(name):
@@ -73,13 +77,14 @@ def api_key():
 def private_hits(text):
     """Why this packet must not be sent, or [] when it may go."""
     hits = []
-    low = text.lower()
     for line in conf("private-terms.txt").splitlines():
         term = line.strip()
-        if term and not term.startswith("#") and term.lower() in low:
+        # A whole word or phrase, not part of a longer word (#51): "Mara" is not in "maracuya".
+        if term and not term.startswith("#") and re.search(r"(?<!\w)" + re.escape(term) + r"(?!\w)", text, re.I):
             hits.append(f'your private term "{term}"')
+    undated = DATES.sub(" ", text)
     for pattern, what in BUILTIN_PRIVATE:
-        if re.search(pattern, text):
+        if re.search(pattern, undated):
             hits.append(what)
     return hits
 
@@ -101,7 +106,8 @@ def past_rates(folder):
     for d, _, files in os.walk(root):
         if "ledger.tsv" in files:
             try:
-                rows = open(os.path.join(d, "ledger.tsv"), encoding="utf-8").read().splitlines()
+                with open(os.path.join(d, "ledger.tsv"), encoding="utf-8") as fh:  # closed, not left to the collector (#49)
+                    rows = fh.read().splitlines()
             except OSError:
                 continue
             for r in rows[1:]:
@@ -258,7 +264,19 @@ def command_lanes():
 def verify(receipt, root):
     for d, _, files in os.walk(root):
         if f"receipt-{receipt}.txt" in files:
-            print(open(os.path.join(d, f"receipt-{receipt}.txt"), encoding="utf-8").read())
+            with open(os.path.join(d, f"receipt-{receipt}.txt"), encoding="utf-8") as fh:
+                text = fh.read()
+            print(text, end="" if text.endswith("\n") else "\n")
+            # The stored label is the moment the review ran; converged also needs the dispositions now (#29).
+            f = dict(l.split(" ", 1) for l in text.splitlines() if " " in l)
+            pk = f.get("packet", "")
+            disp = os.path.join(os.path.dirname(pk), os.path.splitext(os.path.basename(pk))[0] + "-dispositions.md")
+            if not os.path.isabs(disp):
+                disp = os.path.join(os.path.dirname(d), os.path.basename(disp))
+            has = os.path.isfile(disp)
+            print(f"dispositions {'present' if has else 'missing'}: {disp}")
+            if f.get("label") == "open":
+                print("label now: " + ("converged" if has else "open (give every finding a disposition)"))
             return 0
     print(f"NO RECEIPT {receipt}: the label it backs is unverified", file=sys.stderr)
     return 1
@@ -274,7 +292,22 @@ def check():
     return 0 if (key or lanes or apple) else 3
 
 
+def house_review():
+    """The folder's own review procedure, when its Desk block says `Review: house follow <file>` (#28)."""
+    try:
+        spec = importlib.util.spec_from_file_location("desk", os.path.join(os.path.dirname(os.path.abspath(__file__)), "desk.py"))
+        desk = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(desk)
+        root, _ = desk.main_root()
+        mode, arg = desk.open_mode(desk.settings(root), "review")
+    except (Exception, SystemExit):
+        return None  # cannot tell: the caller fails closed, never as if there were no house review
+    return arg if mode == "follow" else ""
+
+
 def main(argv):
+    alongside = "--alongside" in argv  # started by the folder's own review routine, as its second opinion
+    argv = [a for a in argv if a != "--alongside"]
     if len(argv) >= 2 and argv[1] == "--check":
         return check()
     if len(argv) >= 3 and argv[1] == "--verify":
@@ -285,6 +318,15 @@ def main(argv):
     if len(argv) < 2 or argv[1].startswith("-"):
         print(__doc__.split("Setup lives")[0].strip(), file=sys.stderr)
         return 2
+    house = house_review()
+    if house is None and not alongside:
+        print("NOT SENT: could not read this folder's Desk block to check for `Review: house`. "
+              "Check that desk.py sits next to this script.", file=sys.stderr)
+        return 5
+    if house and not alongside:
+        print(f"NOT SENT: this folder reviews its own way: follow {house}. This script runs only as the second "
+              "opinion that routine starts (`--alongside`).", file=sys.stderr)
+        return 5
     packet = argv[1]
     focus = argv[2] if len(argv) > 2 else "Adversarial review: what would the author miss or agree with too easily?"
     text = open(packet, encoding="utf-8").read()
@@ -300,6 +342,8 @@ def main(argv):
             print("Remove it and run again, or review with a subagent and label the reply [same-vendor].", file=sys.stderr)
             return 1
         print("Asking the private lane only.", file=sys.stderr)
+    if public_ok and not conf("private-terms.txt"):
+        print("note: no private-terms list, so names are not checked. Ask the user for them (reference/setup.md, Private terms).", file=sys.stderr)
     if not (key or lanes or apple):
         print("No review key and no other lane. Label the reply [same-vendor] after a subagent pass, or run `desk setup`.", file=sys.stderr)
         return 3

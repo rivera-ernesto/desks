@@ -23,11 +23,12 @@ the work without asking the user what happened.
 5. **Offer what you noticed** about how the user works, as a question (`reference/profile.md`
    § Learning as you go). At most one or two, and only if they would hold next time.
 6. **Save and close.** If no `Close:` line is recorded yet, ask once and record it with
-   `desk.py set` before anything else. Commit your files by path with one plain message, then:
-   - `desk.py close <topic> --merge` folds the Desk into the main folder and removes its working
-     copy. This is the default for solo work.
-   - `desk.py close <topic> --pr` (the `github` level, when the block says `Close: review`) sends
-     the branch and opens a pull request whose text is the session note. Give the user the link.
+   `desk.py set` before anything else. Commit your files by path with one plain message, then run
+   `desk.py close <topic>` with no flag; the recorded line decides:
+   - `Close: merge` folds the Desk into the main folder and removes its working copy. This is the
+     default for solo work.
+   - `Close: review` (the `github` level) sends the branch and opens a pull request whose text is
+     the session note. Give the user the link.
    - At the `github` level, each item still in the README's "Open" list that someone must act on
      can be an Issue: `gh issue create` with a title a stranger would understand. Ask once whether
      they want that; record `- Issues: on`.
@@ -72,6 +73,9 @@ In both forms:
    and repeats nothing. Fix the note and run the close again. It
    writes nothing and does no merge, push or pull request: saving is the routine's business.
    A folder whose routine also makes its own branches records `Git: off` as well.
+   Say the Desk is closed only by copying the `Closed line:` that `desk.py close` printed; if it
+   stopped, the Desk is not closed, whatever the routine did. **After it, do no git of your own:** no merge, no removing the working copy, no commit in the
+   main folder. If the routine leaves the work on a branch, that is its design: say where it is.
 5. Steps 4, 5 and 7 above (snags, what you noticed, final reply) still apply. A snag the folder's
    routine already gives an end to is not given a second one.
 

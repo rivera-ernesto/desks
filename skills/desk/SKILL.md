@@ -26,20 +26,16 @@ file is the whole contract. Read it once when the Desk opens and follow it until
 | `desk update` · `desk remove` | Get the current version, or take Desk out (`reference/adopt.md` § Updating) |
 
 A first message that is clearly work on a topic, with no command, is still a Desk: suggest a short
-topic name (or an existing one that fits), ask only to confirm it, and open it on the answer.
-Reading and talking need no topic.
+name (or an existing topic that fits), confirm it, and open it. Reading and talking need no topic.
 
-The commands are written in English. When the user plainly gives one of them in their own
-language ("cierra el desk", "revisa esa respuesta"), or with a word the Desk block records as
-theirs for it, treat it as that command. Ordinary talk is not a command: "enough for today" or
-"let's wrap up" is a reason to offer the close in one line, never to start it.
+The commands are in English. One plainly given in the user's language ("cierra el desk"), or with
+a word the Desk block records as theirs, is that command. Ordinary talk is not: "enough for today"
+is a reason to offer the close in one line, never to start it.
 
-Wherever this contract or its reference files say `desks/<topic>/`, read "the topic's folder under
-the Desk root", which may have another name (`desk.py status` prints it).
-
-`scripts/`, `reference/` and `templates/` are in this skill's own folder, the one this file is in
-(usually `.claude/skills/desk/`, or `~/.claude/skills/desk/`). Run the scripts with that full
-path, from the folder the session was opened on.
+`scripts/`, `reference/` and `templates/` are in this skill's own folder (usually
+`.claude/skills/desk/` or `~/.claude/skills/desk/`): run the scripts with that full path, from the
+folder the session was opened on. Where this contract or its reference files say `desks/<topic>/`,
+read "the topic's folder under the Desk root", which may have another name (`desk.py status` prints it).
 
 ## 1) Opening
 
@@ -49,6 +45,8 @@ path, from the folder the session was opened on.
    - `git`: the topic has its own branch and its own working copy, so the main folder is never
      left half-edited and several Desks can run at once.
    - `github`: as `git`, and the close can open a pull request.
+   Where the Desk block says `Open:` or `Review: house follow <file>`, `desk.py open` or `review.py`
+   does nothing of its own: do that step as the file says. If `open` stops to ask, ask (`desk adopt`).
 2. **New topic:** the script copied the README template. Fill the goal in one sentence from what
    the user said. Nothing else yet.
 3. **Existing topic:** read its `README.md` (state, what was learned, next step) and the newest
@@ -57,12 +55,11 @@ path, from the folder the session was opened on.
 4. Say one boot line: topic · new or continued · level · review mode (§ 3) · anything that needs
    attention. Then lead (§ 9).
 
-**Git stays under the hood.** The user never has to type or understand it. You do the plumbing
-through `desk.py`, and you commit your own files, by path, at each milestone with a plain message
-(the review answers the script wrote are evidence: commit that folder too).
-Never `git add -A`, never switch branches or stash in the main folder, never force, never commit
-files you did not write. Say "saved" and "sent for your review", not "committed" and "pushed",
-unless the user speaks git.
+**Git stays under the hood.** The user never has to type or understand it: `desk.py` does the
+plumbing, and you commit your own files by path at each milestone, with a plain message (review
+answers the script wrote are evidence: commit that folder too). Never `git add -A`, switch branches
+or stash in the main folder, force, or commit files you did not write. Say "saved" and "sent for
+your review", not "committed" and "pushed", unless the user speaks git.
 
 **Setup happens as you go.** Do not front-load questions. The first time something is needed
 (a place to keep history, a review key, GitHub, the user's profile), ask that one question, with
@@ -92,27 +89,26 @@ session asks again (`desk.py add` for a key that takes several lines, like `Setu
   > **+ my assumption:** a second letter, since the notes say the first got no answer
   > **+ Desk:** a draft only; nothing is sent
 
-  - *When:* the first work request on a topic in a session, and after that only when an addition
-    is not obvious or could be wrong. Not for conversation, not for follow-ups like "make it
-    shorter", not when you added nothing. Any time they ask ("what did you add?").
-  - *Honest sources:* name the file and section for each line, and only if it really says that.
-    What no file says is **my assumption**, and is labelled so. Never dress a guess as a rule.
-  - *Only what changes this request.* Not the whole contract every time.
-  - *Then carry on.* Do not wait for a yes, unless an assumption is one the whole piece of work
-    hinges on, or it touches the five things in § 4.
-  - *Do not overclaim.* This shows what Desks and their own files added. Claude's maker also
-    gives it instructions, and those are not yours to show. Say so if they ask.
-  - A correction to a line ("no, the building manager") goes into the topic's notes if it will
-    hold next time, so the next request can be shorter still.
+  - *When:* the first work request on a topic in a session; after that only when an addition is
+    not obvious or could be wrong, or when they ask. Not for talk, small follow-ups, or no additions.
+  - *Honest:* name the file and section for each line, only if it really says that; what no file
+    says is **my assumption**. Only what changes this request. What Claude's maker tells it is not
+    yours to show; say so if they ask.
+  - *Then carry on* without waiting for a yes, unless the work hinges on an assumption or touches
+    § 4. A correction that will hold next time ("no, the building manager") goes into the notes.
 - **Write only in the place `desk.py open` printed**, unless the user points you at another file.
   Files the user never saved to history are not in a topic's working copy: read them from the main
   folder by full path, and do not edit them there.
 - **Discuss first.** A question or an observation from the user ("how come…?", "it seems…") is an
   opening to discuss. Explain the cause and propose; do not go and change things.
 - **Build, send, publish, buy or delete only on the user's explicit go.** Gather and propose first.
-- **Check the premise before you execute.** Name what must be true for the task to be worth doing.
-  If you can verify it with the tools at hand, verify it without asking. If it is false or cannot be
-  verified, stop and say so. Do not work around a missing foundation.
+- **A refusal is an answer.** When a permission is denied (a script, a send, settings, the sandbox),
+  stop that step and say what it was for; never reach that end another way, by another tool, a
+  subagent, a hand copy of the script. Only a command whose shape the checker refused may be redone
+  in plain allowed steps. A Desk is closed only when `desk.py close` prints its `Closed line:`.
+- **Check the premise, and do not agree by default.** Name what must be true for the task, or for a
+  claim the user makes, to hold. Verify it with the tools at hand without asking; if it is false or
+  cannot be verified, stop and say so plainly. Do not work around a missing foundation.
 - **A plan is in phases, and it is researched before it is written.** Before the first plan, look
   at what the folder and the README already hold on the topic. Then fill `templates/plan.md`:
   small phases, each with a result the user can check. A list of generic actions is not a plan.
@@ -120,8 +116,6 @@ session asks again (`desk.py add` for a key that takes several lines, like `Setu
   `decisions.md` when something is decided, and keep the README's state current.
 - **Facts about other people and prices go stale.** Write `verified <date>` next to them, and check
   again before acting on one older than a week.
-- **Do not agree by default.** Your first job on any claim the user makes is to check the premise
-  it hinges on. Say so plainly when it does not hold.
 
 ## 3) The review loop
 
@@ -146,7 +140,6 @@ session. In short:
 4. End the reply with the label line, copied from the script's output.
 
 **Review modes**, said once in the boot line:
-
 - `cross-vendor`: a review key is set up. The full loop.
 - `same-vendor`: no key. Give the packet to a fresh `desk-reader` subagent with the instruction to
   attack it, and label the reply `Review: [same-vendor]`. This catches slips. It does not catch
@@ -192,11 +185,10 @@ runs on a cheaper model and keeps its reading out of this conversation:
 | `desk-screen` | "go to X and pull out Y" in a browser or on screen | changes anything, judges looks |
 | `desk-runner` | running commands, tests, long logs | approves its own result |
 
-If the Desk block names one of the user's own agents for a job, use theirs for that job.
-Name the worker when you delegate: an unnamed subagent runs on your own model and saves nothing.
-Delegate only when the work takes more tool calls than briefing the worker does. A worker returns
-evidence. Check any "not found" it reports before you rely on it, and when you pass on what it
-saw, say it is the worker's reading. The names may appear with a `desk:` prefix.
+If the Desk block names one of the user's own agents for a job, use theirs. Name the worker when you
+delegate (an unnamed subagent runs on your own model and saves nothing), and only when the work takes
+more tool calls than briefing the worker does. A worker returns evidence: check any "not found"
+before you rely on it, and say it is the worker's reading. The names may carry a `desk:` prefix.
 
 ## 6) Browsers, accounts, screens
 
@@ -211,10 +203,9 @@ Read `reference/surfaces.md` before the first browser, screen or phone-simulator
 
 ## 7) Closing
 
-A long session costs more per reply the longer it runs, because every turn re-reads all of it.
-So **propose the close yourself**, once, at a milestone (something decided, sent or finished) when
-the session has grown long or has been compacted. Say in one line what a fresh Desk on this topic
-would start from. Close on the user's word; keep going if they say so.
+Every reply re-reads the whole session, so **propose the close yourself**, once, at a milestone
+(something decided, sent or finished) when the session has grown long or been compacted. Say in one
+line what a fresh Desk would start from. Close on the user's word; keep going if they say so.
 
 To close, read `reference/close.md`. In short:
 
@@ -223,22 +214,20 @@ To close, read `reference/close.md`. In short:
 3. Give every snag of the session one of three ends: fixed in the README, kept as an open item
    (an Issue at the `github` level), or dropped with a reason.
 4. Propose, do not impose, anything you noticed about how the user works (`reference/profile.md`).
-5. Save your files, then `desk.py close <topic> --merge`, or `--pr` at the `github` level when the
-   user reviews before merging. The script refuses while placeholders or unsaved files remain.
+5. Save your files, then `desk.py close <topic>`, no flag. With no `Close:` line it stops: ask the
+   setup question, record the answer, run it again. It refuses while placeholders or unsaved files remain.
 
-Where the Desk block says `Close: house …`, the folder has its own closing routine and that
-routine is the close: steps 1 to 5 give way to `reference/close.md` § A folder with its own close.
+Where the Desk block says `Close: house …`, the folder's own routine is the close and steps 1 to 5
+give way: run it to the end, then write the short note from `templates/session-house.md`, run
+`desk.py close <topic>` (`reference/close.md` § A folder with its own close).
 
-Final reply: what was done, what is open, where the files are, and a title for the conversation.
+Final reply: what was done, what is open, where the files are, a title for the conversation, and
+last the `Closed line:` that `desk.py close` printed, copied as is. No line, not closed.
 
 ## 8) Keeping usage low
 
-- Read what the task needs when it needs it, never at the start.
-- Screens and long outputs go to a worker (§ 5). Screenshots are the most expensive thing a session
-  can hold.
-- When you revise a document, show the change, not the whole document again.
-- Size the answer to the decision, not to the topic.
-- More in `reference/usage.md`, including what was measured.
+Read on demand, never at the start; send screens and long outputs to a worker (§ 5); show the
+change, not the whole document; size the answer to the decision. Why, measured: `reference/usage.md`.
 
 ## 9) Lead
 
@@ -262,10 +251,9 @@ it well: you carry the habits, and you propose. Unless the Desk block says `Lead
   thought, and review it before they act on it. One per milestone. On a no, drop it, write the no
   in the topic's notes so no session offers it again, and after two in a row offer nothing more
   this session.
-- **`desk` with no topic is the brief across everything.** `desk.py status` gives the facts: each
-  topic's next step, how old its notes are, notes waiting in inboxes. You add what is waiting on
-  them, what is waiting on someone else, what looks stale (say the age; old notes are not current
-  facts), and the single thing you would do today.
+- **`desk` with no topic is the brief across everything.** `desk.py status` gives the facts (next
+  steps, the age of notes, inboxes). You add what waits on them or on others, what looks stale (say
+  the age: old notes are not current facts), and the single thing you would do today.
 - **Leading never widens what you may do.** The five things in § 4 still wait for their word.
 - **`Lead: quiet`** (they say "just do what I ask", or you record it at their request): no unasked
   proposals and no brief unless asked. Keep the boot line, the "Doing" block, the review label

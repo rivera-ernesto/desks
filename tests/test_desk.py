@@ -500,5 +500,179 @@ class HouseCloseWithGit(Base):
         self.assertNotIn("desk/a", sh(["git", "branch"], self.root).stdout)
 
 
+class Messages(Base):
+    """What the script says when something is missing: enough to fix it in one go."""
+    git = False
+
+    def test_help_is_not_an_error(self):
+        for h in ("--help", "-h"):
+            r = desk(self.root, h)
+            self.assertEqual(r.returncode, 0)
+            self.assertIn("open", r.stdout)
+        self.assertEqual(desk(self.root).returncode, 2)
+
+    def test_status_does_not_show_a_placeholder_as_the_next_step(self):
+        desk(self.root, "open", "a")
+        r = desk(self.root, "status")
+        self.assertIn("no next step written yet", r.stdout)
+        self.assertNotIn("{{", r.stdout)
+
+    def test_close_names_the_template_and_lists_every_placeholder_at_once(self):
+        desk(self.root, "open", "a")
+        r = desk(self.root, "close", "a", "--merge")
+        self.assertIn(os.path.join("templates", "session.md"), r.stderr)
+        self.assertIn(os.path.join("desks", "a", "sessions"), r.stderr)
+        folder = os.path.join(self.root, "desks", "a")
+        put(os.path.join(folder, "sessions", "2026-01-01-first.md"), "# note {{title}}\n")
+        r = desk(self.root, "close", "a", "--merge")
+        self.assertIn("README.md", r.stderr)
+        self.assertIn("2026-01-01-first.md", r.stderr)
+
+    def test_a_repository_with_no_commit_says_why_it_is_folder_level(self):
+        sh(["git", "init", "-q"], self.root)
+        r = desk(self.root, "status")
+        self.assertIn("no commit yet", r.stdout)
+
+
+class GitIdentity(Base):
+    def test_no_git_identity_is_not_called_a_conflict(self):
+        desk(self.root, "open", "a")
+        self.fill("a")
+        for k in ("user.name", "user.email"):
+            sh(["git", "config", "--unset", k], self.root)
+        sh(["git", "config", "user.useConfigOnly", "true"], self.root)
+        old = {k: os.environ.get(k) for k in ("GIT_CONFIG_GLOBAL", "GIT_CONFIG_NOSYSTEM")}
+        os.environ.update(GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1")
+        try:
+            r = desk(self.root, "close", "a", "--merge")
+        finally:
+            for k, v in old.items():
+                os.environ.pop(k, None) if v is None else os.environ.__setitem__(k, v)
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("does not know who you are", r.stderr)
+        self.assertNotIn("conflicts", r.stderr)
+
+
+class Scan(Base):
+    """#53: a folder's own routines are found without being named by the user, and never run."""
+
+    def house(self):
+        put(os.path.join(self.root, "CLAUDE.md"), BLOCK + "\nEvery session: lee `rules/como.md` primero.\n")
+        os.makedirs(os.path.join(self.root, "rules"))
+        os.makedirs(os.path.join(self.root, "scripts"))
+        put(os.path.join(self.root, "rules", "como.md"), "Abrir con scripts/tema.sh, revisar con scripts/compuerta.sh, cerrar con scripts/cierre.sh.\n")
+        for name, head in (("tema.sh", "# Abre un tema nuevo en su propia copia"), ("compuerta.sh", "# Revisa la privacidad antes de mandar a revisores"),
+                           ("cierre.sh", "# Cierra la sesión y arma el traspaso"), ("backup.sh", "# Copies the photos"),
+                           ("other-review.sh", "# Review helper not named anywhere")):
+            put(os.path.join(self.root, "scripts", name), "#!/bin/sh\n" + head + "\ntouch ran-" + name + "\n")
+
+    def test_scan_finds_the_procedure_and_each_step_and_runs_nothing(self):
+        self.house()
+        r = desk(self.root, "scan")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("read first:   rules/como.md", r.stdout)
+        out = r.stdout
+        self.assertLess(out.index("open:"), out.index("scripts/tema.sh"))
+        self.assertLess(out.index("review:"), out.index("scripts/compuerta.sh"))
+        self.assertLess(out.index("close:"), out.index("scripts/cierre.sh"))
+        self.assertNotIn("other-review.sh", out)  # one named in the procedure outranks a name match
+        self.assertNotIn("backup.sh", out)
+        self.assertIn("Open: house follow rules/como.md", out)
+        self.assertFalse([f for f in os.listdir(self.root) if f.startswith("ran-")])
+
+    def test_open_stops_until_the_user_chooses(self):
+        self.house()
+        r = desk(self.root, "open", "a")
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("seems to open topics its own way", r.stderr)
+        self.assertNotIn("desk/a", sh(["git", "branch"], self.root).stdout)
+        self.assertEqual(desk(self.root, "set", "Open", "desks").returncode, 0)
+        self.assertEqual(desk(self.root, "open", "a").returncode, 0)
+
+    def test_a_folder_with_no_routines_says_the_defaults_fit(self):
+        self.assertIn("Desks' defaults fit", desk(self.root, "scan").stdout)
+
+    def test_get_prints_what_set_recorded(self):
+        desk(self.root, "set", "Lead", "quiet")
+        r = desk(self.root, "get", "Lead")
+        self.assertEqual((r.returncode, r.stdout.strip()), (0, "quiet"))
+        r = desk(self.root, "get", "Close")
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("not recorded", r.stderr)
+
+    def test_set_does_not_commit_when_git_is_off(self):
+        desk(self.root, "set", "Git", "off")
+        before = sh(["git", "rev-list", "--count", "HEAD"], self.root).stdout
+        r = desk(self.root, "set", "Lead", "quiet")
+        self.assertIn("Git is off", r.stdout)
+        self.assertEqual(sh(["git", "rev-list", "--count", "HEAD"], self.root).stdout, before)
+
+
+class HouseOpen(Base):
+    """#28: a folder that opens topics its own way gets no second home for the topic from Desks."""
+
+    def snapshot(self):
+        return sorted(os.path.relpath(os.path.join(d, f), self.root)
+                      for d, _, fs in os.walk(self.root) if ".git" not in d.split(os.sep) for f in fs)
+
+    def test_follow_creates_nothing_and_says_where_to_look(self):
+        put(os.path.join(self.root, "opening.md"), "1. Run our opener.\n")
+        self.assertEqual(desk(self.root, "set", "Open", "house follow opening.md").returncode, 0)
+        before, branches = self.snapshot(), sh(["git", "branch"], self.root).stdout
+        r = desk(self.root, "open", "a")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("follow opening.md", r.stdout)
+        self.assertEqual(self.snapshot(), before)
+        self.assertEqual(sh(["git", "branch"], self.root).stdout, branches)
+
+    def test_an_unknown_open_line_stops(self):
+        put(os.path.join(self.root, "CLAUDE.md"), BLOCK.replace("- Version: 0", "- Version: 0\n- Open: our way"))
+        r = desk(self.root, "open", "a")
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("not one this script understands", r.stderr)
+        self.assertFalse(os.path.exists(os.path.join(self.root, "desks", "a")))
+
+    def test_a_missing_procedure_stops_and_set_refuses_outside(self):
+        put(os.path.join(self.root, "CLAUDE.md"), BLOCK.replace("- Version: 0", "- Version: 0\n- Open: house follow gone.md"))
+        self.assertEqual(desk(self.root, "open", "a").returncode, 1)
+        self.assertEqual(desk(self.root, "set", "Open", "house follow ../elsewhere.md").returncode, 2)
+
+    def test_note_goes_where_the_session_works_or_stops(self):
+        put(os.path.join(self.root, "opening.md"), "1. Run our opener.\n")
+        desk(self.root, "set", "Open", "house follow opening.md")
+        r = desk(self.root, "note", "a", "b", "something for b")
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("keeps its topics its own way", r.stderr)
+        os.makedirs(os.path.join(self.root, "desks"))
+        r = desk(self.root, "note", "a", "b", "something for b")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(len(os.listdir(os.path.join(self.root, "desks", "b", "inbox"))), 1)
+
+    def test_close_finds_the_topic_in_the_working_copy_the_house_opener_made(self):
+        # #65: with a house open, the topic folder lives in the opener's copy, not in the main folder.
+        put(os.path.join(self.root, "opening.md"), "1. Run our opener.\n")
+        put(os.path.join(self.root, "closing.md"), "1. Close our way.\n")
+        desk(self.root, "set", "Open", "house follow opening.md")
+        desk(self.root, "set", "Close", "house follow closing.md")
+        desk(self.root, "set", "Git", "off")
+        wt = os.path.join(self.root, ".claude", "worktrees", "theirs")
+        self.assertEqual(sh(["git", "worktree", "add", "-q", "-b", "theirs/a", wt], self.root).returncode, 0)
+        folder = os.path.join(wt, "desks", "a")
+        os.makedirs(os.path.join(folder, "sessions"))
+        put(os.path.join(folder, "README.md"), "# a\n\n## Next step\n\nnone\n")
+        put(os.path.join(folder, "sessions", "2026-01-01-first.md"), "# note\n")
+        r = desk(wt, "close", "a")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("Closed line: Desk `a` closed · this folder's own routine", r.stdout)
+        self.assertFalse(os.path.exists(os.path.join(self.root, "desks", "a")))
+        r = desk(self.root, "close", "b")
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("The Desk is not closed", r.stderr)
+
+    def test_without_the_line_open_is_unchanged(self):
+        self.assertEqual(desk(self.root, "open", "a").returncode, 0)
+        self.assertIn("desk/a", sh(["git", "branch"], self.root).stdout)
+
+
 if __name__ == "__main__":
     unittest.main()

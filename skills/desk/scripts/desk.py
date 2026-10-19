@@ -7,7 +7,9 @@
     python3 desk.py close <topic>              (the recorded `Close:` line decides)
     python3 desk.py note  <open-topic> <other-topic> "what came up, in a sentence or two"
     python3 desk.py set   "Close" "merge"      (records a setup answer in CLAUDE.md)
+    python3 desk.py get   "Close"              (prints a recorded answer; exit 1 if none)
     python3 desk.py add   "Setup" "use my researcher agent for reading"   (adds a line, keeps earlier ones)
+    python3 desk.py scan                       (the folder's own open, review and close routines)
     python3 desk.py tidy
 
 Three levels, detected, never required:
@@ -117,6 +119,25 @@ def close_mode(cfg):
     return "?", raw
 
 
+def open_mode(cfg, key="open"):
+    """How this folder opens a topic: ('', '') Desks itself · ('follow', file) the folder's own
+    routine, which the session follows · ('?', the line) a line this script does not understand.
+    There is no `run` form yet: the session reads the file and runs the opener it names (#28)."""
+    raw = cfg.get(key, "").strip()
+    if not raw:
+        return "", ""
+    if raw.lower() == "desks":  # the user chose Desks' own open in a folder that has its own
+        return "desks", ""
+    m = re.match(r"house\s+follow\s+(.+)$", raw)
+    if m:
+        arg = m.group(1).strip()
+        if len(arg) > 1 and arg[0] == arg[-1] == "`":
+            arg = arg[1:-1].strip()
+        if arg:
+            return "follow", arg
+    return "?", raw
+
+
 def confirmed_file():
     conf = os.environ.get("DESK_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".config", "desk")
     return os.path.join(conf, "house-close.json")
@@ -205,6 +226,14 @@ def level(root, is_git, cfg):
     return "github" if (remote and gh_ok and not is_off(cfg, "github")) else "git"
 
 
+def level_note(root, is_git, cfg, lv):
+    """Why a git folder runs at the folder level, when the reason is not one the user chose (#45)."""
+    if lv == "folder" and is_git and not is_off(cfg, "git") and \
+            run(["git", "rev-parse", "--verify", "--quiet", "HEAD"], cwd=root)[0] != 0:
+        return " (this repository has no commit yet; the git level starts after the first commit)"
+    return ""
+
+
 def slug(topic):
     s = re.sub(r"[^a-z0-9]+", "-", topic.lower()).strip("-")
     if not s:
@@ -241,9 +270,13 @@ def cmd_status():
     cfg = settings(root)
     lv = level(root, is_git, cfg)
     print(f"folder:   {root}")
-    print(f"level:    {lv}")
+    print(f"level:    {lv}{level_note(root, is_git, cfg, lv)}")
     print(f"desk root: {cfg.get('desk root', 'desks/')}")
     print(f"settings: {block_file(root) or 'none (defaults)'}")
+    omode, oarg = open_mode(cfg)
+    if omode:
+        print("opens:    " + (f"with this folder's own routine (follow {oarg}); topics it keeps elsewhere are not listed"
+                              if omode == "follow" else f"`Open: {oarg}` is not understood; open will stop"))
     if is_git:
         remote, gh_ok, vis = github(root)
         print(f"branch:   {default_branch(root)} (default)")
@@ -261,6 +294,8 @@ def cmd_status():
             text = open(f, encoding="utf-8").read()
             m = re.search(r"^## Next step\s*\n+(.+?)(?:\n\s*\n|\n## |\Z)", text, flags=re.M | re.S)
             step = " ".join(m.group(1).split())[:160] if m else "(no Next step section)"
+            if "{{" in step:  # the template's own text is not a next step (#33)
+                step = "(no next step written yet: not started)"
             days = int((now - os.path.getmtime(f)) // 86400)
             print(f"  {d}: notes {days} day(s) old · next: {step}")
         waiting = []
@@ -279,6 +314,23 @@ def cmd_open(topic):
     topic = slug(topic)
     root, is_git = main_root()
     cfg = settings(root)
+    omode, oarg = open_mode(cfg)
+    if omode == "?":
+        die(f"`Open: {oarg}` is not one this script understands. It reads `house follow <file>` or `desks`. Nothing was opened.", 2)
+    if omode == "" and not cfg.get("open", "").strip():
+        _, first, found = scan(root)
+        own = [rel for not_named, rel, _ in found["open"] if not not_named]
+        if own:  # #53: the routines exist but nobody recorded them; ask before making a second home
+            die(f"this folder seems to open topics its own way ({', '.join(own[:2])}, named in {first[0]}). "
+                "Ask the user the setup question first: `desk.py scan` shows what was found, and "
+                "`desk.py set \"Open\" \"house follow <file>\"` records their yes. To use Desks' own open "
+                "anyway, record `desk.py set \"Open\" \"desks\"`. Nothing was opened.")
+    if omode == "follow":  # the folder opens topics its own way; making a second home for the topic is the bug (#28)
+        if not inside(root, oarg) or not os.path.isfile(os.path.join(root, oarg)):
+            die(f"this folder opens topics with `{oarg}`, which is not there. Nothing was opened.")
+        print(f"open:   this folder opens topics its own way: follow {oarg} for '{topic}', and work where it says.")
+        print("        Desks made no topic folder, branch or working copy here.")
+        return 0
     droot = cfg.get("desk root", "desks/").strip("/")
     lv = level(root, is_git, cfg)
     if lv == "folder":
@@ -301,7 +353,7 @@ def cmd_open(topic):
             run(args, cwd=root, check=True)
     folder = os.path.join(work, droot, topic)
     new = seed(folder, topic)
-    print(f"level:  {lv}")
+    print(f"level:  {lv}{level_note(root, is_git, cfg, lv)}")
     print(f"topic:  {topic} ({'new' if new else 'continued'})")
     print(f"work in: {folder}")
     inbox = os.path.join(folder, "inbox")
@@ -314,6 +366,11 @@ def cmd_open(topic):
         print(f"branch: desk/{topic}  ·  working copy: {work}")
         print(f"note:   files in {root} that were never committed are not in the working copy; read them from there by full path")
     return 0
+
+
+def closed_line(topic, how):
+    """The one line a session copies into its reply, like a review label (#66): the close happened."""
+    print(f"Closed line: Desk `{topic}` closed · {how}")
 
 
 def cmd_close(topic, how, title):
@@ -335,27 +392,43 @@ def cmd_close(topic, how, title):
         if not how:
             die("no `Close:` line is recorded for this folder: pass --merge or --pr, or record one with `desk.py set`", 2)
     branch = f"desk/{topic}"
-    work = root if lv == "folder" else worktree_of(root, branch)
+    if open_mode(cfg)[0] == "follow":
+        # #65: the folder's own opener made the working copy; the topic is where the session works.
+        work = house_work()
+        if not os.path.isfile(os.path.join(work, droot, topic, "README.md")) and \
+                os.path.isfile(os.path.join(root, droot, topic, "README.md")):
+            work = root
+    else:
+        work = root if lv == "folder" else worktree_of(root, branch)
     if not work:
         die(f"no open desk named {topic}")
     folder = os.path.join(work, droot, topic)
     if not os.path.isfile(os.path.join(folder, "README.md")):
-        die(f"there is no topic '{topic}' under {os.path.join(work, droot)}. Run this from the folder the session was opened on.")
+        where = "the working copy the folder's own opener made, the one you work in" if open_mode(cfg)[0] == "follow" \
+            else "the folder the session was opened on"
+        die(f"there is no topic '{topic}' under {os.path.join(work, droot)}. Run this from {where}. "
+            "The Desk is not closed.")
     notes = sorted(f for f in os.listdir(os.path.join(folder, "sessions")) if f.endswith(".md")) if os.path.isdir(os.path.join(folder, "sessions")) else []
     if not notes:
-        die("no session note yet: write sessions/<date>-<title>.md from the template first")
+        die(f"no session note yet: write {os.path.join(folder, 'sessions', '<date>-<title>.md')} from "
+            f"{os.path.join(TEMPLATES, 'session-house.md' if house else 'session.md')}. Every .md in the topic folder must also have no "
+            "{{…}} placeholder left: the README that open made has some.")
     if not open(os.path.join(folder, "README.md"), encoding="utf-8").read().strip():
         die(f"{os.path.join(folder, 'README.md')} is empty: the next session would start from nothing")
     check = [os.path.join(folder, f) for f in sorted(os.listdir(folder)) if f.endswith(".md")]
     check += [os.path.join(folder, "sessions", f) for f in notes]
+    unfilled = []  # all of them in one run, so it never takes two failed closes to learn what is left (#44)
     for f in check:
         left = re.findall(r"\{\{[^}]*\}\}", open(f, encoding="utf-8").read())
         if left:
-            die(f"{f} still has unfilled placeholders: {', '.join(left[:4])}")
+            unfilled.append(f"  {f}: {', '.join(left[:4])}" + (f" and {len(left) - 4} more" if len(left) > 4 else ""))
+    if unfilled:
+        die("unfilled placeholders, fill or remove each:\n" + "\n".join(unfilled))
     if house:
         return close_house(root, topic, folder, notes[-1], mode, arg, cfg.get("close", "").strip())
     if lv == "folder":
         print("closed (folder level): nothing to merge. The README is the state.")
+        closed_line(topic, "folder level, the README is the state")
         return 0
     _, dirty, _ = run(["git", "status", "--porcelain"], cwd=work)
     if dirty:
@@ -376,6 +449,7 @@ def cmd_close(topic, how, title):
             die("could not open the pull request:\n" + err)
         print("pull request: " + (out or err).splitlines()[-1])
         print("The working copy stays until the pull request is merged; then run `desk.py tidy`.")
+        closed_line(topic, "sent for review as a pull request, not merged yet")
         return 0
     _, cur, _ = run(["git", "branch", "--show-current"], cwd=root)
     _, main_dirty, _ = run(["git", "status", "--porcelain", "--untracked-files=no"], cwd=root)
@@ -385,12 +459,16 @@ def cmd_close(topic, how, title):
     rc, _, err = run(["git", "merge", "--no-ff", branch, "-m", f"desk {title}"], cwd=root)
     if rc != 0:
         run(["git", "merge", "--abort"], cwd=root)
-        die("the merge had conflicts and was undone. Nothing was changed:\n" + err)
+        if "tell me who you are" in err or "auto-detect email" in err:  # not a conflict (#42)
+            die("git does not know who you are, so it cannot record the merge. Nothing was changed. The user sets it once:\n"
+                '  git config --global user.name "Their Name"\n  git config --global user.email their@email')
+        die("the merge failed and was undone (a conflict, a hook, or another git error). Nothing was changed:\n" + err)
     run(["git", "worktree", "remove", work], cwd=root, check=True)
     run(["git", "branch", "-d", branch], cwd=root)
     _, sha, _ = run(["git", "rev-parse", "--short", "HEAD"], cwd=root)
     print(f"merged into {base} and tidied. The topic now lives in {os.path.join(root, droot, topic)}")
     print(f"to undo this whole desk later: git revert -m 1 {sha}")
+    closed_line(topic, f"merged into {base} ({sha})")
     return 0
 
 
@@ -420,6 +498,7 @@ def close_house(root, topic, folder, note, mode, arg, line):
             die(f"the closing procedure this folder names is not there: {os.path.join(root, arg)}. Nothing was run.")
         print(f"closed with this folder's own routine: {arg}")
         print("That routine was reported done by the session, not checked by this script, which wrote nothing and did no git.")
+        closed_line(topic, f"this folder's own routine ({arg}), reported done by the session, not checked")
         return 0
     print(f"running this folder's closing routine: {arg}", flush=True)
     env = dict(os.environ, DESK_TOPIC=topic, DESK_TOPIC_FOLDER=folder)
@@ -428,6 +507,7 @@ def close_house(root, topic, folder, note, mode, arg, line):
         die(f"this folder's closing routine failed (exit {rc}). The Desk is not closed, and this script changed "
             "nothing. Fix what it reported; run it again only if that routine is safe to run twice.")
     print("closed with this folder's own routine. This script wrote nothing and did no git.")
+    closed_line(topic, f"this folder's own routine ran and finished ({arg})")
     return 0
 
 
@@ -445,7 +525,15 @@ def cmd_note(current, other, text):
     cfg = settings(root)
     droot = cfg.get("desk root", "desks/").strip("/")
     lv = level(root, is_git, cfg)
-    work = root if lv == "folder" else worktree_of(root, f"desk/{current}")
+    omode, oarg = open_mode(cfg)
+    if omode == "follow":
+        # The session works where the folder's opener put it, not in a copy Desks made.
+        work = house_work()
+        if not os.path.isdir(os.path.join(work, droot)):
+            die(f"this folder keeps its topics its own way (`Open: house follow {oarg}`), and {work} has no "
+                f"{droot}/ to leave a note in. Leave it the way {oarg} says. Nothing was written.")
+    else:
+        work = root if lv == "folder" else worktree_of(root, f"desk/{current}")
     if not work:
         die(f"no open desk named {current}")
     inbox = os.path.join(work, droot, other, "inbox")
@@ -476,6 +564,12 @@ def cmd_set(key, value, append=False):
     if mode == "?":
         die(f"`Close: {value}` is not one this script understands. It reads `merge`, `review`, "
             "`house run <command>` or `house follow <file>`. Nothing was recorded.", 2)
+    if key.lower() in ("open", "review"):  # the same two forms for both steps (#28)
+        om, oa = open_mode({"open": value})
+        if om == "?":
+            die(f"`{key.capitalize()}: {value}` is not one this script understands. It reads `house follow <file>` or `desks`. Nothing was recorded.", 2)
+        if not inside(root, oa):
+            die(f"`{oa}` is outside this folder. An opening procedure is a file inside it. Nothing was recorded.", 2)
     if len(value.splitlines()) > 1:
         die("a setting is one line. Put a longer routine in a script and name the script. Nothing was recorded.", 2)
     if mode == "follow" and not inside(root, arg):
@@ -496,8 +590,121 @@ def cmd_set(key, value, append=False):
     elif yes is not None:  # the routine is no longer this folder's close: an old yes must not come back with it
         confirm_close(root, "", yes)
     if is_git and run(["git", "ls-files", "--error-unmatch", name], cwd=root)[0] == 0:
-        rc, _, err = run(["git", "commit", "--only", name, "-m", f"desk: record {key}"], cwd=root)
-        print("saved to history" if rc == 0 else "not saved to history (" + (err.splitlines() or ["nothing to save"])[-1] + ")")
+        _, cur, _ = run(["git", "branch", "--show-current"], cwd=root)
+        if is_off(settings(root), "git"):  # #56: with Git: off the folder's own routine saves, not Desks
+            print(f"not saved to history: Git is off here. {name} changed in {root}; save it the folder's own way.")
+        else:
+            rc, _, err = run(["git", "commit", "--only", name, "-m", f"desk: record {key}"], cwd=root)
+            print(f"saved to history on {cur or 'the checked-out branch'}" if rc == 0
+                  else "not saved to history (" + (err.splitlines() or ["nothing to save"])[-1] + ")")
+    return 0
+
+
+# What a folder's own routines look like, in the words people name and describe them with (#53).
+# Recall matters more than precision here: the session reads every candidate before proposing.
+KINDS = {
+    "open": r"\b(open|opens|start|starts|begin|new topic|worktree|abre|abrir|abrí|inicia|iniciar|nuevo)\b",
+    "review": r"\b(review|reviews|reviewer|reviewers|gate|privacy|revisa|revisar|revisión|compuerta|privacidad)\b",
+    "close": r"\b(close|closes|closing|closeout|wrap|wrap-up|hand ?off|handoff|cierra|cierre|cerrar|traspaso)\b",
+}
+READ_FIRST = re.compile(r"(read|lee|leer|lea)\b[^\n]{0,80}?`?\.?/?([\w./-]+\.md)`?[^\n]{0,40}?\b(first|primero|antes)\b", re.I)
+SCRIPT_DIRS = ("Scripts", "scripts", "bin", "tools", "routines", "hooks")
+
+
+def head_comment(path, n=12):
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            lines = [next(f, "") for _ in range(n)]
+    except OSError:
+        return ""
+    text = " ".join(l.strip().lstrip("#/;-* ").strip() for l in lines
+                    if l.strip().startswith(("#", "//", ";", "--", '"""', "*")) and not l.startswith("#!"))
+    return " ".join(text.split())
+
+
+def scan(root):
+    """The folder's own opening, review and closing routines, found without running anything."""
+    rules = [f for f in ("CLAUDE.md", "CLAUDE.local.md", "AGENTS.md") if os.path.isfile(os.path.join(root, f))]
+    first = []
+    for f in rules:
+        for m in READ_FIRST.finditer(open(os.path.join(root, f), encoding="utf-8", errors="replace").read()):
+            rel = m.group(2).lstrip("./")
+            if os.path.isfile(os.path.join(root, rel)) and rel not in first:
+                first.append(rel)
+    named = " ".join(open(os.path.join(root, f), encoding="utf-8", errors="replace").read() for f in first)
+    found, seen = {k: [] for k in KINDS}, set()
+    wanted = {d.lower() for d in SCRIPT_DIRS}
+    for d in sorted(e for e in os.listdir(root) if e.lower() in wanted):  # the name as it is on disk
+        top = os.path.join(root, d)
+        if not os.path.isdir(top):
+            continue
+        ident = (os.stat(top).st_dev, os.stat(top).st_ino)  # Scripts/ and scripts/ are one folder on a case-blind disk
+        if ident in seen:
+            continue
+        seen.add(ident)
+        for name in sorted(os.listdir(top)):
+            path = os.path.join(top, name)
+            if not os.path.isfile(path) or name.startswith(("test_", "test-", ".")):
+                continue
+            rel = f"{d}/{name}"
+            head = head_comment(path)
+            words = name.replace("-", " ").replace("_", " ").rsplit(".", 1)[0]
+            # The name counts three times the header; a script goes under the step it scores highest on.
+            score = {k: 3 * len(re.findall(pat, words, re.I)) + len(re.findall(pat, head, re.I)) for k, pat in KINDS.items()}
+            best = max(score.values())
+            in_first = name in named
+            for k in KINDS:
+                if best and score[k] == best:
+                    found[k].append((not in_first, -best, rel, head[:90]))
+    for k in found:
+        found[k] = [(a, r, h) for a, _, r, h in sorted(found[k])]
+    return rules, first, found
+
+
+def house_work():
+    """Under `Open: house follow`, the working copy the folder's own opener made: where the session is."""
+    top = run(["git", "rev-parse", "--show-toplevel"], cwd=os.getcwd())
+    return top[1].strip() if top[0] == 0 else os.getcwd()
+
+
+def cmd_get(key):
+    """One recorded answer, as the scripts read it (#64: sessions kept reaching for this)."""
+    root, _ = main_root()
+    value = settings(root).get(key.strip().rstrip(":").lower(), "").strip()
+    if not value:
+        print(f"{key}: not recorded", file=sys.stderr)
+        return 1
+    print(value)
+    return 0
+
+
+def cmd_scan():
+    root, _ = main_root()
+    rules, first, found = scan(root)
+    print("instructions: " + (", ".join(rules) or "none"))
+    print("read first:   " + (", ".join(first) or "nothing the instructions name as read-first"))
+    any_found = False
+    for k in ("open", "review", "close"):
+        rows = found[k]
+        named = [r for r in rows if not r[0]]
+        shown = named or rows[:3]
+        if shown:
+            any_found = True
+        print(f"{k}:")
+        for _, rel, head in shown:
+            print(f"  {rel}" + ("  (named in " + ", ".join(first) + ")" if named else "") + (f"  -- {head}" if head else ""))
+        if not shown:
+            print("  nothing found")
+        elif not named and len(rows) > 3:
+            print(f"  and {len(rows) - 3} more by name only")
+    if first and any_found:
+        proc = first[0]
+        print(f"suggest:      Open: house follow {proc} · Review: house follow {proc} · Close: house follow {proc}")
+        print("              Read the procedure and each script's header before proposing them; record only on the user's yes.")
+    elif any_found:
+        print("suggest:      read each candidate's header; propose a line only for one that does that step for this folder.")
+    else:
+        print("suggest:      no routines of its own found: Desks' defaults fit (reference/setup.md).")
     return 0
 
 
@@ -520,6 +727,9 @@ def cmd_tidy():
 
 
 def main(a):
+    if len(a) >= 2 and a[1] in ("-h", "--help", "help"):  # asking for help is not an error (#50)
+        print(__doc__)
+        return 0
     if len(a) >= 2 and a[1] == "status":
         return cmd_status()
     if len(a) >= 3 and a[1] == "open":
@@ -532,6 +742,10 @@ def main(a):
         return cmd_set(a[2], " ".join(a[3:]), append=(a[1] == "add"))
     if len(a) >= 5 and a[1] == "note":
         return cmd_note(a[2], a[3], " ".join(a[4:]))
+    if len(a) >= 3 and a[1] == "get":
+        return cmd_get(" ".join(a[2:]))
+    if len(a) >= 2 and a[1] == "scan":
+        return cmd_scan()
     if len(a) >= 2 and a[1] == "tidy":
         return cmd_tidy()
     print(__doc__, file=sys.stderr)
