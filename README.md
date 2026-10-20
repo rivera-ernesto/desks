@@ -29,7 +29,7 @@ how it went.
 Open the folder you want to work in with Claude Code and paste:
 
 ```text
-Set up Desks in this folder. Get version v0.1.7 of https://github.com/rivera-ernesto/desks, read its INSTALL.md and follow it. First show me the list of files you will create or change, and wait for my yes. Keep everything I already have.
+Set up Desks in this folder. Get version v0.2.0 of https://github.com/rivera-ernesto/desks, read its INSTALL.md and follow it. First show me the list of files you will create or change, and wait for my yes. Keep everything I already have.
 ```
 
 Read [INSTALL.md](INSTALL.md) first if you like to know what a prompt will do; it is short.
@@ -135,4 +135,7 @@ author to build it. See [CONTRIBUTING.md](CONTRIBUTING.md) § Ports.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE). Except where a file says otherwise or a third-party notice applies, it
+covers everything in this repository that the project holds copyright to: the scripts and tests, the
+skill's instructions (`SKILL.md`, reference files, templates), the documentation, the site's text
+and the examples. The name "Desks" and any logo are not licensed by it.

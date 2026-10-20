@@ -31,6 +31,13 @@ class VersionAgrees(unittest.TestCase):
     def test_changelog_has_the_version(self):
         self.assertIn("## " + self.version + " ", read("CHANGELOG.md"))
 
+    def test_site_release_date_is_the_changelog_date(self):
+        # The footer shows when VERSION was released; it must not drift from the changelog.
+        m = re.search(r"^## " + re.escape(self.version) + r" \((\d{4}-\d{2}-\d{2})\)", read("CHANGELOG.md"), re.M)
+        site = re.search(r"RELEASED = '(\d{4}-\d{2}-\d{2})'", read("site", "src", "data", "site.ts"))
+        self.assertTrue(m and site)
+        self.assertEqual(site.group(1), m.group(1))
+
 
 if __name__ == "__main__":
     unittest.main()

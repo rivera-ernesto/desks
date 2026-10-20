@@ -39,6 +39,6 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
   <p>After installing, type <code>desk adopt</code>. It reads your rules, agents, plugins, connected tools and folders, and proposes how to fit around them. Where your rules and Desks' disagree, yours win. If your folder already has its own way of closing a session, it proposes that as the close, and records it only on your yes (<a href={`${base}how/`}>How it works</a>, step 5).</p>
 
   <h2>Update and remove</h2>
-  <p><strong>Update:</strong> type <code>desk update</code>. It shows what changed and replaces only Desk's own folder.</p>
+  <p><strong>Update:</strong> type <code>desk update</code>. It shows what changed and, on your yes, runs the install steps again, which replace only Desk's own folder. Pasting the install prompt again does the same without the summary.</p>
   <p><strong>Remove:</strong> type <code>desk remove</code>, or delete <code>.claude/skills/desk/</code>, the three <code>desk-*.md</code> files in <code>.claude/agents/</code>, and the marked block in <code>CLAUDE.md</code> (or <code>CLAUDE.local.md</code>). Your <code>desks/</code> folder is yours.</p>
 </Base>

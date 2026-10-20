@@ -1,6 +1,6 @@
 ---
 import '../styles/global.css';
-import { NAV, NAV_ES, PAIRS, REPO } from '../data/site';
+import { NAV, NAV_ES, PAIRS, REPO, VERSION, RELEASED } from '../data/site';
 interface Props { title: string; description: string; lang?: string; noindex?: boolean; }
 const { title, description, lang = 'en', noindex = false } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
@@ -81,6 +81,7 @@ const toggleTitle = es ? 'Cambiar entre claro y oscuro' : 'Switch between light 
     <main><div class="wrap"><slot /></div></main>
     <footer class="site">
       <div class="wrap">
+        <span>Desks {VERSION} · <time datetime={RELEASED}>{new Date(RELEASED + 'T12:00:00Z').toLocaleDateString(es ? 'es' : 'en', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}</time> · <a href={`${REPO}/releases/latest`}>{es ? 'Última versión' : 'Latest release'}</a></span>
         <span>{es ? 'Licencia MIT. No es de Anthropic ni está afiliado a Anthropic.' : 'MIT licensed. Not made by, or affiliated with, Anthropic.'}</span>
         <a href={REPO}>{es ? 'Código' : 'Source'}</a>
         <a href={es ? `${base}es/acerca/#trabaja-conmigo` : `${base}about/#work-with-me`}>{es ? 'Trabaja conmigo' : 'Work with me'}</a>
