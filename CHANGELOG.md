@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Site: Astro 7.3.8; canonical addresses, language pairs, a share image per language, a sitemap
+  and robots.txt, a not-found page in both languages, and a build that fails when any of them is
+  missing. The pages name the three kinds of folder, the three workers, `desk setup` and `desk profile`,
+  and say what the install runs.
+
 ## 0.2.0 (2026-10-19)
 
 - **Licence:** MIT now says, in the README, that it covers the instructions, documentation, site

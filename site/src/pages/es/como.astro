@@ -7,7 +7,7 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
   <p class="lede">Desks no es una app. Es un conjunto de instrucciones que Claude Code carga cuando abres un tema, más dos scripts pequeños. Todo lo que hace lo puedes leer.</p>
 
   <h2>1. Abres un tema</h2>
-  <p>Cuenta lo que quieres hacer ("quiero planear un viaje a Lisboa"). Claude propone un nombre corto para el tema, <code>viaje-lisboa</code>, y cuando le dices que sí crea la carpeta de ese tema. Para volver otro día, escribe <code>desk viaje-lisboa</code>: Claude reabre la carpeta, lee sus notas y propone el siguiente paso. Si la carpeta guarda historial con git, el tema recibe su propia rama y su propia copia de trabajo: la carpeta principal nunca queda a medio editar y varios temas pueden avanzar a la vez. No ves nada de eso si no quieres.</p>
+  <p>Cuenta lo que quieres hacer ("quiero planear un viaje a Lisboa"). Claude propone un nombre corto para el tema, <code>viaje-lisboa</code>, y cuando le dices que sí crea la carpeta de ese tema. Para volver otro día, escribe <code>desk viaje-lisboa</code>: Claude reabre la carpeta, lee sus notas y propone el siguiente paso. Si la carpeta guarda historial con git, el tema recibe su propia rama y su propia copia de trabajo: la carpeta principal nunca queda a medio editar y varios temas pueden avanzar a la vez. Si la carpeta también está en GitHub, el cierre puede abrir un pull request para que lo mires. Desks reconoce cuál de estos tres casos es tu carpeta (una carpeta simple, una carpeta con git, una carpeta en GitHub) y nunca te pide cambiarla. No ves nada de eso si no quieres.</p>
   <p>Los comandos, como <code>desk</code>, <code>desk review</code> o <code>desk close</code>, se escriben en inglés. Si dices uno de ellos claro en español ("cierra el desk"), Claude lo entiende como el mismo comando. Una frase cualquiera no es un comando: "por hoy basta" hace que Claude te ofrezca cerrar, nunca que cierre por su cuenta.</p>
 
   <h2>2. Las respuestas de fondo se revisan</h2>
@@ -24,7 +24,7 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
   <div class="tablewrap"><table>
     <tbody>
       <tr><td class="label">[converged]</td><td>Varias empresas respondieron y cada objeción fue adoptada o rechazada con su razón</td></tr>
-      <tr><td class="label">[thin]</td><td>Solo una empresa respondió</td></tr>
+      <tr><td class="label">[thin]</td><td>Solo una empresa respondió. Los modelos gratis suelen estar ocupados, así que pasa a menudo</td></tr>
       <tr><td class="label">[same-vendor]</td><td>Aún no hay clave de revisión. Un segundo Claude atacó la respuesta. Detecta descuidos, no puntos ciegos</td></tr>
       <tr><td class="label">[unreviewed]</td><td>Todavía no hubo revisión. En un consejo quiere decir "todavía no es para actuar": la respuesta lo dice con palabras, y la revisión se hace antes del siguiente consejo. Nunca es una forma de terminar</td></tr>
       <tr><td class="label">[quick]</td><td>Pediste saltarla</td></tr>
@@ -44,21 +44,21 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
   <p>En tus cuentas abiertas Claude solo lee, salvo que le pidas un tipo concreto de acción en esa sesión.</p>
 
   <h2>4. Los ayudantes leen</h2>
-  <p>El mejor modelo se queda contigo en la conversación. Leer, buscar, sacar números de una pantalla y correr comandos largos va a tres ayudantes con nombre que usan un modelo más pequeño. Lo que leen no entra a tu conversación, que es donde de otro modo se gasta la mayor parte del plan.</p>
+  <p>El mejor modelo se queda contigo en la conversación. Leer, buscar, sacar números de una pantalla y correr comandos largos va a tres ayudantes con nombre que usan un modelo más pequeño: <code>desk-reader</code> lee, busca y hace borradores, <code>desk-screen</code> saca datos de un navegador o una pantalla, y <code>desk-runner</code> corre comandos y lee lo que devuelven. Lo que leen no entra a tu conversación, que es donde de otro modo se gasta la mayor parte del plan.</p>
 
   <h2>5. La sesión se cierra bien</h2>
   <p>Las sesiones largas cuestan más por respuesta, porque cada turno relee todo lo anterior. Por eso, en un hito, Claude propone cerrar. Reescribe las notas del tema (dónde están las cosas, el siguiente paso, lo abierto, lo aprendido), escribe una nota breve de la sesión e integra el trabajo a la carpeta principal o abre un pull request para que lo mires. Una sesión nueva sobre el mismo tema arranca desde esas notas.</p>
-  <p><strong>Si tu carpeta ya tiene su propia forma de cerrar una sesión</strong> (un script, o un procedimiento escrito), ese es el cierre. Tu rutina sigue mandando y corre sin cambios. Lo que Desks añade es poco, y lo puedes apagar: mantiene al día las notas del tema y escribe unas líneas que apuntan a lo que escribió tu rutina, nunca un segundo relato de la sesión. Es una línea en el bloque de Desk, <code>Close: house run &lt;comando&gt;</code> o <code>Close: house follow &lt;archivo&gt;</code>, que se guarda solo después de que dices que sí a esa línea exacta. Con un comando, el script lo corre y detiene el cierre si falla. Con un procedimiento escrito, Claude lo sigue y se detiene si falla un paso; el script no puede comprobarlo, y solo anota que el procedimiento se informó como hecho. Esto es nuevo: lo cubren las pruebas de los scripts, pero ninguna sesión real se ha cerrado así todavía.</p>
+  <p><strong>Si tu carpeta ya tiene su propia forma de cerrar una sesión</strong> (un script, o un procedimiento escrito), ese es el cierre. Tu rutina sigue mandando y corre sin cambios. Lo que Desks añade es poco, y lo puedes apagar: mantiene al día las notas del tema y escribe unas líneas que apuntan a lo que escribió tu rutina, nunca un segundo relato de la sesión. Es una línea en el bloque de Desk (las pocas líneas que Desks guarda en tu <code>CLAUDE.md</code>), donde <em>house</em> quiere decir la rutina propia de tu carpeta: <code>Close: house run &lt;comando&gt;</code> o <code>Close: house follow &lt;archivo&gt;</code>, que se guarda solo después de que dices que sí a esa línea exacta. Con un comando, el script lo corre y detiene el cierre si falla. Con un procedimiento escrito, Claude lo sigue y se detiene si falla un paso; el script no puede comprobarlo, y solo anota que el procedimiento se informó como hecho. Esto es nuevo: lo cubren las pruebas de los scripts, pero ninguna sesión real se ha cerrado así todavía.</p>
 
   <h2>Qué sale de tu equipo</h2>
   <ul>
-    <li>Solo el archivo de revisión, un único documento sin datos que identifiquen, va a OpenRouter y de ahí a las empresas de los modelos.</li>
+    <li>Solo el archivo de revisión, un único documento sin datos que identifiquen, va a <a href="https://openrouter.ai/">OpenRouter</a>, un servicio que pasa un mismo pedido a muchas empresas de modelos, y de ahí a ellas. Su clave gratis alcanza.</li>
     <li>El script se niega a enviar un archivo que contenga un correo, un número con forma de teléfono, algo que parezca una clave o cualquier palabra de tu lista privada.</li>
     <li>Los modelos gratuitos pueden guardar o entrenar con lo que reciben. Trata un archivo de revisión como algo que estarías dispuesto a publicar de forma anónima.</li>
-    <li>Lo que no se puede volver anónimo lo revisa un segundo Claude, o un carril privado si lo configuras.</li>
+    <li>Lo que no se puede volver anónimo lo revisa un segundo Claude, o un servicio de revisión privado tuyo, si lo configuras.</li>
   </ul>
 
   <h2>La configuración ocurre sobre la marcha</h2>
-  <p>No hay pantalla de configuración. La primera vez que algo importa (guardar historial, una clave de revisión, una copia privada en GitHub, un perfil breve tuyo, cerrar con la rutina propia de tu carpeta), Claude hace esa única pregunta con una respuesta recomendada y recuerda lo que dijiste.</p>
+  <p>No hay pantalla de configuración. La primera vez que algo importa (guardar historial, una clave de revisión, una copia privada en GitHub, un perfil breve tuyo, cerrar con la rutina propia de tu carpeta), Claude hace esa única pregunta con una respuesta recomendada y recuerda lo que dijiste. Para pasar por todas las preguntas de una vez, escribe <code>desk setup</code>; <code>desk profile</code> arma o pone al día el perfil.</p>
   <p><a href={`${base}es/instalar/`}>Instalar</a> · <a href={`${base}es/ejemplos/`}>Ejemplos</a></p>
 </Base>
