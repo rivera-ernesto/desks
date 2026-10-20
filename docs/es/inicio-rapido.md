@@ -6,8 +6,9 @@ modelos de otras empresas antes de que las leas, y un cierre escrito para retoma
 volver a explicar nada.
 
 Sirve para trabajo real que no es código: vender algo, planificar, redactar, investigar una
-decisión, llevar un proyecto pequeño. Necesitas un plan pago de Claude y Claude Code (la pestaña
-Code de la app de escritorio, o la terminal).
+decisión, llevar un proyecto pequeño. Está probado con Claude Code y un plan pago de Claude (la
+pestaña Code de la app de escritorio, o la terminal), en una Mac. No está atado a eso, pero es lo
+único probado hasta ahora.
 
 ## 1) Instalar (dos minutos)
 
@@ -15,7 +16,7 @@ Abre con Claude Code la carpeta donde quieres trabajar. Puede ser una carpeta qu
 reemplaza nada de lo que tengas. Pega esto:
 
 ```text
-Instala Desks en esta carpeta. Obtén la versión v0.1.7 de https://github.com/rivera-ernesto/desks, lee su INSTALL.md y síguelo. Primero muéstrame la lista de archivos que vas a crear o cambiar, y espera mi sí. Conserva todo lo que ya tengo. Respóndeme en español.
+Instala Desks en esta carpeta. Obtén la versión v0.2.0 de https://github.com/rivera-ernesto/desks, lee su INSTALL.md y síguelo. Primero muéstrame la lista de archivos que vas a crear o cambiar, y espera mi sí. Conserva todo lo que ya tengo. Respóndeme en español.
 ```
 
 Antes de copiar nada te muestra la lista de archivos y espera tu sí. El archivo que sigue,
@@ -26,13 +27,15 @@ Al terminar te dirá qué archivos creó. Abre una **sesión nueva** en la misma
 
 ## 2) Tu primer Desk
 
-Escribe, con un tema real que tengas pendiente:
+Cuenta, con tus palabras, algo real que tengas pendiente:
 
 ```text
-desk vender-camara
+Quiero vender mi cámara vieja este mes
 ```
 
-Claude crea `desks/vender-camara/`, anota el objetivo y empieza. Trabaja normal. Cuando te dé una
+Claude propone un nombre corto para el tema (`vender-camara`) y, cuando le dices que sí, crea
+`desks/vender-camara/`, anota el objetivo y empieza. Si ya sabes el nombre, `desk vender-camara`
+hace lo mismo. Trabaja normal. Cuando te dé una
 recomendación, mira la última línea de la respuesta: dice cómo fue revisada.
 
 ## 3) Activar la revisión con otros modelos (tres minutos, gratis)
@@ -83,6 +86,9 @@ usar tus carpetas de proyectos, tus propios agentes, y cualquier otra IA que ya 
 revisor adicional.
 
 ## Qué contar después de probarlo
+
+Escribe `desk feedback` en cualquier Desk: redacta el reporte de la sesión sin lo privado, te lo
+muestra y no envía nada si no dices que sí. Lo más útil:
 
 - El primer momento en que algo no se entendió.
 - Una revisión que mejoró una respuesta, o una que fue puro ruido.

@@ -6,6 +6,10 @@ Look first, then propose a short list, then change only what they agree to.
 
 ## Look (read-only; use `desk-reader` if it is more than a few files)
 
+- **First, `python3 <skill folder>/scripts/desk.py scan`.** It reads what the folder's instructions
+  say a session must read first, and lists the scripts that open a topic, review or close, by name
+  and first comment lines, in any language. It runs none of them. Read the procedure it names and
+  the header of every candidate it lists before you propose anything from them.
 - `CLAUDE.md` here and in the user's home configuration: rules that already cover what Desk does.
 - `.claude/agents`, `.claude/skills`, installed plugins: workers and skills that overlap.
 - Connected tools (connectors, MCP servers): mail, calendar, drive, trackers, chat.
@@ -29,6 +33,18 @@ Look first, then propose a short list, then change only what they agree to.
   If their client cannot run that way, leave it out.
 - **Connected tools** are surfaces like any other: reading is free, anything that sends or changes
   waits for their go (`reference/surfaces.md`).
+- **The folder's own routines** (what `scan` found, after you read it). Propose them together, in
+  one short table: step · line · the file it comes from.
+  - `Open: house follow <file>`: the folder opens topics its own way; `desk.py open` then makes
+    nothing, so a topic is not kept in two places.
+  - `Review: house follow <file>`: the folder reviews its own way (often with a stricter privacy
+    check); `review.py` then refuses to send on its own and runs only when that routine calls it.
+  - `Close: house run <command>` when one command closes, `Close: house follow <file>` when it is a
+    written procedure (`reference/close.md` § A folder with its own close).
+  - `Git: off` when the routines make their own branches.
+  When one procedure ties the steps together, each line follows that procedure. Never run a
+  candidate to see what it does. Record each line only on their yes to that exact text. When
+  `scan` finds nothing, say so in one line: Desks' defaults fit.
 - **Memory.** If they use Claude's own memory, keep using it for preferences about how to work.
   What belongs to a topic goes in that topic's README, where the next session reads it.
 
@@ -42,8 +58,13 @@ Look first, then propose a short list, then change only what they agree to.
 ## Record
 
 Record each thing agreed with `desk.py add "Setup" "<one line>"`, and single answers with
-`desk.py set` (`Desk root`, `Close`), so the next session does not ask again. Ask the `Close:`
-question here too (`reference/setup.md`).
+`desk.py set` (`Desk root`, `Open`, `Review`, `Close`), so the next session does not ask again.
+Never write a line into the instructions file by hand. Ask the `Close:` question here too
+(`reference/setup.md`).
+
+- **A standing yes** ("you may always run the two scripts") is a `Setup:` line. Never edit the
+  permission settings yourself: show the user the allow rule, and they add it.
+- **The review key:** check it only with `review.py --check`. Never open a key file or print a key.
 
 ## Importing how the user already works
 
@@ -73,8 +94,20 @@ and nobody asked.
 `desk remove`: list the files from the "Removing" section of the source's `INSTALL.md`, and delete
 them on the user's yes. `desks/` and the profile are theirs and stay.
 
-## When Desk itself gets in the way
+## Feedback
 
-A snag caused by Desk (a rule that did not fit, a script that failed) is worth more upstream than
-in one folder. At the close, offer to draft a "Desk report" for the project's issue tracker, with
-everything private removed. Sending it is the user's call (`[needs you: public]`).
+Desks is early, and what its makers need most is how real sessions went. `desk feedback`, or your
+own offer at a close when a snag was caused by Desks itself (a rule that did not fit, a script
+that failed, a step that confused them). Offer it once per session at most.
+
+1. Draft the report from this session, short: the kind of topic in general terms, the review mode,
+   where it helped, where it got in the way, what they already use, and the Desks version from
+   the Desk block. **Remove everything private**: names, places, amounts, the content of the work.
+   Describe the snag, not their life.
+2. Show them the draft. They edit it or drop it.
+3. Sending is theirs (`[needs you: public]`: the tracker is public). On their yes, whichever is
+   there: `gh issue create --repo rivera-ernesto/desks --title "<title>" --body-file <draft>`, or
+   give them the link `https://github.com/rivera-ernesto/desks/issues/new?template=desk-report.yml`
+   and the text to paste. If they prefer to send it privately to whoever invited them, hand them
+   the text and leave it there.
+4. Never send anything about a session on your own, and never include a review packet or a file.

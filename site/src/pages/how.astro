@@ -7,7 +7,8 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
   <p class="lede">Desks is not an app. It is a set of instructions Claude Code loads when you open a topic, plus two small scripts. Everything it does, you can read.</p>
 
   <h2>1. You open a topic</h2>
-  <p>Type <code>desk lisbon-trip</code>. Claude creates or reopens that topic's folder, reads its notes, and proposes the next step. If the folder keeps history with git, the topic gets its own branch and working copy, so the main folder is never left half-edited and several topics can run side by side. You do not see any of that unless you want to.</p>
+  <p>Say what you want to get done ("I want to plan a trip to Lisbon"). Claude proposes a short name for the topic, <code>lisbon-trip</code>, and on your yes creates that topic's folder. To come back another day, type <code>desk lisbon-trip</code>: Claude reopens the folder, reads its notes, and proposes the next step. If the folder keeps history with git, the topic gets its own branch and working copy, so the main folder is never left half-edited and several topics can run side by side. You do not see any of that unless you want to.</p>
+  <p>Commands such as <code>desk</code>, <code>desk review</code> and <code>desk close</code> are written in English. Said plainly in your own language (in Spanish, "cierra el desk"), Claude takes it as the same command. Ordinary talk is not a command: "enough for today" makes Claude offer to close, never close on its own.</p>
 
   <h2>2. Substantive answers are reviewed</h2>
   <div class="tablewrap"><table>
@@ -25,11 +26,11 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
       <tr><td class="label">[converged]</td><td>Several vendors answered and each objection was adopted or rejected with a reason</td></tr>
       <tr><td class="label">[thin]</td><td>Only one vendor answered</td></tr>
       <tr><td class="label">[same-vendor]</td><td>No review key yet. A second Claude attacked the answer. This catches slips, not blind spots</td></tr>
-      <tr><td class="label">[unreviewed]</td><td>No review ran</td></tr>
+      <tr><td class="label">[unreviewed]</td><td>No review ran yet. On advice this means "not ready to act on": the reply says so in words, and the review runs before the next piece of advice. It is never a way to finish</td></tr>
       <tr><td class="label">[quick]</td><td>You asked to skip it</td></tr>
     </tbody>
   </table></div>
-  <p>The label comes with a receipt number written by the script next to the raw answers, so a label cannot simply be claimed.</p>
+  <p>The label comes with a receipt number written by the script next to the raw answers, so a label cannot simply be claimed. A receipt covers the one review it came from: a new recommendation needs its own review and its own receipt.</p>
 
   <h2>3. Five things wait for you</h2>
   <p>Claude does not hand you questions it could settle. It works the question out, has it reviewed, and brings a proposal. What you do not answer goes ahead on that proposal. Five kinds of thing always wait for your word, however long it takes:</p>
@@ -47,6 +48,7 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 
   <h2>5. The session closes itself properly</h2>
   <p>Long sessions cost more per reply, because each turn re-reads everything before it. So at a milestone, Claude proposes the close. It rewrites the topic's notes (where things stand, the next step, what is open, what was learned), writes a short note of the session, and folds the work into the main folder or opens a pull request for you to look at. A new session on the same topic starts from those notes.</p>
+  <p><strong>If your folder already has its own way of closing a session</strong> (a script, or a written procedure), that is the close. Your routine stays the authority and runs unchanged. What Desks adds is small, and you can switch it off: it keeps the topic's notes up to date and writes a few lines that point at what your routine wrote, never a second account of the session. It is one line in the Desk block, <code>Close: house run &lt;command&gt;</code> or <code>Close: house follow &lt;file&gt;</code>, recorded only after you say yes to that exact line. With a command, the script runs it and stops the close if it fails. With a written procedure, Claude follows it and stops if a step fails; the script cannot check that, and only notes that the procedure was reported done. This is new: it is covered by the scripts' tests, but no real session has closed this way yet.</p>
 
   <h2>What leaves your machine</h2>
   <ul>
@@ -57,6 +59,6 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
   </ul>
 
   <h2>Setup happens as you go</h2>
-  <p>There is no configuration screen. The first time something matters (keeping history, a review key, a private GitHub copy, a short profile of you), Claude asks that one question with a recommended answer and remembers what you said.</p>
+  <p>There is no configuration screen. The first time something matters (keeping history, a review key, a private GitHub copy, a short profile of you, closing with your folder's own routine), Claude asks that one question with a recommended answer and remembers what you said.</p>
   <p><a href={`${base}install/`}>Install</a> · <a href={`${base}examples/`}>Examples</a></p>
 </Base>

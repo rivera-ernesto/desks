@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro';
 import Prompt from '../components/Prompt.astro';
 import { INSTALL_PROMPT, REPO } from '../data/site';
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 ---
 <Base title="Install Desks" description="One prompt to paste into Claude Code. What it does, step by step, and how to remove it.">
   <h1>Install</h1>
@@ -10,7 +11,7 @@ import { INSTALL_PROMPT, REPO } from '../data/site';
     <li><strong>Paste this.</strong>
       <Prompt id="install" text={INSTALL_PROMPT} />
     </li>
-    <li><strong>Start a new session in the same folder</strong> and type <code>desk</code> followed by a short topic name, for example <code>desk my-first-topic</code>.</li>
+    <li><strong>Start a new session in the same folder</strong> and say, in your own words, something real you need to get done. Claude proposes a short name for the topic and opens it on your yes. If you already know the name, <code>desk my-first-topic</code> does the same.</li>
     <li><strong>When it offers a review key, say yes.</strong> Three minutes, free, and it is what turns a second Claude into several other vendors.</li>
   </ol>
 
@@ -20,7 +21,7 @@ import { INSTALL_PROMPT, REPO } from '../data/site';
     <li>Downloads one fixed version of the repository to a temporary folder.</li>
     <li>Shows you the list of files it will create or change, and waits for your yes.</li>
     <li>Copies one skill folder and three worker files into <code>.claude/</code> in your folder.</li>
-    <li>Adds one clearly marked block to <code>CLAUDE.md</code>, or creates the file with only that block.</li>
+    <li>Adds one clearly marked block to <code>CLAUDE.md</code>, or creates the file with only that block. In a shared project whose <code>CLAUDE.md</code> is not yours to change, the block can go in <code>CLAUDE.local.md</code> instead: Desks reads it from there and leaves the shared file alone.</li>
     <li>Creates an empty <code>desks/</code> folder.</li>
     <li>Reports which files it created or changed.</li>
   </ul>
@@ -33,9 +34,9 @@ import { INSTALL_PROMPT, REPO } from '../data/site';
   </ul>
 
   <h2>Already have a setup?</h2>
-  <p>After installing, type <code>desk adopt</code>. It reads your rules, agents, plugins, connected tools and folders, and proposes how to fit around them. Where your rules and Desk's disagree, yours win.</p>
+  <p>After installing, type <code>desk adopt</code>. It reads your rules, agents, plugins, connected tools and folders, and proposes how to fit around them. Where your rules and Desks' disagree, yours win. If your folder already has its own way of closing a session, it proposes that as the close, and records it only on your yes (<a href={`${base}how/`}>How it works</a>, step 5).</p>
 
   <h2>Update and remove</h2>
-  <p><strong>Update:</strong> type <code>desk update</code>. It shows what changed and replaces only Desk's own folder.</p>
-  <p><strong>Remove:</strong> delete <code>.claude/skills/desk/</code>, the three <code>desk-*.md</code> files in <code>.claude/agents/</code>, and the marked block in <code>CLAUDE.md</code>. Your <code>desks/</code> folder is yours.</p>
+  <p><strong>Update:</strong> type <code>desk update</code>. It shows what changed and, on your yes, runs the install steps again, which replace only Desk's own folder. Pasting the install prompt again does the same without the summary.</p>
+  <p><strong>Remove:</strong> type <code>desk remove</code>, or delete <code>.claude/skills/desk/</code>, the three <code>desk-*.md</code> files in <code>.claude/agents/</code>, and the marked block in <code>CLAUDE.md</code> (or <code>CLAUDE.local.md</code>). Your <code>desks/</code> folder is yours.</p>
 </Base>

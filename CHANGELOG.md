@@ -1,5 +1,89 @@
 # Changelog
 
+## 0.2.0 (2026-10-19)
+
+- **Licence:** MIT now says, in the README, that it covers the instructions, documentation, site
+  text and examples too, not only the scripts; the name is not licensed by it.
+- Every close ends with one `Closed line:` that the session copies into its reply, like the review
+  label: no line, not closed (#66).
+- **The house close's last two steps are in the contract** (#66): after the folder's routine, the
+  short note from `session-house.md`, then `desk.py close`, quoting its line. They lived only in a
+  reference file the session never opened. The stop names `session-house.md` under a house close.
+- **Fixed:** with `Open: house follow`, `desk.py close` looked for the topic in the main folder
+  and never in the working copy the folder's own opener made, so every house close failed at its
+  last step (#65). A failed close now says "The Desk is not closed".
+- **A refusal is an answer** (#63): when a permission is denied, the session stops that step and
+  says what it was for; it never reaches the same end another way, and never calls a Desk closed
+  unless the close command finished. The contract stays at 260 lines.
+- `desk.py get <Key>` prints a recorded answer (#64).
+- **`desk adopt` finds a folder's own routines** (#53). New `desk.py scan` reads what the
+  folder's instructions say to read first and lists the scripts that open, review or close, by name
+  and first comment lines in several languages, ranking the ones that procedure names; it runs
+  none. `desk.py open` stops before making a second home for a topic when such routines exist and
+  nothing is recorded yet (`Open: desks` keeps Desks' own open).
+- **`Review: house follow <file>`** (#28): `review.py` then refuses to send on its own and runs
+  only as the second opinion the folder's routine starts with `--alongside`.
+- After a house close the session does no git of its own (#60); the close step runs with no flag
+  and asks the `Close:` question when none is recorded (#59); adopt records lines only with
+  `desk.py set`, keeps a standing yes out of permission settings, and checks the key only with
+  `--check` (#54, #55, #61); `desk.py set` does not commit with `Git: off` and says which branch it
+  committed on (#56); install recommends `CLAUDE.local.md` for a tracked `CLAUDE.md` and writes the
+  version actually installed (#57); `review.py` honours `DESK_CONFIG_DIR` (#62).
+- **Install text:** a previous install is recognised by the `name: desk` in `SKILL.md`'s front
+  matter (#47); `review.py --check` exiting 3 without a key is expected, not a failed step (#46);
+  INSTALL.md and the site now give the same update path, `desk update`, and say how it relates to
+  pasting the install prompt again (#48).
+- **Fixed, found by the first testers:** `desk.py --help` exits 0 (#50); a git folder with no
+  commit says why it runs at the folder level (#45); `status` shows "no next step written yet"
+  instead of the template's placeholder (#33); the close names the session template and lists
+  every unfilled placeholder in one run (#44); a merge that fails because git does not know who
+  the user is says so, instead of calling it a conflict (#42); `review.py --verify` reports whether
+  the dispositions exist and says `converged` only then (#29); old ledgers are closed after reading (#49).
+- **A folder's own way of opening a topic is the open** (#28). With `Open: house follow <file>`,
+  `desk.py open` makes no topic folder, branch or working copy and says to follow the file, so a
+  topic is no longer kept in two places. `desk.py note` then writes where the session works, or
+  stops and says so when that place keeps no topic folders; `desk.py status` names the routine. A
+  line the script does not understand stops the open. `desk adopt` proposes the line.
+- **Fixed:** dates (`2026-10-15`, with a time, or a range like `2026-10-14..16`) were read as
+  phone numbers, and a dated packet was never sent (#24). A real number next to a date is still
+  refused.
+- **Fixed:** a private term matched inside a longer word ("Mara" in "maracuya"); it now matches
+  whole words and phrases only (#51). Setup asks for the list at the first review, and the review
+  says so when there is no list, since names are then not checked at all.
+- **Commands are written in English only.** The Spanish aliases `cierra` and `abre desk` are gone
+  from the command table. A command plainly given in the user's own language still works, and so
+  does a word their Desk block records as theirs. Ordinary talk ("enough for today") is a reason
+  to offer the close, never to start it.
+- A test checks that the version is the same everywhere a person copies it from.
+- **A folder's own closing routine is the close.** `Close: house run <command>` or
+  `Close: house follow <file>`: the routine must finish for the Desk to be closed, Desk writes nothing and
+  does no git of its own, and the session note only points at the folder's record. Nothing runs
+  on a line the user has not confirmed: `desk.py set` keeps a copy of the confirmed line outside
+  the folder, and a line that arrived or changed some other way stops the close.
+- **Fixed:** a `Close:` line the script did not understand was ignored and the close fell back to
+  a direct merge. It now stops and prints the line.
+- **Fixed:** a settings line with backticks inside its value was not read at all, and
+  `Git: off` followed by a remark was not read as off.
+- `desk.py close <topic>` needs no flag once `Close: merge` or `Close: review` is recorded.
+- **Fixed before release** (found reading this change as code): a backslash in a recorded value
+  was mangled when it replaced an existing line; the command printed for confirming a line was
+  not safe to paste; `house follow` accepted a file outside the folder; an unreadable list of
+  confirmations was silently replaced; setting `Close:` to something else did not forget the old yes;
+  the confirmed line was compared in a tidied form, so backticks added or removed by hand went unnoticed.
+- `[unreviewed]` is no longer a way to finish a piece of advice: the reply says it is not ready to
+  act on, and the review runs before the next advice. A receipt covers one packet; a new
+  recommendation needs its own.
+- `desk feedback`: the Desk drafts a report of the session with the private parts removed; the
+  person sends it, or does not.
+- Unit tests for both scripts, run in CI. `close` refuses an empty README.
+- The Desk block can live in `CLAUDE.local.md`, for a shared project whose `CLAUDE.md` is not
+  yours to change.
+- README, site and Spanish quickstart open with what a person would say ("I want to sell my old
+  camera") and Claude proposing the topic name; `desk <topic>` is shown as the way back in.
+  "With names removed" now reads "with names and contact details removed".
+- Site: a button in the header switches between light and dark by hand and remembers the choice.
+  Without a choice, or with JavaScript off, the site follows the system setting as before.
+
 ## 0.1.7 (2026-10-11)
 
 - The Desk leads: it opens with a read and a proposed move, carries the habits itself, offers

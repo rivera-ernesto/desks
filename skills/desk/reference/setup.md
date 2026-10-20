@@ -11,7 +11,11 @@ and `scripts/review.py --check`: do not ask what you can detect.
 |---|---|---|---|
 | First Desk in a folder with no git | Keep a history of this folder, so every Desk can be undone and several can run at once? | Yes (§ Starting a history) | `- Git: on` or `- Git: off` |
 | First close at the `git` level | When a Desk closes, fold it into the main folder directly, or keep it for you to look at first? | Fold it in directly (`--merge`) for solo work | `- Close: merge` or `- Close: review` |
+| First open in a folder that already has its own way of opening a topic | Open topics with your own routine, so Desks keeps no second copy of them? | Yes (`reference/adopt.md`, An opening routine) | `- Open: house follow <file>` |
+| First review in a folder that already has its own review or privacy check | Review with your own routine, so nothing leaves the machine around it? | Yes (`reference/adopt.md`, The folder's own routines) | `- Review: house follow <file>` |
+| First close in a folder that already has its own way of closing a session | Close with your own routine, and have Desk only point at what it writes? | Yes: theirs stays the authority (`reference/close.md` § A folder with its own close, `[needs you: access]`) | `- Close: house run <command>` or `- Close: house follow <file>` |
 | The folder has no GitHub remote and the user wants a backup or to work from two machines | Create a **private** GitHub repository for this folder? | Yes, private (`[needs you: outside]`: it creates something on their account) | `- GitHub: on` |
+| First review that would leave the machine | Which names and words must never leave this machine: family, clients, a street? | Yes, a short list now (§ Private terms) | (a file, not a line) |
 | First advice-level answer with no review key | Add a free review key so other vendors check my answers? Three minutes. | Yes (§ Review key) | (detected, not recorded) |
 | First topic about the user, their voice or their people | Build a short profile so I stop asking who is who? | Yes, five minutes (`reference/profile.md`) | `- Profile: <path>` |
 | The folder already has rules, agents or project folders | Fit around what is here? | Yes (`reference/adopt.md`) | `- Setup: …` lines |
@@ -66,7 +70,8 @@ Tell them plainly:
 
 Ask for the words that must never leave the machine: family names, a client, a street, a company.
 Write them one per line to `~/.config/desk/private-terms.txt`. The review script refuses any
-packet that contains one. Ask this right after the review key, and again when a profile is built.
+packet that contains one as a whole word or phrase, in any case; it does not match inside longer
+words. Without the file, names are not checked at all, and the review says so. Ask this right after the review key, and again when a profile is built.
 
 ## A private lane (Mac with Apple Intelligence, optional)
 
