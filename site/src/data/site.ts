@@ -2,6 +2,8 @@
 // scripts/qa-check.mjs against the README.
 export const REPO = 'https://github.com/rivera-ernesto/desks';
 export const VERSION = 'v0.2.0';
+// The day VERSION was released, shown in the footer with a link to the newest release.
+export const RELEASED = '2026-10-19';
 
 export const INSTALL_PROMPT =
   `Set up Desks in this folder. Get version v0.2.0 of ${REPO}, read its INSTALL.md and follow it. First show me the list of files you will create or change, and wait for my yes. Keep everything I already have.`;
