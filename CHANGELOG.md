@@ -1,7 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 (2026-10-19)
 
+- **Licence:** MIT now says, in the README, that it covers the instructions, documentation, site
+  text and examples too, not only the scripts; the name is not licensed by it.
 - Every close ends with one `Closed line:` that the session copies into its reply, like the review
   label: no line, not closed (#66).
 - **The house close's last two steps are in the contract** (#66): after the folder's routine, the
