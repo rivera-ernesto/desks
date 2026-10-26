@@ -744,6 +744,10 @@ class TranscriptPathTests(unittest.TestCase):
     def test_a_relative_transcripts_path_is_refused(self):
         sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "skills", "desk", "scripts"))
         import desk as d
-        with self.assertRaises(SystemExit) as cm:
-            d.archive_transcript({"transcripts": "rel/dir"}, "/tmp", "/tmp", os.devnull)
+        import contextlib, io
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(out):
+            with self.assertRaises(SystemExit) as cm:
+                d.archive_transcript({"transcripts": "rel/dir"}, "/tmp", "/tmp", os.devnull)
         self.assertNotEqual(cm.exception.code, 0)
+        self.assertIn("relative path", out.getvalue())
