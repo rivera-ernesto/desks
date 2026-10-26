@@ -93,3 +93,14 @@ the yes; a procedure file is a file inside the folder.
 **No `Close:` line, but the folder looks like it has a routine** (a closing script, a "closing"
 section in its rules): ask once, proposing the line. With no answer, close the Desk way and say
 in the final reply what the folder's routine would have done that this close did not.
+
+## What the close checks, 0.3.0
+
+Before any routine runs, `desk.py close` refuses, and lists every reason at once, when: a `{{...}}`
+is left, a heading from `Close sections:` is missing or empty, a line under `## Lessons` does not end
+with `→ topic`, `→ house <file>` (the file must exist), `→ issue <ref>` or `→ dropped: <reason>`, or a
+review label has no receipt that checks out. The topic is found from the working copy when none is
+named. After a house routine, Desks still looks for unsaved files and for the ready trailer on the
+branch head, and prints the README's next step. With the folder's `Receive` lines recorded, the
+trailer is what `desk.py receive` and `desk.py digest` read: a topic is handed over when the
+close wrote it, and taken in by `receive`, not by hand.

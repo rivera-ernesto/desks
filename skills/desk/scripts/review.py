@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Send one review packet to several AI models from other vendors and print a label.
 
-    python3 review.py <packet.md> ["what to look for"]
-    python3 review.py --verify <receipt>  [folder to search, default: .]
-    python3 review.py --check             (is a review key set up? which lanes?)
+    python3 review.py <packet.md> ["what to look for"]  [--background]
+    python3 review.py --verify <receipt>  [folder to search]
+    python3 review.py --status <packet.md>      (the tail of a background run)
+    python3 review.py --check                   (is a review key set up? which lanes?)
 
-It asks free models only, one per vendor, through OpenRouter, in parallel. It
+It asks free models only, one per family, through OpenRouter, in parallel. It
 writes each answer next to the packet, in <packet>-reviews/, with a ledger and
 a receipt. Standard library only: nothing to install.
 
@@ -15,11 +16,22 @@ Setup lives outside any project, so a key is never committed by accident:
     ~/.config/desk/reviewers.txt    extra lanes: name | command reading stdin
     ~/.config/desk/apple-shortcut   name of a macOS Shortcut (private lane)
 
-Environment: DESK_REVIEW_N vendors to ask at once (6) · DESK_REVIEW_MIN answers
-wanted (3) · DESK_REVIEW_MODELS comma list instead of the live catalogue.
+A folder with its own rules says so in the Desk block (`desk.py set`):
+    Gate: <command>          run as `<command> <file> public|private`; exit 0 and a first line that does
+                             not start with REFUSE lets that tier go, anything else refuses (fails closed).
+                             When there is a gate, the built-in scan and the private-terms list stand down.
+    Private lane: <command>  run as `<command> <packet>`, answer on stdout; exit 3 means "packet too large"
+    Reviews: <name>          the answers folder, `{stem}` is the packet's name (default `{stem}-reviews`)
+    Dispositions: <name>     the file that closes a review (default `{stem}-dispositions.md`)
 
-Exit codes: 0 at least one vendor answered · 1 packet refused · 2 usage
-            3 no key and no other lane · 4 nobody answered
+Environment: DESK_REVIEW_N families to ask at once (6) - DESK_REVIEW_MIN answers
+wanted (3) - DESK_REVIEW_MODELS comma list instead of the live catalogue -
+DESK_REVIEW_WATCHDOG seconds before a background run is stopped (1500).
+
+Exit codes: 0 enough families answered (the label is open until every finding has a disposition)
+            1 packet refused by the gate or the built-in scan - 2 usage - 3 no key and no other lane
+            4 nobody answered - 6 fewer families answered than wanted, or only the private lane
+            7 a background run was stopped by its watchdog
 """
 import concurrent.futures as cf
 import datetime
@@ -29,10 +41,12 @@ import json
 import os
 import re
 import secrets
+import shlex
 import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -170,7 +184,10 @@ def ask_openrouter(model, packet_text, focus, key):
             if "error" in r:
                 last = json.dumps(r["error"])[:400]
             else:
-                text = (r["choices"][0]["message"].get("content") or "").strip()
+                msg = r["choices"][0]["message"]
+                text = (msg.get("content") or "").strip()
+                if not text and (msg.get("reasoning") or msg.get("reasoning_content")):
+                    text = TRACE_MARK + "\n" + str(msg.get("reasoning") or msg.get("reasoning_content"))
                 return ("answered" if substantive(text) else "thin-answer"), text
         except urllib.error.HTTPError as e:
             last = f"HTTP {e.code}: " + e.read().decode("utf-8", "replace")[:400]
@@ -185,10 +202,27 @@ def ask_openrouter(model, packet_text, focus, key):
     return ("rate-limited" if "429" in last else "failed"), last
 
 
-def substantive(text):
-    t = re.sub(r"<\|tool_call_start\|>.*?<\|tool_call_end\|>", "", text, flags=re.S)
+THINK = r"(?:think|thinking|reasoning|reflection)"
+TRACE_MARK = "[no content field; showing reasoning trace]"
+
+
+def answer_text(text):
+    """What a model said as an answer: tool-call spans, reasoning blocks and a bare trace removed."""
+    t = re.sub(r"<\|tool_call_start\|>.*?<\|tool_call_end\|>", "", text or "", flags=re.S)
     t = re.sub(r"<(tool_call|function_call|tool_use)>.*?</\1>", "", t, flags=re.S)
-    return len(re.sub(r"\s", "", t)) >= MIN_CHARS
+    if t.lstrip().startswith(TRACE_MARK):
+        return ""
+    t = re.sub(rf"<({THINK})>.*?</\1>", "", t, flags=re.S | re.I)
+    if re.search(rf"<{THINK}>", t, re.I):  # opened and never closed: all that follows is reasoning
+        t = re.sub(rf"<{THINK}>.*\Z", "", t, flags=re.S | re.I)
+    elif re.search(rf"</{THINK}>", t, re.I):  # closed with no opening: what came before is reasoning
+        t = re.sub(rf"\A.*?</{THINK}>", "", t, flags=re.S | re.I)
+    return t.strip()
+
+
+def substantive(text):
+    """An answer counts as a family's only when, after the removals above, it is at least MIN_CHARS of text."""
+    return len(re.sub(r"\s", "", answer_text(text))) >= MIN_CHARS
 
 
 def ask_command(command, packet_text, focus):
@@ -261,25 +295,119 @@ def command_lanes():
     return lanes
 
 
+def desk_module():
+    try:
+        spec = importlib.util.spec_from_file_location("desk", os.path.join(os.path.dirname(os.path.abspath(__file__)), "desk.py"))
+        desk = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(desk)
+        return desk
+    except (Exception, SystemExit):
+        return None
+
+
+def folder_settings():
+    """(settings of the folder this runs in, the working copy to run its hooks in), or ({}, cwd)."""
+    desk = desk_module()
+    if desk is None:
+        return {}, os.getcwd()
+    try:
+        root, _ = desk.main_root()
+        return desk.settings(root), desk.house_work()
+    except (Exception, SystemExit):
+        return {}, os.getcwd()
+
+
+def pattern(cfg, key, default, stem):
+    return (cfg.get(key, "").strip() or default).replace("{stem}", stem)
+
+
+def table_rows(text):
+    """The body rows of every markdown table in `text`: [list of cells]. A header is the row above a separator."""
+    lines, rows = text.splitlines(), []
+    sep = re.compile(r"^\s*\|?[\s:|-]+\|[\s:|-]*$")
+    for n, l in enumerate(lines):
+        if not l.strip().startswith("|") or sep.match(l):
+            continue
+        if n + 1 < len(lines) and sep.match(lines[n + 1]) and "-" in lines[n + 1]:
+            continue  # the header row
+        rows.append([c.strip() for c in l.strip().strip("|").split("|")])
+    return rows
+
+
+def dispositions_closed(path):
+    """True when the file has finding rows and every row ends in a real disposition."""
+    try:
+        with open(path, encoding="utf-8") as fh:
+            text = fh.read()
+    except OSError:
+        return False
+    rows = table_rows(text)
+    if not rows:
+        return False
+    return all(r and r[-1] and r[-1].lower() not in ("todo", "tbd", "?", "open", "pending") and "{{" not in r[-1] for r in rows)
+
+
+def index_file():
+    return os.path.join(CONF, "receipts.tsv")
+
+
+def find_receipt(rid, roots):
+    """The receipt file, from the index kept in the config folder (so it works from any folder), else a search of `roots`."""
+    try:
+        with open(index_file(), encoding="utf-8") as fh:
+            index = fh.read().splitlines()
+        for line in index:
+            r, _, path = line.partition("\t")
+            if r == rid and os.path.isfile(path):
+                return path
+    except OSError:
+        pass
+    for root in roots:
+        for d, dirs, files in os.walk(root or "."):
+            dirs[:] = [x for x in dirs if x not in (".git", "node_modules")]
+            if f"receipt-{rid}.txt" in files:
+                return os.path.join(d, f"receipt-{rid}.txt")
+    return None
+
+
+def packet_hash(path):
+    """The hash recorded in a receipt: of the packet's text as it was read (utf-8)."""
+    with open(path, encoding="utf-8") as fh:
+        return hashlib.sha256(fh.read().encode()).hexdigest()
+
+
+def receipt_state(rid, roots=(".",)):
+    """What a receipt proves now: its label at run time, its label today, and why. None when it does not exist."""
+    path = find_receipt(rid, roots)
+    if not path:
+        return None
+    with open(path, encoding="utf-8") as fh:
+        text = fh.read()
+    f = dict(l.split(" ", 1) for l in text.splitlines() if " " in l)
+    label, packet = f.get("label", ""), f.get("packet", "")
+    disp = f.get("dispositions", "")
+    now, why = label, ""
+    if packet and os.path.isfile(packet) and f.get("packet_sha256") != packet_hash(packet):
+        now, why = "stale", "the packet changed after the review ran, so this receipt does not cover it"
+    elif label == "open":
+        if disp and dispositions_closed(disp):
+            now = "converged"
+        else:
+            now, why = "open", f"give every finding a disposition in {disp or 'the dispositions file'}"
+    return {"path": path, "text": text, "fields": f, "label": label, "now": now, "why": why, "dispositions": disp}
+
+
 def verify(receipt, root):
-    for d, _, files in os.walk(root):
-        if f"receipt-{receipt}.txt" in files:
-            with open(os.path.join(d, f"receipt-{receipt}.txt"), encoding="utf-8") as fh:
-                text = fh.read()
-            print(text, end="" if text.endswith("\n") else "\n")
-            # The stored label is the moment the review ran; converged also needs the dispositions now (#29).
-            f = dict(l.split(" ", 1) for l in text.splitlines() if " " in l)
-            pk = f.get("packet", "")
-            disp = os.path.join(os.path.dirname(pk), os.path.splitext(os.path.basename(pk))[0] + "-dispositions.md")
-            if not os.path.isabs(disp):
-                disp = os.path.join(os.path.dirname(d), os.path.basename(disp))
-            has = os.path.isfile(disp)
-            print(f"dispositions {'present' if has else 'missing'}: {disp}")
-            if f.get("label") == "open":
-                print("label now: " + ("converged" if has else "open (give every finding a disposition)"))
-            return 0
-    print(f"NO RECEIPT {receipt}: the label it backs is unverified", file=sys.stderr)
-    return 1
+    st = receipt_state(receipt, [root, os.getcwd()])
+    if not st:
+        print(f"NO RECEIPT {receipt}: the label it backs is unverified", file=sys.stderr)
+        return 1
+    print(st["text"], end="" if st["text"].endswith("\n") else "\n")
+    if st["fields"].get("label") == "open":
+        has = os.path.isfile(st["dispositions"])
+        print(f"dispositions {'present' if has else 'missing'}: {st['dispositions']}")
+    print(f"label now: {st['now']}" + (f" ({st['why']})" if st["why"] else ""))
+    return 0
 
 
 def check():
@@ -293,25 +421,98 @@ def check():
 
 
 def house_review():
-    """The folder's own review procedure, when its Desk block says `Review: house follow <file>` (#28)."""
+    """The folder's own review procedure, when its Desk block says `Review: house follow|run <x>` (#28)."""
+    desk = desk_module()
+    if desk is None:
+        return None  # cannot tell: the caller fails closed, never as if there were no house review
     try:
-        spec = importlib.util.spec_from_file_location("desk", os.path.join(os.path.dirname(os.path.abspath(__file__)), "desk.py"))
-        desk = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(desk)
         root, _ = desk.main_root()
         mode, arg = desk.open_mode(desk.settings(root), "review")
     except (Exception, SystemExit):
-        return None  # cannot tell: the caller fails closed, never as if there were no house review
-    return arg if mode == "follow" else ""
+        return None
+    return arg if mode in ("follow", "run") else ""
+
+
+def run_gate(cmd, text, tier, cwd):
+    """(True, '') when the folder's gate lets this text out for this tier. Anything but a clean pass refuses."""
+    with tempfile.TemporaryDirectory() as td:
+        f = os.path.join(td, "screen.md")
+        open(f, "w", encoding="utf-8").write(text)
+        try:
+            p = subprocess.run(f"{cmd} {shlex.quote(f)} {tier}", shell=True, cwd=cwd, capture_output=True, text=True,
+                               timeout=120, stdin=subprocess.DEVNULL)
+        except (OSError, subprocess.TimeoutExpired) as e:
+            return False, f"the gate could not run ({type(e).__name__})"
+    out = (p.stdout or "").strip()
+    first = out.splitlines()[0] if out else ""
+    if p.returncode != 0 or first.upper().startswith("REFUSE"):
+        why = first or (p.stderr or "").strip().splitlines()[-1:] or [f"exit {p.returncode}"]
+        return False, why if isinstance(why, str) else why[0]
+    return True, ""
+
+
+def ask_private_command(cmd, packet, focus, cwd):
+    """The folder's private lane: `<command> <packet>`, the answer on stdout, exit 3 for a packet too large."""
+    size = os.path.getsize(packet)
+    try:
+        p = subprocess.run(f"{cmd} {shlex.quote(packet)}", shell=True, cwd=cwd, capture_output=True, text=True, timeout=400,
+                           stdin=subprocess.DEVNULL, env=dict(os.environ, DESK_FOCUS=focus))
+    except subprocess.TimeoutExpired:
+        return "failed", "no answer within 400 s"
+    text = (p.stdout or "").strip()
+    if p.returncode == 3:
+        return "too-large", f"the lane refused the packet as too large ({size // 1024} KB); shorten it or split it"
+    if p.returncode != 0 or not text:
+        return "failed", ((p.stderr or "empty answer")[:300] + (f" (the packet is {size // 1024} KB; some lanes fail above 15 KB)" if size > 15000 else ""))
+    return ("answered" if substantive(text) else "thin-answer"), text
+
+
+def watchdog(seconds, log_dir):
+    def stop():
+        msg = f"WATCHDOG: the review did not finish within {seconds} s and was stopped. The reply is [unreviewed]."
+        try:
+            open(os.path.join(log_dir, "run.log"), "a", encoding="utf-8").write(msg + "\n")
+        except OSError:
+            pass
+        print(msg, file=sys.stderr, flush=True)
+        os._exit(7)
+    t = threading.Timer(seconds, stop)
+    t.daemon = True
+    t.start()
+
+
+def status(packet):
+    cfg, _ = folder_settings()
+    stem = os.path.splitext(os.path.basename(packet))[0]
+    out = os.path.join(os.path.dirname(packet) or ".", pattern(cfg, "reviews", "{stem}-reviews", stem))
+    log = os.path.join(out, "run.log")
+    if not os.path.isfile(log):
+        print(f"no background run for {packet} (looked for {log})", file=sys.stderr)
+        return 1
+    text = open(log, encoding="utf-8").read().splitlines()
+    print("\n".join(text[-25:]))
+    return 0
 
 
 def main(argv):
     alongside = "--alongside" in argv  # started by the folder's own review routine, as its second opinion
     argv = [a for a in argv if a != "--alongside"]
+    if len(argv) >= 2 and argv[1] in ("-h", "--help", "help"):
+        print(__doc__)
+        return 0
     if len(argv) >= 2 and argv[1] == "--check":
         return check()
     if len(argv) >= 3 and argv[1] == "--verify":
         return verify(argv[2], argv[3] if len(argv) > 3 else ".")
+    if len(argv) >= 3 and argv[1] == "--status":
+        return status(argv[2])
+    background = "--background" in argv
+    argv = [a for a in argv if a != "--background"]
+    wd = 0
+    if "--watchdog" in argv:
+        i = argv.index("--watchdog")
+        wd = int(argv[i + 1])
+        del argv[i:i + 2]
     if len(argv) >= 2 and not argv[1].startswith("-") and not os.path.isfile(argv[1]):
         print(f"packet not found: {os.path.abspath(argv[1])}\n(run from the folder the session was opened on, or give the full path)", file=sys.stderr)
         return 2
@@ -324,46 +525,69 @@ def main(argv):
               "Check that desk.py sits next to this script.", file=sys.stderr)
         return 5
     if house and not alongside:
-        print(f"NOT SENT: this folder reviews its own way: follow {house}. This script runs only as the second "
+        print(f"NOT SENT: this folder reviews its own way: {house}. This script runs only as the second "
               "opinion that routine starts (`--alongside`).", file=sys.stderr)
         return 5
     packet = argv[1]
     focus = argv[2] if len(argv) > 2 else "Adversarial review: what would the author miss or agree with too easily?"
     text = open(packet, encoding="utf-8").read()
     stem = os.path.splitext(os.path.basename(packet))[0]
-    out = os.path.join(os.path.dirname(packet) or ".", stem + "-reviews")
+    cfg, cwd = folder_settings()
+    out = os.path.join(os.path.dirname(packet) or ".", pattern(cfg, "reviews", "{stem}-reviews", stem))
+    dispositions = os.path.abspath(os.path.join(os.path.dirname(packet) or ".", pattern(cfg, "dispositions", "{stem}-dispositions.md", stem)))
+    if background:
+        os.makedirs(out, exist_ok=True)
+        log = os.path.join(out, "run.log")
+        secs = int(os.environ.get("DESK_REVIEW_WATCHDOG", "1500"))
+        cmd = [sys.executable, os.path.abspath(__file__), *([a for a in argv[1:]]), "--watchdog", str(secs)]
+        with open(log, "w", encoding="utf-8") as lf:
+            subprocess.Popen(cmd, stdout=lf, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, start_new_session=True, cwd=os.getcwd())
+        print(f"Started in the background (stopped by a watchdog after {secs} s). Log: {log}\n"
+              f"Read it with: python3 {os.path.abspath(__file__)} --status {packet}")
+        return 0
+    if wd:
+        os.makedirs(out, exist_ok=True)
+        watchdog(wd, out)
 
     key, lanes, apple = api_key(), command_lanes(), conf("apple-shortcut")
-    hits = private_hits(text + "\n" + focus)
-    public_ok = not hits
+    gate, plane = cfg.get("gate", "").strip(), cfg.get("private lane", "").strip()
+    screened = text + "\n" + focus
+    if gate:  # the folder's gate is the one authority: no second marker list here
+        public_ok, why_pub = run_gate(gate, screened, "public", cwd)
+        private_ok, why_priv = (run_gate(gate, screened, "private", cwd) if plane else (False, "no private lane is set up"))
+        hits = [] if public_ok else [f"the folder's gate refused it ({why_pub})"]
+    else:
+        hits = private_hits(screened)
+        public_ok, private_ok, why_priv = not hits, True, ""
     if hits:
         print("NOT SENT to outside vendors. The packet contains: " + "; ".join(sorted(set(hits))), file=sys.stderr)
-        if not apple:
-            print("Remove it and run again, or review with a subagent and label the reply [same-vendor].", file=sys.stderr)
+        if not (apple or (plane and private_ok)):
+            print(("The private lane refused it too: " + why_priv + ". " if gate and plane else "") +
+                  "Remove it and run again, or review with a subagent and label the reply [same-vendor].", file=sys.stderr)
             return 1
         print("Asking the private lane only.", file=sys.stderr)
-    if public_ok and not conf("private-terms.txt"):
+    if public_ok and not gate and not conf("private-terms.txt"):
         print("note: no private-terms list, so names are not checked. Ask the user for them (reference/setup.md, Private terms).", file=sys.stderr)
-    if not (key or lanes or apple):
+    if not (key or lanes or apple or plane):
         print("No review key and no other lane. Label the reply [same-vendor] after a subagent pass, or run `desk setup`.", file=sys.stderr)
         return 3
 
     os.makedirs(out, exist_ok=True)
     ledger = os.path.join(out, "ledger.tsv")
     if not os.path.exists(ledger):
-        open(ledger, "w", encoding="utf-8").write("date\tpacket\tmodel\tvendor\tstatus\tseconds\n")
+        open(ledger, "w", encoding="utf-8").write("date\tpacket\tmodel\tfamily\tstatus\tseconds\n")
     today = datetime.date.today().isoformat()
-    results = []  # (vendor, model, status, seconds)
+    results = []  # (family, model, status, seconds)
 
-    def record(vendor, model, fn):
+    def record(family, model, fn):
         t0 = time.time()
         status, body = fn()
         secs = int(time.time() - t0)
-        with open(os.path.join(out, vendor + ".txt"), "w", encoding="utf-8") as f:
+        with open(os.path.join(out, family + ".txt"), "w", encoding="utf-8") as f:
             f.write(f"packet: {packet}\nmodel:  {model}\nstatus: {status}\n\n{body}\n")
         with open(ledger, "a", encoding="utf-8") as f:
-            f.write(f"{today}\t{stem}\t{model}\t{vendor}\t{status}\t{secs}\n")
-        results.append((vendor, model, status, secs))
+            f.write(f"{today}\t{stem}\t{model}\t{family}\t{status}\t{secs}\n")
+        results.append((family, model, status, secs))
         return status
 
     n = int(os.environ.get("DESK_REVIEW_N", "6"))
@@ -378,7 +602,9 @@ def main(argv):
     if public_ok:
         jobs += [(name, "your lane: " + name, (lambda c=cmd: ask_command(c, text, focus))) for name, cmd in lanes]
         jobs += [(m.split("/")[0], m, (lambda m=m: ask_openrouter(m, text, focus, key))) for m in models[:n]]
-    if apple:
+    if plane and private_ok:
+        jobs.append(("apple", f"private lane: {plane}", lambda: ask_private_command(plane, packet, focus, cwd)))
+    elif apple and (not gate or private_ok):
         jobs.append(("apple", f'Shortcut "{apple}"', lambda: ask_apple(apple, text, focus)))
     if jobs:
         print(f"Asking {len(jobs)} reviewers (a few minutes, no cost)...", flush=True)
@@ -388,8 +614,8 @@ def main(argv):
     def answered():
         return sorted({v for v, _, s, _ in results if s == "answered" and v != "apple"})
 
-    # Top up: free models fail often. Keep asking other vendors, one at a time,
-    # until enough have answered or the list runs out.
+    # Top up: free models fail often. A family that failed is replaced from the live free list: keep
+    # asking other families, one at a time, until enough have answered or the list runs out.
     topped = []
     capped = any(s == "account-cap" for _, _, s, _ in results)
     for m in models[n:]:
@@ -409,31 +635,40 @@ def main(argv):
         print("ACCOUNT CAP: OpenRouter refused on the daily limit for free models. Another model will not help.\n"
               "  It is 50 requests a day, or 1000 a day once the account has bought 10 USD of credit\n"
               "  (the credit is not spent by free models). Otherwise wait for the daily reset.")
-    vendors = answered()
-    apple_ok = any(v == "apple" and s == "answered" for v, _, s, _ in results)
+    families = answered()
+    private_ok_answer = any(v == "apple" and s == "answered" for v, _, s, _ in results)
     sha = hashlib.sha256(text.encode()).hexdigest()
-    rid = hashlib.sha256(f"{sha}{time.time()}{len(vendors)}".encode()).hexdigest()[:10]
-    if vendors:
-        label = "thin" if len(vendors) == 1 else "open"
+    rid = hashlib.sha256(f"{sha}{time.time()}{len(families)}".encode()).hexdigest()[:10]
+    if families:
+        label = "open" if len(families) >= want else "thin"
     else:
-        label = "private-lane-only" if apple_ok else "unreviewed"
-    with open(os.path.join(out, f"receipt-{rid}.txt"), "w", encoding="utf-8") as f:
-        f.write(f"receipt {rid}\ndate {datetime.datetime.now():%Y-%m-%d %H:%M:%S}\npacket {packet}\n"
-                f"packet_sha256 {sha}\nlabel {label}\nvendors_answered {len(vendors)}\n"
-                f"vendors {' '.join(vendors)}\nprivate_lane {'answered, both codes repeated' if apple_ok else 'no'}\n")
-    plus = " + private lane" if apple_ok and vendors else ""
+        label = "private-lane-only" if private_ok_answer else "unreviewed"
+    receipt = os.path.abspath(os.path.join(out, f"receipt-{rid}.txt"))
+    with open(receipt, "w", encoding="utf-8") as f:
+        f.write(f"receipt {rid}\ndate {datetime.datetime.now():%Y-%m-%d %H:%M:%S}\npacket {os.path.abspath(packet)}\n"
+                f"packet_sha256 {sha}\nlabel {label}\nfamilies_answered {len(families)}\n"
+                f"families {' '.join(families)}\ndispositions {dispositions}\n"
+                f"private_lane {'answered' if private_ok_answer else 'no'}\n")
+    try:
+        os.makedirs(CONF, exist_ok=True)
+        with open(index_file(), "a", encoding="utf-8") as f:
+            f.write(f"{rid}\t{receipt}\n")
+    except OSError:
+        pass  # the index is a convenience; the receipt next to the answers is the record
+    plus = " + private lane" if private_ok_answer and families else ""
     print()
     if label == "unreviewed":
         print(f"Label line: Review: [unreviewed] · receipt {rid}   (nobody answered)")
         return 4
     if label == "private-lane-only":
         print(f"Label line: Review: [thin] · private lane only · receipt {rid}")
-    elif label == "thin":
-        print(f"Label line: Review: [thin] · 1 vendor{plus} · receipt {rid}")
-    else:
-        print(f"Label line: Review: [converged] · {len(vendors)} vendors{plus} · receipt {rid}\n"
-              f"  Earn it first: give every finding a disposition in {stem}-dispositions.md, next to the packet.\n"
-              "  Until that file exists the review is still open.")
+        return 6
+    if label == "thin":
+        print(f"Label line: Review: [thin] · {len(families)} {'family' if len(families) == 1 else 'families'}{plus} · receipt {rid}")
+        return 6
+    print(f"Label line: Review: [converged] · {len(families)} families{plus} · receipt {rid}\n"
+          f"  Earn it first: give every finding a disposition in {os.path.basename(dispositions)}, next to the packet.\n"
+          f"  Until every row has one the review is still open (`review.py --verify {rid}` says which).")
     return 0
 
 

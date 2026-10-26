@@ -92,3 +92,22 @@ A session started on the computer can be continued from the Claude phone app onc
 on for that session. It is the user's switch to turn, because it makes the session reachable, and
 approvable, from the phone. Tell them where it is; do not change settings for them. Links to
 files do not open on a phone: send the file itself when the surface can.
+
+## The Desk block's lines, 0.3.0
+
+All optional; record each with `desk.py set "<Key>" "<value>"`. A folder that records none behaves as before.
+
+| Line | Does |
+|---|---|
+| `Base:` | what a new topic is cut from and measured against, such as `origin/development`; `open` fetches it and stops if it is not there |
+| `Branch prefix:` · `Ready trailer:` | topic branch names (default `desk/`) and the line that marks a handed-over head (default `Desk-Status: ready`) |
+| `Open:` · `Close:` · `Review:` | `house follow <file>` or `house run <command>`; a `run` command only runs in the form the user confirmed |
+| `House git:` | which git steps the folder's close routine owns; the session does none of them |
+| `Gate:` · `Private lane:` | the folder's privacy gate (`<command> <file> public\|private`; exit 0 and no `REFUSE` first line lets it out, anything else refuses) and its private reviewer (`<command> <packet>`, answer on stdout, exit 3 for too large) |
+| `Reviews:` · `Dispositions:` | names of the answers folder and the dispositions file, `{stem}` for the packet's name |
+| `Quick loop:` | `allowed` lets a reply carry `[quick]`; without it the close refuses that label |
+| `Sessions:` · `Pointers only:` | where session notes live (`notes/{topic}`); with `yes`, a topic folder holds only its README pointer and `status` reports state left outside history |
+| `Close sections:` | headings a close note must have, `Done \| Open items` |
+| `Receive into:` · `Receive merge:` · `Receive checks:` · `Differed log:` | where a ready topic lands (default: the base's own name), the command that merges it in the scratch copy, the check that must pass, and a file that collects the rows of "Where Desks differed" |
+| `Escalate:` | a tab-separated rules file for `receive`: `path<TAB>glob`, `doctrine<TAB>glob`, `max-lines<TAB>N`, `undeclared<TAB>*` (the diff touches files the note's "Files" section does not list), `anomalies<TAB>N`; no line means no rules, a named file that is missing means escalate |
+| `Depth cap:` · `Usage reserve:` · `Maintainer prefix:` | nesting depth (default 3, `none`), the reserve per level (`50, 40`, the last repeats), and the branch prefix the digest calls the maintainer lane |

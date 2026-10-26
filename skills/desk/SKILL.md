@@ -1,5 +1,7 @@
 ---
 name: desk
+license: MIT
+requires: python3 3.8 or newer, git 2.31 or newer (only for the git and github levels)
 description: Open or continue a Desk, a focused working session on one topic with reviewed answers, cheap workers and a written close. Use when the user writes "desk <topic>", "open desk <topic>", "/desk" or the same in their own language, asks to continue or close a desk, asks for a second opinion from other AI models, or starts real work on a topic that already has a folder under desks/.
 ---
 
@@ -16,7 +18,7 @@ file is the whole contract. Read it once when the Desk opens and follow it until
 | The user writes | Do |
 |---|---|
 | `desk <topic>` · `/desk <topic>` | Open or continue that topic (§ 1) |
-| `desk` with no topic | The brief across all topics, and the one thing you would do today (§ 9) |
+| `desk` with no topic | The brief across all topics, and the one thing you would do today (§ 10) |
 | `desk review` | Review your last substantive answer now (§ 3) |
 | `desk close` | Close the Desk (§ 7) |
 | `desk setup` | Walk through every setup question at once (`reference/setup.md`) |
@@ -45,15 +47,19 @@ read "the topic's folder under the Desk root", which may have another name (`des
    - `git`: the topic has its own branch and its own working copy, so the main folder is never
      left half-edited and several Desks can run at once.
    - `github`: as `git`, and the close can open a pull request.
-   Where the Desk block says `Open:` or `Review: house follow <file>`, `desk.py open` or `review.py`
-   does nothing of its own: do that step as the file says. If `open` stops to ask, ask (`desk adopt`).
+   Where the Desk block says `Open: house follow <file>`, do that step as the file says; with
+   `Open: house run <command>` the script runs the command the user confirmed, and makes no topic of
+   its own. `Base:` is what a new topic is cut from, `Branch prefix:` its branch name. `open` stops
+   with a number when it should not go on: **4** the topic was already received (open `<topic>-2`
+   instead), **5** it was handed over and not received yet (ask the user once, then `--reopen`),
+   **6** another open holds the lock (wait, run it again). If `open` stops to ask, ask (`desk adopt`).
 2. **New topic:** the script copied the README template. Fill the goal in one sentence from what
    the user said. Nothing else yet.
 3. **Existing topic:** read its `README.md` (state, what was learned, next step) and the newest
    file in `sessions/`. If the script reports an inbox, fold each note into the README (usually
    under "Open") and delete the note file. Read nothing else until the task needs it.
 4. Say one boot line: topic · new or continued · level · review mode (§ 3) · anything that needs
-   attention. Then lead (§ 9).
+   attention. Then lead (§ 10).
 
 **Git stays under the hood.** The user never has to type or understand it: `desk.py` does the
 plumbing, and you commit your own files by path at each milestone, with a plain message (review
@@ -104,8 +110,11 @@ session asks again (`desk.py add` for a key that takes several lines, like `Setu
 - **Build, send, publish, buy or delete only on the user's explicit go.** Gather and propose first.
 - **A refusal is an answer.** When a permission is denied (a script, a send, settings, the sandbox),
   stop that step and say what it was for; never reach that end another way, by another tool, a
-  subagent, a hand copy of the script. Only a command whose shape the checker refused may be redone
-  in plain allowed steps. A Desk is closed only when `desk.py close` prints its `Closed line:`.
+  subagent, a hand copy of the script. Ask once, through the app's own prompt, and retry once on a
+  yes. Only a command whose shape the checker refused may be redone in plain allowed steps. A
+  standing yes for Desk's own scripts belongs in the user's own settings, set by them, never in the
+  project's permission settings. Adopt never opens a key file. A Desk is closed only when
+  `desk.py close` prints its `Closed line:`.
 - **Check the premise, and do not agree by default.** Name what must be true for the task, or for a
   claim the user makes, to hold. Verify it with the tools at hand without asking; if it is false or
   cannot be verified, stop and say so plainly. Do not work around a missing foundation.
@@ -133,8 +142,10 @@ session. In short:
 1. Write a **packet**: the question, the context and your proposed answer, with names, contacts and
    anything identifying removed. Save it in `desks/<topic>/reviews/<date>-<slug>.md`.
 2. Run `python3 <this skill's folder>/scripts/review.py <packet> "<what to look for>"`. Tell the
-   user it is running (about three minutes, no cost). It asks free models from other vendors and
-   prints a label line with a receipt.
+   user it is running (about three minutes, no cost). It asks free models, one per family, and
+   prints a label line with a receipt. Add `--background` when a tool call may time out: a watchdog
+   stops it, `review.py --status <packet>` shows where it is. Where the Desk block names a `Gate:`,
+   that command decides what may leave, and a refusal stops the send.
 3. Read every answer. Give each finding a disposition (adopted, rejected and why, or left to the
    user) in `<packet>-dispositions.md`. Change your answer accordingly.
 4. End the reply with the label line, copied from the script's output.
@@ -145,15 +156,16 @@ session. In short:
   attack it, and label the reply `Review: [same-vendor]`. This catches slips. It does not catch
   what every Claude model would miss, and the user should know that. Offer `desk setup` once.
 
-**Labels.** `[converged]` several vendors answered and every finding has a disposition ·
-`[thin]` only one vendor answered · `[same-vendor]` reviewed by a Claude subagent only ·
-`[unreviewed]` no review ran yet · `[quick]` the user asked, in their own words, to skip it. A label
-without a receipt is only valid for `[same-vendor]`, `[unreviewed]` and `[quick]`. Never write a
-label the script did not print. `[unreviewed]` is not a way to finish: on advice it means "not
+**Labels.** `[converged]` at least three families answered and every finding has a disposition ·
+`[thin]` fewer than three families answered · `[same-vendor]` reviewed by a Claude subagent only ·
+`[unreviewed]` no review ran yet. They come from the receipt, never from typing: `desk.py close`
+refuses a `[converged]`, `[thin]` or `[open]` label with no receipt that checks out (`review.py
+--verify <receipt>`), a packet changed since the review, and `[quick]` unless the Desk block says
+`- Quick loop: allowed`. A receipt covers the one packet it was run on: a new recommendation needs
+its own packet and its own receipt. `[unreviewed]` is not a way to finish: on advice it means "not
 ready to act on", the reply says so in words, and the review runs before your next piece of
-advice. A receipt covers the one packet it was run on (`review.py --verify <receipt>` shows
-which): a new recommendation needs its own packet and its own receipt. Changing your answer because of what reviewers found is the review
-working, and needs no second review. Adding a claim they never saw does.
+advice. Changing your answer because of what reviewers found is the review working, and needs no
+second review. Adding a claim they never saw does.
 
 **Private material.** If removing the identifying details would change the answer, do not send it
 out. Use the same-vendor pass, or a private lane if one is set up (`reference/review.md`).
@@ -212,7 +224,9 @@ To close, read `reference/close.md`. In short:
 1. Rewrite the topic's `README.md` so the next session needs nothing else.
 2. Write `sessions/<date>-<title>.md` from `templates/session.md`.
 3. Give every snag of the session one of three ends: fixed in the README, kept as an open item
-   (an Issue at the `github` level), or dropped with a reason.
+   (an Issue at the `github` level), or dropped with a reason. Every line under `## Lessons` ends
+   with where it lands: `→ topic`, `→ house <file>`, `→ issue <ref>` or `→ dropped: <reason>`; the
+   close refuses one without. A `Close sections:` line in the Desk block lists the headings a note must have.
 4. Propose, do not impose, anything you noticed about how the user works (`reference/profile.md`).
 5. Save your files, then `desk.py close <topic>`, no flag. With no `Close:` line it stops: ask the
    setup question, record the answer, run it again. It refuses while placeholders or unsaved files remain.
@@ -224,12 +238,30 @@ give way: run it to the end, then write the short note from `templates/session-h
 Final reply: what was done, what is open, where the files are, a title for the conversation, and
 last the `Closed line:` that `desk.py close` printed, copied as is. No line, not closed.
 
-## 8) Keeping usage low
+## 8) Delegation, receiving, the digest
+
+- **Sub-desks.** A Desk may open children: `desk.py open <child> --parent <topic>` cuts the child from
+  the parent's branch, writes `brief.md` (from `templates/brief.md`: goal, what it may touch, how it
+  ends) and prints the usage reserve for that level (`Usage reserve: 50, 40` by level, the last
+  repeats). `Depth cap:` defaults to 3, `none` lifts it. The child ends with a numbered one-line-per-item
+  list and a coverage check. The parent checks each line against the diff with a runner, never
+  trusts the child's report, and takes the child in with `desk.py receive <child>`. `desk.py children`
+  lists them: running, ready, received.
+- **Receive.** A topic is ready when its branch head carries the ready trailer (`desk.py close` adds it).
+  `desk.py receive` lists them; `receive <topic>` merges into a scratch copy, runs `Receive checks:`,
+  then moves the target, all or nothing. Exit 0 received · 2 nothing ready · 3 blocked (nothing
+  changed) · 4 escalation: a path, size or claim-versus-diff rule in `Escalate:`'s file matched, and
+  a reader must decide (`--escalated-ok "<why>" --head <sha>`).
+- **Digest.** `desk.py digest` prints the lane, the working copy, ready and blocked topics, open
+  escalations, children and whether the base moved, with an exit code. `--freeze <file> --next "<step>"`
+  writes that state (refused while a child runs); `--compare <file>` checks a later boot against it.
+
+## 9) Keeping usage low
 
 Read on demand, never at the start; send screens and long outputs to a worker (§ 5); show the
 change, not the whole document; size the answer to the decision. Why, measured: `reference/usage.md`.
 
-## 9) Lead
+## 10) Lead
 
 The person is talking to the whole system through you. They should not have to learn how to use
 it well: you carry the habits, and you propose. Unless the Desk block says `Lead: quiet`.

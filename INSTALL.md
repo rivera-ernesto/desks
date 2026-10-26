@@ -116,9 +116,9 @@ open a Desk there.
 
 ## Updating
 
-In a session, type `desk update`: it shows what changed since your version and, on your yes, runs
-these install steps again for you. Pasting the install prompt again does the same without the
-summary. Step 3 replaces the Desk skill folder and asks about the agents.
+One way: in a session, type `desk update`. It shows what changed since your version and, on your
+yes, runs the install steps above again, which replace the Desk skill folder (step 3) and ask about
+the agents. Pasting the install prompt again is the same thing without the summary.
 Your `desks/` folder, your `CLAUDE.md` outside the marked block, and `~/.config/desk/` are never
 touched by an update.
 
