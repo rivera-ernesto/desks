@@ -893,11 +893,25 @@ def find_transcript(source_id, folders):
 
 
 def inside_work_tree(path):
-    """True when `path` (which may not exist yet) lies inside a git working tree."""
-    d = os.path.abspath(path)
+    """True when `path` (which may not exist yet) lies inside a git working tree. Fails closed: symlinks are
+    resolved first, any ancestor holding a `.git` counts, and a git that cannot answer (anything but a plain
+    "not a git repository") counts as inside."""
+    d = os.path.realpath(path)
     while d and not os.path.isdir(d):
         d = os.path.dirname(d)
-    return run(["git", "rev-parse", "--is-inside-work-tree"], cwd=d or "/")[1] == "true"
+    d = d or "/"
+    a = d
+    while True:
+        if os.path.lexists(os.path.join(a, ".git")):
+            return True
+        parent = os.path.dirname(a)
+        if parent == a:
+            break
+        a = parent
+    rc, out, err = run(["git", "rev-parse", "--is-inside-work-tree"], cwd=d)
+    if rc == 0:
+        return out == "true"
+    return "not a git repository" not in err.lower()
 
 
 def sha256_of(path):
@@ -915,7 +929,11 @@ def archive_transcript(cfg, root, work, note_path):
     raw = cfg.get("transcripts", "").strip()
     if not raw or is_off(cfg, "transcripts"):
         return []
-    target = os.path.abspath(os.path.expanduser(raw))
+    target = os.path.realpath(os.path.expanduser(raw))  # resolved once: the check and the copy see the same place
+    skill = os.path.realpath(os.path.dirname(HERE))
+    if target == skill or target.startswith(skill + os.sep):
+        die(f"`Transcripts: {raw}` is inside the Desks skill folder, which `desk remove` and an update replace. "
+            "Choose a folder of your own. The Desk is not closed.")
     if inside_work_tree(target):
         die(f"`Transcripts: {raw}` is inside a git working tree, and a transcript must never be copied into one "
             "(it could be committed and pushed). Choose a folder outside every repository. The Desk is not closed.")
@@ -1742,6 +1760,13 @@ def cmd_remove(yes):
         print("  " + g)
     if bf:
         print(f"  the marked Desk block in {bf}")
+    keep = [os.path.join(root, cfg.get("desk root", "desks/").strip("/")), os.path.expanduser(cfg.get("transcripts", "").strip() or "/nonexistent-transcripts")]
+    for k in keep:  # a record or the archive that lives inside what would be removed: refuse, never delete it
+        rk = os.path.realpath(k)
+        for g in gone:
+            rg = os.path.realpath(g)
+            if rk == rg or rk.startswith(rg + os.sep):
+                die(f"{k} lies inside {g}, which would be removed. Move it out first. Nothing was removed.")
     print("stays, because it is yours: the Desk root " + os.path.join(root, cfg.get("desk root", "desks/").strip("/")) +
           (", the transcript archive " + os.path.expanduser(cfg["transcripts"]) if cfg.get("transcripts", "").strip() and not is_off(cfg, "transcripts") else "") +
           ", ~/.config/desk/. The records are plain Markdown; any other tool reads them.")
@@ -1749,10 +1774,13 @@ def cmd_remove(yes):
         print("Nothing was removed. Run it again with --yes once the user has said yes.")
         return 0
     for g in gone:
-        if os.path.islink(g) or os.path.isfile(g):
-            os.unlink(g)
-        else:
-            shutil.rmtree(g, ignore_errors=True)
+        try:
+            if os.path.islink(g) or os.path.isfile(g):
+                os.unlink(g)
+            else:
+                shutil.rmtree(g)
+        except OSError as e:
+            die(f"could not remove {g} ({e}). Some files may be gone; run it again. Records and the archive were not touched.")
     if bf:
         with open(bf, encoding="utf-8") as f:
             text = f.read()

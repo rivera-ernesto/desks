@@ -295,6 +295,37 @@ class TranscriptArchive(t30.Topics):
         self.assertIn("inside a git working tree", r.stderr)
         self.assertFalse(os.path.exists(self.arch))
 
+    def test_a_symlink_that_leads_into_a_repository_is_refused(self):
+        real = os.path.join(self.root, "real-archive")
+        os.makedirs(real)
+        link = os.path.join(os.path.realpath(self._arch.name), "link")
+        os.symlink(real, link)
+        self.arch = os.path.join(link, "sessions")
+        self.prepare()
+        r = desk(self.root, "close", "a", "--merge")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("inside a git working tree", r.stderr)
+        self.assertEqual(os.listdir(real), [])
+
+    def test_a_git_that_cannot_answer_counts_as_inside(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("deskmod2", DESK)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        d = os.path.realpath(self._arch.name)
+        mod.run = lambda *a, **k: (128, "", "fatal: detected dubious ownership in repository")
+        self.assertTrue(mod.inside_work_tree(d))
+        mod.run = lambda *a, **k: (128, "", "fatal: not a git repository (or any of the parent directories): .git")
+        self.assertFalse(mod.inside_work_tree(d))  # control: the plain "not a repository" answer is outside
+
+    def test_a_folder_inside_the_skill_itself_is_refused(self):
+        self.arch = os.path.join(os.path.dirname(os.path.dirname(DESK)), "archive")
+        self.prepare()
+        r = desk(self.root, "close", "a", "--merge")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("inside the Desks skill folder", r.stderr)
+        self.assertFalse(os.path.exists(self.arch))
+
     def test_without_a_source_id_the_newest_transcript_of_the_project_is_taken(self):
         proj = os.path.join(self._src.name, re.sub(r"[^A-Za-z0-9]", "-", self.work("a")))
         put(os.path.join(proj, "aaaaaaaa-0000-0000-0000-000000000001.jsonl"), "old\n")
@@ -316,6 +347,20 @@ class TranscriptArchive(t30.Topics):
 
 
 class RemoveKeepsRecords(unittest.TestCase):
+    def test_an_archive_inside_what_would_be_removed_stops_the_removal(self):
+        with tempfile.TemporaryDirectory() as t:
+            dest = os.path.realpath(t)
+            shutil.copytree(SKILL, os.path.join(dest, ".claude", "skills", "desk"), ignore=shutil.ignore_patterns("__pycache__"))
+            arch = os.path.join(dest, ".claude", "skills", "desk", "mine")
+            put(os.path.join(arch, "x.jsonl"), "transcript\n")
+            put(os.path.join(dest, "CLAUDE.md"), f"<!-- desk:start -->\n- Transcripts: {arch}\n<!-- desk:end -->\n")
+            script = os.path.join(dest, ".claude", "skills", "desk", "scripts", "desk.py")
+            r = sh([sys.executable, script, "remove", "--yes"], dest)
+            self.assertNotEqual(r.returncode, 0)
+            self.assertIn("Nothing was removed", r.stderr)
+            self.assertTrue(os.path.isfile(os.path.join(arch, "x.jsonl")))
+
+
     def test_remove_takes_out_desks_and_never_the_records_or_the_archive(self):
         with tempfile.TemporaryDirectory() as t:
             dest = os.path.realpath(t)
