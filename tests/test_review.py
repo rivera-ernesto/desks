@@ -318,7 +318,7 @@ class HouseHooks(Sandbox):
         return f'"{sys.executable}" "{p}"'
 
     def test_a_gate_that_passes_lets_the_packet_go_and_the_built_in_scan_stands_down(self):
-        gate = self.script("gate.py", "import sys; sys.exit(0)")
+        gate = self.script("gate.py", "print('ok')")
         self.folder(f"- Gate: {gate}")
         self.conf("openrouter.key", "k")
         os.environ["DESK_REVIEW_N"] = "3"
@@ -345,6 +345,14 @@ class HouseHooks(Sandbox):
         self.assertEqual(self.run_main(self.packet())[0], 1)
         self.assertEqual(calls, [])
 
+    def test_a_gate_that_exits_zero_and_says_nothing_refuses(self):
+        gate = self.script("gate.py", "import sys; sys.exit(0)")
+        self.folder(f"- Gate: {gate}")
+        self.conf("openrouter.key", "k")
+        calls = self.fake({"alpha": LONG})
+        self.assertEqual(self.run_main(self.packet())[0], 1)
+        self.assertEqual(calls, [])
+
     def test_a_gate_that_cannot_run_refuses(self):
         self.folder("- Gate: /nonexistent/gate-command")
         self.conf("openrouter.key", "k")
@@ -364,7 +372,7 @@ class HouseHooks(Sandbox):
         self.assertEqual(lines, ["public:my focus line", "private:my focus line"])
 
     def test_public_refused_private_answers_is_partial_and_exits_nonzero(self):
-        gate = self.script("gate.py", "import sys; sys.exit(0 if sys.argv[2] == 'private' else 1)")
+        gate = self.script("gate.py", "import sys; print('ok'); sys.exit(0 if sys.argv[2] == 'private' else 1)")
         lane = self.script("lane.py", f"print({LONG!r})")
         self.folder(f"- Gate: {gate}", f"- Private lane: {lane}")
         self.conf("openrouter.key", "k")

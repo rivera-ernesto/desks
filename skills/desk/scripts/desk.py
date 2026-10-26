@@ -336,8 +336,7 @@ def receive_target(root, cfg, branch=None):
         _, parent, _ = run(["git", "config", f"branch.{branch}.deskparent"], cwd=root)
         if parent:
             pb = topic_branches(root, cfg, parent)
-            if pb:
-                return pb[0]
+            return pb[0] if pb else None  # a child whose parent branch is gone is never taken into the base by default
     into = cfg.get("receive into", "").strip()
     if into:
         return into
@@ -361,19 +360,26 @@ class Lock:
     """One lock file for the parts of `open` that change git: pid and time inside, a 10-minute TTL.
 
     A lock whose owner is gone, or that is older than the TTL, is reclaimed; a live, fresh one is
-    waited for (DESK_LOCK_WAIT seconds, default 30) and then reported, never broken."""
+    waited for (DESK_LOCK_WAIT seconds, default 30) and then reported, never broken. A reclaim
+    removes only the text it judged stale. What remains is a window of a few instructions between
+    that re-read and the unlink; the work under the lock (a worktree add) fails loudly if it ever
+    overlaps, and nothing is lost."""
 
     def __init__(self, root):
         self.path = os.path.join(state_dir(root), "open.lock")
         self.mine = f"{os.getpid()} {int(time.time())}"
 
     def stale(self):
+        """The text of the lock when it is stale (so only that text is removed), else ''."""
         try:
-            txt = open(self.path, encoding="utf-8").read().split()
-            pid, at = int(txt[0]), int(txt[1])
-        except (OSError, ValueError, IndexError):
-            return True  # unreadable: nobody can be relying on it
-        return time.time() - at > LOCK_TTL or not alive(pid)
+            with open(self.path, encoding="utf-8") as f:
+                raw = f.read()
+            pid, at = int(raw.split()[0]), int(raw.split()[1])
+        except (ValueError, IndexError):
+            return "?"  # unreadable: nobody can be relying on it
+        except OSError:
+            return ""  # gone while we looked: just try again
+        return raw if time.time() - at > LOCK_TTL or not alive(pid) else ""
 
     def __enter__(self):
         deadline = time.time() + float(os.environ.get("DESK_LOCK_WAIT", "30"))
@@ -384,9 +390,13 @@ class Lock:
                 os.close(fd)
                 return self
             except FileExistsError:
-                if self.stale():
-                    try:
-                        os.unlink(self.path)
+                was = self.stale()
+                if was:
+                    try:  # remove it only if it is still the lock we judged stale; a fresh one made meanwhile stays
+                        with open(self.path, encoding="utf-8") as f:
+                            now = f.read()
+                        if was == "?" or now == was:
+                            os.unlink(self.path)
                     except OSError:
                         pass
                     continue
@@ -1235,6 +1245,8 @@ def parent_of(root, branch):
 
 def is_received(root, cfg, branch):
     target = receive_target(root, cfg, branch)
+    if target is None:
+        return False
     refs = [target] if parent_of(root, branch) else [target, base_ref(root, cfg)]
     return any(ref_exists(root, r) and is_ancestor(root, branch, r) for r in refs)
 
@@ -1342,7 +1354,7 @@ def cmd_receive(topic, ok_reason="", expect=""):
             print("nothing ready to receive")
             return 2
         for r in rows:
-            print(f"ready: {r['topic']}  {r['sha'][:12]}  -> {r['target']}")
+            print(f"ready: {r['topic']}  {r['sha'][:12]}  -> {r['target'] or '(parent gone)'}")
         return 0
     topic = slug(topic)
     mine = [r for r in rows if r["topic"] == topic]
@@ -1352,7 +1364,7 @@ def cmd_receive(topic, ok_reason="", expect=""):
     r = mine[0]
     if expect and not r["sha"].startswith(expect):
         return blocked(root, topic, f"the head is {r['sha'][:12]}, not the {expect} that was checked")
-    reasons = escalation_reasons(root, cfg, topic, r["sha"], r["target"])
+    reasons = escalation_reasons(root, cfg, topic, r["sha"], r["target"]) if r["target"] else []
     if reasons and not ok_reason:
         d = state_dir(root, "escalations")
         open(os.path.join(d, topic), "w", encoding="utf-8").write("\n".join(reasons) + "\n")
@@ -1362,6 +1374,8 @@ def cmd_receive(topic, ok_reason="", expect=""):
         print(f"A reader who decides it may run: desk.py receive {topic} --escalated-ok \"<why>\" --head {r['sha'][:12]}")
         return 4
     target = r["target"]
+    if target is None:
+        return blocked(root, topic, "its parent topic's branch is gone, so there is nothing to take it into; reopen the parent or re-parent it by hand")
     if not ref_exists(root, target):
         return blocked(root, topic, f"the target `{target}` does not exist")
     tsha = run(["git", "rev-parse", target], cwd=root)[1]

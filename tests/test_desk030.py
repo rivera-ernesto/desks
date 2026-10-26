@@ -610,6 +610,23 @@ class Escalation(Topics):
         self.assertIn("not there", r.stdout)
 
 
+class OrphanedChild(Topics):
+    def test_a_child_whose_parent_branch_is_gone_is_blocked_not_sent_to_the_base(self):
+        desk(self.root, "open", "p")
+        desk(self.root, "open", "c", "--parent", "p")
+        put(os.path.join(self.work("c"), "child.txt"), "c")
+        sh(["git", "add", "child.txt"], self.work("c"))
+        self.fill("c")
+        commit(self.work("c"), f"ready\n\n{TRAILER}")
+        sh(["git", "worktree", "remove", "--force", self.work("p")], self.root)
+        sh(["git", "branch", "-D", "desk/p"], self.root)
+        before = sh(["git", "rev-parse", "main"], self.root).stdout
+        r = desk(self.root, "receive", "c")
+        self.assertEqual(r.returncode, 3, r.stdout)
+        self.assertIn("parent topic's branch is gone", r.stdout)
+        self.assertEqual(sh(["git", "rev-parse", "main"], self.root).stdout, before)
+
+
 class Digest(Topics):
     def test_a_quiet_folder_is_exit_zero(self):
         r = desk(self.root, "digest")

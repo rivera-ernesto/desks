@@ -17,8 +17,8 @@ Setup lives outside any project, so a key is never committed by accident:
     ~/.config/desk/apple-shortcut   name of a macOS Shortcut (private lane)
 
 A folder with its own rules says so in the Desk block (`desk.py set`):
-    Gate: <command>          run as `<command> <file> public|private`; exit 0 and a first line that does
-                             not start with REFUSE lets that tier go, anything else refuses (fails closed).
+    Gate: <command>          run as `<command> <file> public|private`; exit 0 and a first line (any text) that
+                             does not start with REFUSE lets that tier go, anything else refuses (fails closed).
                              When there is a gate, the built-in scan and the private-terms list stand down.
     Private lane: <command>  run as `<command> <packet>`, answer on stdout; exit 3 means "packet too large"
     Reviews: <name>          the answers folder, `{stem}` is the packet's name (default `{stem}-reviews`)
@@ -445,7 +445,7 @@ def run_gate(cmd, text, tier, cwd):
             return False, f"the gate could not run ({type(e).__name__})"
     out = (p.stdout or "").strip()
     first = out.splitlines()[0] if out else ""
-    if p.returncode != 0 or first.upper().startswith("REFUSE"):
+    if p.returncode != 0 or not first or first.upper().startswith("REFUSE"):  # a gate that says nothing is not a pass
         why = first or (p.stderr or "").strip().splitlines()[-1:] or [f"exit {p.returncode}"]
         return False, why if isinstance(why, str) else why[0]
     return True, ""
