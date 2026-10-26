@@ -243,7 +243,7 @@ last the `Closed line:` that `desk.py close` printed, copied as is. No line, not
 - **Sub-desks.** A Desk may open children: `desk.py open <child> --parent <topic>` cuts the child from
   the parent's branch, writes `brief.md` (from `templates/brief.md`: goal, what it may touch, how it
   ends) and prints the usage reserve for that level (`Usage reserve: 50, 40` by level, the last
-  repeats). `Depth cap:` defaults to 3, `none` lifts it. The child ends with a numbered one-line-per-item
+  repeats). `Depth cap:` is a hard limit, default 3, set per folder. The brief carries the user's words verbatim and the plan pinned to a commit; each level re-briefs the same way, and the parent checks the usage reserve from the host's reading before it starts a child. The child ends with a numbered one-line-per-item
   list and a coverage check. The parent checks each line against the diff with a runner, never
   trusts the child's report, and takes the child in with `desk.py receive <child>`. `desk.py children`
   lists them: running, ready, received.

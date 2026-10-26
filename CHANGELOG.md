@@ -36,8 +36,9 @@ the digest) and are counted as such. The contract stays under 300 lines.
   `Pointers only: yes` seeds only the README pointer; `status` reports state the main folder holds;
   `desk.py migrate <topic>` copies it into the working copy; `Sessions:` moves the session notes.
 - **Delegation contract (item 6, thin).** `desk.py open <child> --parent <topic>` cuts from the
-  parent's branch, writes `brief.md` from `templates/brief.md`, enforces `Depth cap:` (default 3,
-  `none`) and prints `Usage reserve:` for that level. `desk.py children` lists running, ready and
+  parent's branch, writes `brief.md` from `templates/brief.md`, enforces `Depth cap:` (a hard limit, default 3,
+  configurable, `none` lifts it) and prints `Usage reserve:` for that level, which the parent checks from the host's
+  usage reading (no counter shared across the tree). The brief carries the user's words verbatim and the plan pinned to a commit. `desk.py children` lists running, ready and
   received children. Not in this version: resuming a paused child, scheduling.
 - **Permission wording (item 7).** A refusal is asked once through the app's prompt and retried once
   on a yes; a standing yes is never written into the project's permission settings; adopt never opens
@@ -46,8 +47,12 @@ the digest) and are counted as such. The contract stays under 300 lines.
   `license:` and what it `requires:` (#76); `--help` exits 0 for both scripts; the settings table
   lists every line of the Desk block.
 - **Lessons land (item 9).** Every line under `## Lessons` ends with `→ topic`, `→ house <file>`,
-  `→ issue <ref>` or `→ dropped: <reason>`; the close refuses one without. `Close sections:` lists
-  the headings a note must have.
+  `→ issue <ref>` or `→ dropped: <reason>`; the close refuses one without. `Close note:` names template files (several, separated by `;`)
+  whose `##` headings the note must have: the format is the folder's, not Desks'. Desks ships one
+  opt-in template, `templates/living-memory.md`, based on the public Living Memory Prompt by Verdecito
+  (CC BY 4.0), with a `Source ID / UUID` field (the raw conversation is found by id, never copied) and a
+  separate `living-memory-personal.md` whose section the user opts into and writes or approves.
+  `Close sections:` lists headings directly and wins.
 - **Receive (item 11).** `desk.py receive [<topic>]` lists, or takes a ready topic in all or nothing:
   a scratch merge (or `Receive merge:`), `Receive checks:`, then the target moves; any failure leaves
   the working copy, branch and trailer untouched and the digest shows `blocked`. Exit 0 received,

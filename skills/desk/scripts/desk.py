@@ -623,11 +623,16 @@ def cmd_open(topic, reopen=False, parent=None):
             brief = os.path.join(folder, "brief.md")
             if not os.path.exists(brief):
                 text = open(os.path.join(TEMPLATES, "brief.md"), encoding="utf-8").read()
-                for k, v in (("parent", parent), ("topic", topic), ("level", str(d)), ("reserve", res or "none set")):
+                plan = run(["git", "rev-parse", "--short=12", cut_of(root, cfg, parent)], cwd=root)[1]
+                for k, v in (("parent", parent), ("topic", topic), ("level", str(d)), ("reserve", res or "none set"), ("plan_commit", plan)):
                     text = text.replace("{{" + k + "}}", v)
                 open(brief, "w", encoding="utf-8").write(text)
                 print(f"brief:  {brief} (fill the {{{{...}}}} parts and commit it before the child starts)")
     return 0
+
+
+def cut_of(root, cfg, parent):
+    return topic_branches(root, cfg, slug(parent))[0]
 
 
 def open_working_copy(root, cfg, topic, reopen, parent):
@@ -769,9 +774,36 @@ def label_problems(text, cfg, work, root):
     return out
 
 
+def template_paths(cfg, work, root):
+    """(found files, names that were not found) for `Close note:`, which may list several files separated by `;` or `,`."""
+    found, missing = [], []
+    for rel in [r.strip().strip("`") for r in re.split(r"[;,]", cfg.get("close note", "")) if r.strip()]:
+        hit = next((os.path.join(b, rel) for b in (work, root) if inside(b, rel) and os.path.isfile(os.path.join(b, rel))), None)
+        (found if hit else missing).append(hit or rel)
+    return found, missing
+
+
+def template_path(cfg, work, root):
+    return (template_paths(cfg, work, root)[0] or [None])[0]
+
+
+def required_sections(cfg, work, root):
+    """What the close note must have: `Close sections:` if listed, else every `##` heading of the `Close note:` templates."""
+    listed = [s.strip() for s in cfg.get("close sections", "").split("|") if s.strip()]
+    if listed:
+        return listed
+    out = []
+    for t in template_paths(cfg, work, root)[0]:
+        with open(t, encoding="utf-8") as f:
+            out += [m.group(1).strip() for m in re.finditer(r"^##[ \t]+(.+?)[ \t]*$", f.read(), flags=re.M)]
+    return out
+
+
 def close_problems(cfg, work, root, topic, note_text, readme_text):
     probs = []
-    for sec in [s.strip() for s in cfg.get("close sections", "").split("|") if s.strip()]:
+    for m in template_paths(cfg, work, root)[1]:
+        probs.append(f"`Close note:` names a template that is not there: {m}")
+    for sec in required_sections(cfg, work, root):
         if not section_body(note_text, sec):
             probs.append(f"the close note has no section '{sec}' with something in it")
     probs += lesson_problems(note_text, work, root)
@@ -838,7 +870,7 @@ def cmd_close(topic, how, title):
     notes = sorted(f for f in os.listdir(sdir) if f.endswith(".md")) if os.path.isdir(sdir) else []
     if not notes:
         die(f"no session note yet: write {os.path.join(sdir, '<date>-<title>.md')} from "
-            f"{os.path.join(TEMPLATES, 'session-house.md' if house else 'session.md')}. Every .md in the topic folder must also have no "
+            f"{template_path(cfg, work, root) or os.path.join(TEMPLATES, 'session-house.md' if house else 'session.md')}. Every .md in the topic folder must also have no "
             "{{…}} placeholder left: the README that open made has some.")
     if not open(os.path.join(folder, "README.md"), encoding="utf-8").read().strip():
         die(f"{os.path.join(folder, 'README.md')} is empty: the next session would start from nothing")
@@ -1281,7 +1313,7 @@ def escalation_reasons(root, cfg, topic, sha, target):
                 if extra:
                     out.append(f"the diff touches {len(extra)} file(s) the close note does not declare, e.g. {extra[0]}")
         elif kind == "anomalies" and val.isdigit():
-            rows = [l for l in section_body(note, "Anomalies").splitlines()
+            rows = [l for l in (section_body(note, "Anomalies") or section_body(note, "Anomaly")).splitlines()
                     if l.strip().startswith(("-", "*", "|")) and not re.match(r"^[|\s:-]+$", l) and "none" not in l.lower()]
             rows = [l for l in rows if not re.match(r"^\|\s*(what|anomaly|row)\b", l, re.I)]
             if len(rows) >= int(val):

@@ -107,7 +107,8 @@ All optional; record each with `desk.py set "<Key>" "<value>"`. A folder that re
 | `Reviews:` · `Dispositions:` | names of the answers folder and the dispositions file, `{stem}` for the packet's name |
 | `Quick loop:` | `allowed` lets a reply carry `[quick]`; without it the close refuses that label |
 | `Sessions:` · `Pointers only:` | where session notes live (`notes/{topic}`); with `yes`, a topic folder holds only its README pointer and `status` reports state left outside history |
-| `Close sections:` | headings a close note must have, `Done \| Open items` |
+| `Close note:` | a template file inside the folder; every `##` heading of it is a section the close note must have, so the folder's own note format plugs in (Desks ships none) |
+| `Close sections:` | headings a close note must have (wins over the template), `Done \| Open items` |
 | `Receive into:` · `Receive merge:` · `Receive checks:` · `Differed log:` | where a ready topic lands (default: the base's own name), the command that merges it in the scratch copy, the check that must pass, and a file that collects the rows of "Where Desks differed" |
 | `Escalate:` | a tab-separated rules file for `receive`: `path<TAB>glob`, `doctrine<TAB>glob`, `max-lines<TAB>N`, `undeclared<TAB>*` (the diff touches files the note's "Files" section does not list), `anomalies<TAB>N`; no line means no rules, a named file that is missing means escalate |
 | `Depth cap:` · `Usage reserve:` · `Maintainer prefix:` | nesting depth (default 3, `none`), the reserve per level (`50, 40`, the last repeats), and the branch prefix the digest calls the maintainer lane |

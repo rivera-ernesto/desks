@@ -296,6 +296,65 @@ class Lessons(Topics):
         self.assertIn("no section 'Open items'", r.stderr)
 
 
+class CloseNoteTemplate(Lessons):
+    def test_the_template_the_folder_names_sets_the_required_sections(self):
+        put(os.path.join(self.root, "tpl", "note.md"), "# {{title}}\n\n## Snapshot\n\n## Loose ends\n")
+        commit(self.root, "tpl", "tpl/note.md")
+        self.block_line("- Close note: tpl/note.md")
+        r = self.run_close("- x → topic")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("no section 'Snapshot'", r.stderr)
+        self.assertIn("no section 'Loose ends'", r.stderr)
+
+    def test_control_a_note_with_those_sections_closes(self):
+        put(os.path.join(self.root, "tpl", "note.md"), "# t\n\n## Snapshot\n\n## Loose ends\n")
+        commit(self.root, "tpl", "tpl/note.md")
+        self.block_line("- Close note: tpl/note.md")
+        self.run_close("- x → topic")  # opens the topic, writes a note without them
+        put(os.path.join(self.work("a"), "desks", "a", "sessions", "2026-01-02-second.md"),
+            "# n\n\n## Snapshot\n\nok\n\n## Loose ends\n\nnone\n\n## Lessons\n\n- x → topic\n")
+        self.assertEqual(desk(self.work("a"), "close").returncode, 0)
+
+    def test_a_template_that_is_not_there_is_named(self):
+        self.block_line("- Close note: tpl/missing.md")
+        self.assertIn("is not there", self.run_close("- x → topic").stderr)
+
+    def test_listed_sections_win_over_the_template(self):
+        put(os.path.join(self.root, "tpl", "note.md"), "## Snapshot\n")
+        commit(self.root, "tpl", "tpl/note.md")
+        self.block_line("- Close note: tpl/note.md")
+        self.block_line("- Close sections: Lessons")
+        self.assertEqual(self.run_close("- x → topic").returncode, 0)
+
+
+class LivingMemoryTemplate(Lessons):
+    """The opt-in Living Memory close note, with the personal section opt-in per user."""
+
+    def ship(self, *names):
+        for n in names:
+            put(os.path.join(self.root, "tpl", n), get(os.path.join(os.path.dirname(HERE), "skills", "desk", "templates", n)))
+        commit(self.root, "tpl", "tpl")
+
+    def test_the_shipped_template_requires_its_headings_and_the_source_id(self):
+        self.ship("living-memory.md")
+        self.block_line("- Close note: tpl/living-memory.md")
+        r = self.run_close("- x → topic")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("no section 'What this was really about'", r.stderr)
+        self.assertNotIn("Personal record", r.stderr)  # opt-in: not required unless the user listed it
+        self.assertIn("Source ID / UUID", get(os.path.join(self.root, "tpl", "living-memory.md")))
+
+    def test_listing_the_personal_file_makes_that_section_required(self):
+        self.ship("living-memory.md", "living-memory-personal.md")
+        self.block_line("- Close note: tpl/living-memory.md; tpl/living-memory-personal.md")
+        self.assertIn("no section 'Personal record'", self.run_close("- x → topic").stderr)
+
+    def test_the_template_credits_its_public_source_and_never_copies_transcripts(self):
+        t = get(os.path.join(os.path.dirname(HERE), "skills", "desk", "templates", "living-memory.md"))
+        self.assertIn("CC BY 4.0", t)
+        self.assertIn("never copy the transcript", t)
+
+
 class StateWhereVersioned(Topics):
     def test_open_refuses_a_desk_root_that_git_ignores(self):
         put(os.path.join(self.root, ".gitignore"), "desks/\n")
@@ -360,6 +419,9 @@ class Children(Topics):
         self.assertIn("usage reserve at this level: 50", r.stdout)
         brief = get(os.path.join(self.work("c"), "desks", "c", "brief.md"))
         self.assertIn("Opened by `p` at level 1", brief)
+        self.assertIn("The user's words, verbatim", brief)
+        head = sh(["git", "rev-parse", "--short=12", "desk/p"], self.root).stdout.strip()
+        self.assertIn(f"commit `{head}`", brief)  # the plan is pinned to the parent's head
         out = desk(self.root, "children", "p").stdout
         self.assertIn("c  running  (child of p", out)
 
