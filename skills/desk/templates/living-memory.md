@@ -6,11 +6,12 @@
      overwrite.
      Desks is only the box, and it will keep improving. Each conversation through a Desk happens once, and
      it stays alive for as long as what the person wanted from it has not been met: so keep the source id,
-     and never lose the person's own words.
+     and never lose the person's own words. With `Transcripts: <folder>` set, `close` archives the raw
+     transcript outside this note and records its hash on the line after the source id.
      If a section does not apply, write "not applicable"; do not invent content. -->
 
     Status: draft / active / final
-    Source ID / UUID: {{the session's id, so a later model can find the raw conversation; never copy the transcript}}
+    Source ID / UUID: {{the session's id, so a later model can find the raw conversation; never copy the transcript into this note}}
     Source completeness: full / partial / unknown
     Sensitivity: none / low / medium / high
     Redactions applied: no / yes - what was masked

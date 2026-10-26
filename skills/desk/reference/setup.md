@@ -103,8 +103,9 @@ All optional; record each with `desk.py set "<Key>" "<value>"`. A folder that re
 | `Branch prefix:` · `Ready trailer:` | topic branch names (default `desk/`) and the line that marks a handed-over head (default `Desk-Status: ready`) |
 | `Open:` · `Close:` · `Review:` | `house follow <file>` or `house run <command>`; a `run` command only runs in the form the user confirmed |
 | `House git:` | which git steps the folder's close routine owns; the session does none of them |
-| `Gate:` · `Private lane:` | the folder's privacy gate (`<command> <file> public\|private`; exit 0 and no `REFUSE` first line lets it out, anything else refuses) and its private reviewer (`<command> <packet>`, answer on stdout, exit 3 for too large) |
+| `Gate:` · `Private lane:` | the folder's privacy gate (`<command> <file> public\|private`; only exit 0 with a first output line of exactly `OK` (or `PASS`) lets it out; silence, any other text and any other exit refuse) and its private reviewer (`<command> <packet>`, answer on stdout, exit 3 for too large) |
 | `Reviews:` · `Dispositions:` | names of the answers folder and the dispositions file, `{stem}` for the packet's name |
+| `Transcripts:` | a folder outside every repository (default: unset, off); `close` copies the session's transcript into it and records its sha256 next to the `Source ID` (`reference/close.md` § Transcripts) |
 | `Quick loop:` | `allowed` lets a reply carry `[quick]`; without it the close refuses that label |
 | `Sessions:` · `Pointers only:` | where session notes live (`notes/{topic}`); with `yes`, a topic folder holds only its README pointer and `status` reports state left outside history |
 | `Close note:` | a template file inside the folder; every `##` heading of it is a section the close note must have, so the folder's own note format plugs in (Desks ships none) |

@@ -1,5 +1,7 @@
 # Desks
 
+The user is the source and the purpose of Desks. Desks is only the box, and it will keep improving. Each interaction happens once, belongs to the user, and stays useful for as long as what they wanted from it is not yet met.
+
 **A way of working for Claude Code: work sorted by topic, answers checked by other AI vendors, a written close.**
 
 You say what you want to get done: "I want to sell my old camera." Claude proposes a short name

@@ -15,6 +15,7 @@
     python3 desk.py add   "Setup" "use my researcher agent for reading"   (adds a line, keeps earlier ones)
     python3 desk.py scan                       (the folder's own open, review and close routines)
     python3 desk.py tidy
+    python3 desk.py remove [--yes]             (takes Desks out; lists first; the records and transcript archive always stay)
 
 Three levels, detected, never required:
   folder   not a git repository: the topic is desks/<topic>/ and that is all
@@ -30,10 +31,12 @@ Standard library only.
 """
 import datetime
 import fnmatch
+import hashlib
 import importlib.util
 import json
 import os
 import re
+import secrets
 import shlex
 import shutil
 import subprocess
@@ -370,24 +373,41 @@ class Lock:
         self.mine = f"{os.getpid()} {int(time.time())}"
 
     def stale(self):
-        """The text of the lock when it is stale (so only that text is removed), else ''."""
+        """The text of the lock when it is stale (so only that text is removed), else ''.
+
+        A lock whose text cannot be read (empty, or not a pid and a time) is live until its file is
+        older than the TTL: a writer may be an instant away from finishing, and the file is only ever
+        created whole (see `__enter__`), so an unreadable one is a foreign or damaged file, not a race."""
         try:
             with open(self.path, encoding="utf-8") as f:
                 raw = f.read()
             pid, at = int(raw.split()[0]), int(raw.split()[1])
         except (ValueError, IndexError):
-            return "?"  # unreadable: nobody can be relying on it
+            try:
+                old = time.time() - os.stat(self.path).st_mtime > LOCK_TTL
+            except OSError:
+                return ""  # gone while we looked: just try again
+            return "?" if old else ""
         except OSError:
             return ""  # gone while we looked: just try again
         return raw if time.time() - at > LOCK_TTL or not alive(pid) else ""
+
+    def create(self):
+        """Make the lock file with its content already in it: write a temp file, then link it into place.
+        `link` fails if the lock exists, so there is never a moment when the lock exists and is empty."""
+        tmp = f"{self.path}.{os.getpid()}.{secrets.token_hex(4)}"
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write(self.mine)
+        try:
+            os.link(tmp, self.path)
+        finally:
+            os.unlink(tmp)
 
     def __enter__(self):
         deadline = time.time() + float(os.environ.get("DESK_LOCK_WAIT", "30"))
         while True:
             try:
-                fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-                os.write(fd, self.mine.encode())
-                os.close(fd)
+                self.create()
                 return self
             except FileExistsError:
                 was = self.stale()
@@ -395,7 +415,7 @@ class Lock:
                     try:  # remove it only if it is still the lock we judged stale; a fresh one made meanwhile stays
                         with open(self.path, encoding="utf-8") as f:
                             now = f.read()
-                        if was == "?" or now == was:
+                        if (was == "?" and self.stale() == "?") or now == was:
                             os.unlink(self.path)
                     except OSError:
                         pass
@@ -777,6 +797,8 @@ def label_problems(text, cfg, work, root):
         state = rv.receipt_state(rid.group(1), [work, root, os.getcwd()])
         if not state:
             out.append(f"[{label}] receipt {rid.group(1)} was not found: the label is unverified")
+        elif state["now"] in ("stale", "unverified"):  # whatever the label says, this receipt does not back it
+            out.append(f"[{label}] receipt {rid.group(1)} is {state['now']}: " + state["why"])
         elif label == "converged" and state["now"] != "converged":
             out.append(f"[converged] receipt {rid.group(1)} is {state['now']}: " + state["why"])
         elif label in ("thin", "private-lane-only") and state["label"] not in ("thin", "private-lane-only", "open"):
@@ -833,6 +855,98 @@ def head_trailer_commit(work, cfg, topic):
         die("could not record the ready trailer:\n" + err)
 
 
+# ---- the transcript archive (0.3.0) ---------------------------------------------------------
+
+SOURCE_LINE = re.compile(r"^([ \t]*)Source ID / UUID:[ \t]*(.*)$", re.M)
+SHA_LINE = re.compile(r"^[ \t]*Transcript sha256:.*\n?", re.M)
+UUID = re.compile(r"[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}")
+
+
+def host_projects():
+    """Where the host (Claude Code) keeps its session transcripts. `DESK_TRANSCRIPTS_SRC` overrides it."""
+    return os.environ.get("DESK_TRANSCRIPTS_SRC") or os.path.join(os.path.expanduser("~"), ".claude", "projects")
+
+
+def project_folder_name(path):
+    """The host names a project's folder after its path, every non-alphanumeric character turned into `-`."""
+    return re.sub(r"[^A-Za-z0-9]", "-", os.path.realpath(path))
+
+
+def find_transcript(source_id, folders):
+    """The transcript file for `source_id` (searched in every project folder), else the newest one in the
+    project folders of `folders`; ('', '') when there is none. A `source_id` that is given but not found is
+    never replaced by the newest: that would archive some other conversation under its name."""
+    base = host_projects()
+    if source_id:
+        for d in sorted(os.listdir(base)) if os.path.isdir(base) else []:
+            hit = os.path.join(base, d, source_id + ".jsonl")
+            if os.path.isfile(hit):
+                return hit, source_id
+        return "", source_id
+    best = ""
+    for f in folders:
+        d = os.path.join(base, project_folder_name(f))
+        for n in os.listdir(d) if os.path.isdir(d) else []:
+            if n.endswith(".jsonl") and (not best or os.path.getmtime(os.path.join(d, n)) > os.path.getmtime(best)):
+                best = os.path.join(d, n)
+    return best, os.path.basename(best)[:-6] if best else ""
+
+
+def inside_work_tree(path):
+    """True when `path` (which may not exist yet) lies inside a git working tree."""
+    d = os.path.abspath(path)
+    while d and not os.path.isdir(d):
+        d = os.path.dirname(d)
+    return run(["git", "rev-parse", "--is-inside-work-tree"], cwd=d or "/")[1] == "true"
+
+
+def sha256_of(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def archive_transcript(cfg, root, work, note_path):
+    """With `Transcripts: <directory>`, copy this session's transcript there and write its sha256 next to the
+    source ID in the close note. Off when the line is unset or `off`. Returns the lines to print; dies, before
+    anything is closed, when it cannot do what was asked."""
+    raw = cfg.get("transcripts", "").strip()
+    if not raw or is_off(cfg, "transcripts"):
+        return []
+    target = os.path.abspath(os.path.expanduser(raw))
+    if inside_work_tree(target):
+        die(f"`Transcripts: {raw}` is inside a git working tree, and a transcript must never be copied into one "
+            "(it could be committed and pushed). Choose a folder outside every repository. The Desk is not closed.")
+    with open(note_path, encoding="utf-8") as f:
+        text = f.read()
+    m = SOURCE_LINE.search(text)
+    found = UUID.search(m.group(2)) if m else None
+    src, sid = find_transcript(found.group(0) if found else "", [work, root])
+    if not src:
+        die((f"no transcript for session {sid} was found under {host_projects()}" if sid else
+             f"no transcript was found under {host_projects()} for this project") +
+            ". The host may have deleted it, or the Source ID line names another session. Fix the line, or set "
+            "`Transcripts: off` for this folder. The Desk is not closed.")
+    os.makedirs(target, mode=0o700, exist_ok=True)
+    dest = os.path.join(target, sid + ".jsonl")
+    tmp = f"{dest}.{os.getpid()}.tmp"
+    shutil.copyfile(src, tmp)
+    os.chmod(tmp, 0o600)
+    os.replace(tmp, dest)
+    digest = sha256_of(dest)
+    text = SHA_LINE.sub("", text)
+    if m:
+        m = SOURCE_LINE.search(text)
+        text = text[:m.end()] + f"\n{m.group(1)}Transcript sha256: {digest}" + text[m.end():]
+    else:
+        text = text.rstrip("\n") + f"\n\nSource ID / UUID: {sid}\nTranscript sha256: {digest}\n"
+    with open(note_path, "w", encoding="utf-8") as f:
+        f.write(text)
+    return [f"transcript: copied to {dest} (sha256 {digest[:16]}...), recorded in the close note"]
+
+
 def cmd_close(topic, how, title):
     root, is_git = main_root()
     cfg = settings(root)
@@ -870,6 +984,10 @@ def cmd_close(topic, how, title):
         die(f"no open desk named {topic}")
     if not branch and lv != "folder":
         _, branch, _ = run(["git", "branch", "--show-current"], cwd=work)
+    if not house and lv != "folder" and topic_of_branch(cfg, branch) != topic:
+        # a session sitting on main, or on another topic's branch, must never have that branch pushed or merged
+        die(f"the branch checked out in {work} is {branch or 'none'}, which is not the branch of topic {topic}. "
+            "Run the close from that topic's working copy. Nothing was pushed or merged.")
     folder = os.path.join(work, droot, topic)
     if not os.path.isfile(os.path.join(folder, "README.md")):
         where = "the working copy the folder's own opener made, the one you work in" if open_mode(cfg)[0] == "follow" \
@@ -897,6 +1015,15 @@ def cmd_close(topic, how, title):
     probs = close_problems(cfg, work, root, topic, note_text, open(os.path.join(folder, "README.md"), encoding="utf-8").read())
     if probs:
         die("the close is refused until each of these is fixed. The Desk is not closed:\n" + "\n".join("  - " + p for p in probs))
+    archived = archive_transcript(cfg, root, work, os.path.join(sdir, notes[-1]))
+    for line in archived:
+        print(line)
+    if archived and lv != "folder":
+        # The close note now carries the hash. Desks saves that one file itself, even under a house close (the only
+        # git step it takes there): the routine that follows must find a clean tree, and the hash must reach the branch.
+        note_rel = os.path.relpath(os.path.join(sdir, notes[-1]), work)
+        if run(["git", "diff", "--quiet", "--", note_rel], cwd=work)[0] != 0:
+            run(["git", "commit", "-q", "--only", "-m", f"desk: {topic} transcript archived", "--", note_rel], cwd=work)
     if house:
         return close_house(root, topic, folder, work, lv, cfg, notes[-1], note_text, mode, arg, cfg.get("close", "").strip())
     if lv == "folder":
@@ -907,6 +1034,9 @@ def cmd_close(topic, how, title):
     if dirty:
         die("uncommitted files in the working copy. Commit the ones you wrote, by path:\n" + dirty)
     base = receive_target(root, cfg, branch)
+    if base is None:
+        die("its parent topic's branch is gone, so there is nothing to merge this child into or open a pull request against. "
+            "Reopen the parent or re-parent the child by hand. Nothing was pushed or merged.")
     title = title or f"{topic}: {notes[-1][:-3]}"
     if how == "--pr":
         if lv != "github":
@@ -925,12 +1055,12 @@ def cmd_close(topic, how, title):
         print("The working copy stays until the pull request is merged; then run `desk.py tidy`.")
         closed_line(topic, "sent for review as a pull request, not merged yet")
         return 0
-    head_trailer_commit(work, cfg, topic)
     _, cur, _ = run(["git", "branch", "--show-current"], cwd=root)
     _, main_dirty, _ = run(["git", "status", "--porcelain", "--untracked-files=no"], cwd=root)
     if cur != base or main_dirty:
         die(f"the main folder must be on {base} with no half-finished changes before merging (it is on {cur or 'no branch'}"
             f"{', with changes' if main_dirty else ''}). Nothing was changed.")
+    head_trailer_commit(work, cfg, topic)
     rc, _, err = run(["git", "merge", "--no-ff", branch, "-m", f"desk {title}"], cwd=root)
     if rc != 0:
         run(["git", "merge", "--abort"], cwd=root)
@@ -1003,6 +1133,11 @@ def close_house(root, topic, folder, work, lv, cfg, note, note_text, mode, arg, 
             print("warning: the working copy has files nobody saved; if the routine should have saved them, it did not:\n" +
                   "\n".join("    " + l for l in dirty.splitlines()[:8]))
         if not head_ready(work, cfg, "HEAD"):
+            if mode == "run":  # Desks can see this one, so it is not a warning: the topic would be invisible to receive and digest
+                print(f"NOT RECORDED as closed: the routine ran, but the branch head carries no `{trailer_of(cfg)}` line, so "
+                      "`desk.py receive` and `digest` cannot see this topic as ready. Make the routine commit it, then run the close again.",
+                      file=sys.stderr)
+                return 8
             print(f"warning: the branch head carries no `{trailer_of(cfg)}` line, so `desk.py receive` and `digest` cannot see this topic as ready.")
     step = next_step(folder)
     if step:
@@ -1110,7 +1245,7 @@ def cmd_set(key, value, append=False):
 KINDS = {
     "open": r"\b(open|opens|start|starts|begin|new topic|worktree|abre|abrir|abrí|inicia|iniciar|nuevo)\b",
     "review": r"\b(review|reviews|reviewer|reviewers|gate|privacy|revisa|revisar|revisión|compuerta|privacidad)\b",
-    "close": r"\b(close|closes|closing|closeout|wrap|wrap-up|hand ?off|handoff|cierra|cierre|cerrar|traspaso)\b",
+    "close": r"\b(close|closes|closing|closeout|wrap|wrap-up|hand ?off|handoff|cerrar|traspaso)\b",
 }
 READ_FIRST = re.compile(r"(read|lee|leer|lea)\b[^\n]{0,80}?`?\.?/?([\w./-]+\.md)`?[^\n]{0,40}?\b(first|primero|antes)\b", re.I)
 SCRIPT_DIRS = ("Scripts", "scripts", "bin", "tools", "routines", "hooks")
@@ -1302,19 +1437,25 @@ def escalation_reasons(root, cfg, topic, sha, target):
     notes = sorted(n for n in listing.splitlines() if n.endswith(".md"))
     note = run(["git", "show", f"{sha}:{notes[-1]}"], cwd=root)[1] if notes else ""
     own = (f"{droot}/{topic}/", sdir + "/")
-    out = []
+    out, ruled = [], 0
     for raw in open(path, encoding="utf-8").read().splitlines():
         if not raw.strip() or raw.startswith("#"):
             continue
         kind, _, rest = raw.partition("\t")
         val = rest.split("\t")[0].strip()
         kind = kind.strip().lower()
+        ruled += 1
         if kind in ("path", "doctrine"):
+            if not val:
+                out.append(f"the {kind} rule has no pattern (the answer is escalate, not skip)")
             for n in changed:
-                if fnmatch.fnmatch(n, val):
+                if val and fnmatch.fnmatch(n, val):
                     out.append(f"{n} matches {kind} rule `{val}`")
-        elif kind == "max-lines" and val.isdigit() and size > int(val):
-            out.append(f"the diff is {size} lines, over the limit of {val}")
+        elif kind == "max-lines":
+            if not val.isdigit():
+                out.append(f"the max-lines rule has no number: `{val}` (the answer is escalate, not skip)")
+            elif size > int(val):
+                out.append(f"the diff is {size} lines, over the limit of {val}")
         elif kind == "undeclared":
             body = section_body(note, "Files")
             declared = {re.sub(r"^[-*]\s*`?([^`\s]+)`?.*$", r"\1", l.strip()) for l in body.splitlines() if l.strip().startswith(("-", "*"))}
@@ -1324,12 +1465,20 @@ def escalation_reasons(root, cfg, topic, sha, target):
                 extra = [n for n in changed if n not in declared and not n.startswith(own)]
                 if extra:
                     out.append(f"the diff touches {len(extra)} file(s) the close note does not declare, e.g. {extra[0]}")
-        elif kind == "anomalies" and val.isdigit():
+        elif kind == "anomalies":
+            if not val.isdigit():
+                out.append(f"the anomalies rule has no number: `{val}` (the answer is escalate, not skip)")
+                continue
             rows = [l for l in (section_body(note, "Anomalies") or section_body(note, "Anomaly")).splitlines()
-                    if l.strip().startswith(("-", "*", "|")) and not re.match(r"^[|\s:-]+$", l) and "none" not in l.lower()]
+                    if l.strip().startswith(("-", "*", "|")) and not re.match(r"^[|\s:-]+$", l)
+                    and not re.search(r"\bnone\b", l, re.I)]  # the whole word: "nonexistent file" is an anomaly
             rows = [l for l in rows if not re.match(r"^\|\s*(what|anomaly|row)\b", l, re.I)]
             if len(rows) >= int(val):
                 out.append(f"the close note reports {len(rows)} anomaly row(s)")
+        else:
+            out.append(f"the rules file has a rule this script does not know: `{kind}` (the answer is escalate, not skip)")
+    if not ruled:
+        out.append(f"the rules file `{spec}` has no rules (the answer is escalate, not skip)")
     return out
 
 
@@ -1575,6 +1724,43 @@ def cmd_migrate(topic):
     return 0
 
 
+def cmd_remove(yes):
+    """Take Desks out: the skill folder, the three `desk-*.md` agents and the marked block. Nothing else.
+
+    The user's records (the Desk root and every session note in it), the transcript archive
+    (`Transcripts:`), the review key and private terms in `~/.config/desk/` are theirs: this never
+    reads those paths to delete them, and says that they stay. Without `--yes` it only lists."""
+    skill = os.path.dirname(HERE)
+    dest = os.path.dirname(os.path.dirname(skill))
+    root, _ = main_root()
+    cfg = settings(root)
+    bf = block_file(root)
+    gone = [skill] + sorted(os.path.join(dest, "agents", n) for n in (os.listdir(os.path.join(dest, "agents")) if os.path.isdir(os.path.join(dest, "agents")) else [])
+                            if n.startswith("desk-") and n.endswith(".md"))
+    print("would remove:" if not yes else "removing:")
+    for g in gone:
+        print("  " + g)
+    if bf:
+        print(f"  the marked Desk block in {bf}")
+    print("stays, because it is yours: the Desk root " + os.path.join(root, cfg.get("desk root", "desks/").strip("/")) +
+          (", the transcript archive " + os.path.expanduser(cfg["transcripts"]) if cfg.get("transcripts", "").strip() and not is_off(cfg, "transcripts") else "") +
+          ", ~/.config/desk/. The records are plain Markdown; any other tool reads them.")
+    if not yes:
+        print("Nothing was removed. Run it again with --yes once the user has said yes.")
+        return 0
+    for g in gone:
+        if os.path.islink(g) or os.path.isfile(g):
+            os.unlink(g)
+        else:
+            shutil.rmtree(g, ignore_errors=True)
+    if bf:
+        with open(bf, encoding="utf-8") as f:
+            text = f.read()
+        with open(bf, "w", encoding="utf-8") as f:
+            f.write(re.sub(r"\n*" + BLOCK.pattern + r"\n*", "\n\n", text, flags=re.S).strip("\n") + "\n")
+    return 0
+
+
 def flag(a, name, takes=False):
     """(present, value) for `--name [value]`; the pair is removed from `a`."""
     if name not in a:
@@ -1633,6 +1819,8 @@ def main(a):
         return cmd_scan()
     if cmd == "tidy":
         return cmd_tidy()
+    if cmd == "remove":
+        return cmd_remove("--yes" in a[2:])
     print(__doc__, file=sys.stderr)
     return 2
 

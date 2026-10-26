@@ -219,7 +219,7 @@ class Labels(Sandbox):
         shown = self.run_main("--verify", rid, self.dir)[1]
         self.assertIn("dispositions missing", shown)
         self.assertIn("label now: open", shown)
-        put(os.path.join(self.dir, "reviews", "2026-01-01-price-dispositions.md"), "| # | finding | disposition |\n|---|---|---|\n| 1 | too long | adopted |\n")
+        put(os.path.join(self.dir, "reviews", "2026-01-01-price-dispositions.md"), "| # | finding | disposition |\n|---|---|---|\n| 1 | too long | accepted |\n")
         shown = self.run_main("--verify", rid, self.dir)[1]
         self.assertIn("dispositions present", shown)
         self.assertIn("label now: converged", shown)
@@ -318,7 +318,7 @@ class HouseHooks(Sandbox):
         return f'"{sys.executable}" "{p}"'
 
     def test_a_gate_that_passes_lets_the_packet_go_and_the_built_in_scan_stands_down(self):
-        gate = self.script("gate.py", "print('ok')")
+        gate = self.script("gate.py", "print('OK')")
         self.folder(f"- Gate: {gate}")
         self.conf("openrouter.key", "k")
         os.environ["DESK_REVIEW_N"] = "3"
@@ -372,7 +372,7 @@ class HouseHooks(Sandbox):
         self.assertEqual(lines, ["public:my focus line", "private:my focus line"])
 
     def test_public_refused_private_answers_is_partial_and_exits_nonzero(self):
-        gate = self.script("gate.py", "import sys; print('ok'); sys.exit(0 if sys.argv[2] == 'private' else 1)")
+        gate = self.script("gate.py", "import sys; print('OK'); sys.exit(0 if sys.argv[2] == 'private' else 1)")
         lane = self.script("lane.py", f"print({LONG!r})")
         self.folder(f"- Gate: {gate}", f"- Private lane: {lane}")
         self.conf("openrouter.key", "k")
@@ -425,24 +425,116 @@ class Receipts(Sandbox):
     def test_closed_only_when_every_row_has_a_disposition(self):
         packet, rid = self.converge()
         d = packet[:-3] + "-dispositions.md"
-        put(d, "| # | finding | disposition |\n|---|---|---|\n| 1 | a | adopted |\n| 2 | b | TODO |\n")
+        put(d, "| # | finding | disposition |\n|---|---|---|\n| 1 | a | accepted |\n| 2 | b | TODO |\n")
         self.assertEqual(review.receipt_state(rid, [self.dir])["now"], "open")
-        put(d, "| # | finding | disposition |\n|---|---|---|\n| 1 | a | adopted |\n| 2 | b | rejected: out of scope |\n")
+        put(d, "| # | finding | disposition |\n|---|---|---|\n| 1 | a | accepted |\n| 2 | b | rejected: out of scope |\n")
         self.assertEqual(review.receipt_state(rid, [self.dir])["now"], "converged")
         put(d, "# no rows at all\n")
         self.assertEqual(review.receipt_state(rid, [self.dir])["now"], "open")
 
     def test_two_tables_in_one_file_are_both_checked(self):
         packet, rid = self.converge()
-        put(packet[:-3] + "-dispositions.md", "| # | f | disposition |\n|---|---|---|\n| 1 | a | adopted |\n\nRound 2\n\n| # | f | disposition |\n|---|---|---|\n| 2 | b |  |\n")
+        put(packet[:-3] + "-dispositions.md", "| # | f | disposition |\n|---|---|---|\n| 1 | a | accepted |\n\nRound 2\n\n| # | f | disposition |\n|---|---|---|\n| 2 | b |  |\n")
         self.assertEqual(review.receipt_state(rid, [self.dir])["now"], "open")
 
     def test_a_changed_packet_is_not_covered_by_the_receipt(self):
         packet, rid = self.converge()
-        put(packet[:-3] + "-dispositions.md", "| # | f | disposition |\n|---|---|---|\n| 1 | a | adopted |\n")
+        put(packet[:-3] + "-dispositions.md", "| # | f | disposition |\n|---|---|---|\n| 1 | a | accepted |\n")
         self.assertEqual(review.receipt_state(rid, [self.dir])["now"], "converged")
         put(packet, "A different question entirely.\n")
         self.assertEqual(review.receipt_state(rid, [self.dir])["now"], "stale")
+
+
+class GateAndLaneStrictness(Sandbox):
+    """Fixes from the 0.3.0 code review: the gate passes only on an explicit OK, and a private shortcut with
+    no lane behind it is not a way around a refused packet."""
+
+    def gate(self, body):
+        p = os.path.join(self.dir, "g.py")
+        put(p, body)
+        return f'"{sys.executable}" "{p}"'
+
+    def test_only_an_explicit_ok_or_pass_lets_a_packet_go(self):
+        for body, passes in (("print('OK')", True), ("print('PASS')", True), ("print('ok: public tier')", False),
+                             ("print('warning: could not load the list')", False), ("print('Error: boom')", False),
+                             ("print('OK')\nimport sys; sys.exit(1)", False), ("pass", False)):
+            ok, why = review.run_gate(self.gate(body), "text", "public", self.dir)
+            self.assertEqual(ok, passes, body)
+
+    def test_a_refused_packet_with_a_shortcut_but_no_lane_exits_one_and_asks_nobody(self):
+        self.conf("openrouter.key", "k")
+        self.conf("apple-shortcut", "Some Shortcut")
+        old = os.getcwd()
+        os.chdir(self.dir)
+        self.addCleanup(os.chdir, old)
+        gate = self.gate("print('REFUSE: private')\nimport sys; sys.exit(1)")
+        put(os.path.join(self.dir, "CLAUDE.md"), f"<!-- desk:start -->\n- Gate: {gate}\n<!-- desk:end -->\n")
+        calls = self.fake({"alpha": LONG})
+        code, out, err = self.run_main(self.packet())
+        self.assertEqual(code, 1)
+        self.assertNotIn("Asking the private lane only", err)
+        self.assertIn("no private lane is set up", err)
+        self.assertEqual(calls, [])
+
+    def test_control_a_gate_that_says_ok_sends_it(self):
+        self.conf("openrouter.key", "k")
+        os.environ["DESK_REVIEW_N"] = "3"
+        old = os.getcwd()
+        os.chdir(self.dir)
+        self.addCleanup(os.chdir, old)
+        gate = self.gate("print('OK')")
+        put(os.path.join(self.dir, "CLAUDE.md"), f"<!-- desk:start -->\n- Gate: {gate}\n<!-- desk:end -->\n")
+        calls = self.fake({"alpha": LONG, "beta": LONG, "epsilon": LONG})
+        self.assertEqual(self.run_main(self.packet())[0], 0)
+        self.assertGreaterEqual(len(calls), 3)
+
+
+class ReceiptStrictness(Sandbox):
+    def converge(self):
+        self.conf("openrouter.key", "k")
+        os.environ["DESK_REVIEW_N"] = "3"
+        self.fake({"alpha": LONG, "beta": LONG, "epsilon": LONG})
+        packet = self.packet()
+        _, out, _ = self.run_main(packet)
+        return packet, out.split("receipt ")[1].split()[0]
+
+    def test_a_receipt_is_never_found_by_walking_the_tree(self):
+        packet, rid = self.converge()
+        os.unlink(os.path.join(review.CONF, "receipts.tsv"))  # the index is the only way in
+        self.assertIsNone(review.receipt_state(rid, [self.dir]))
+        forged = os.path.join(self.dir, "forged", "receipt-0123456789.txt")
+        os.makedirs(os.path.dirname(forged))
+        put(forged, "receipt 0123456789\npacket x\nlabel converged\n")
+        self.assertIsNone(review.receipt_state("0123456789", [self.dir]))
+
+    def test_a_missing_packet_is_stale_and_verification_fails_the_label(self):
+        packet, rid = self.converge()
+        put(packet[:-3] + "-dispositions.md", "| # | f | disposition |\n|---|---|---|\n| 1 | a | accepted |\n")
+        self.assertEqual(review.receipt_state(rid)["now"], "converged")
+        os.unlink(packet)
+        self.assertEqual(review.receipt_state(rid)["now"], "stale")
+        self.assertEqual(self.run_main("--verify", rid)[0], 1)
+
+    def test_a_receipt_moved_out_of_its_packets_folder_does_not_verify(self):
+        packet, rid = self.converge()
+        put(packet[:-3] + "-dispositions.md", "| # | f | disposition |\n|---|---|---|\n| 1 | a | accepted |\n")
+        src = os.path.join(packet[:-3] + "-reviews", f"receipt-{rid}.txt")
+        dst = os.path.join(self.dir, "elsewhere", f"receipt-{rid}.txt")
+        os.makedirs(os.path.dirname(dst))
+        os.replace(src, dst)
+        put(os.path.join(review.CONF, "receipts.tsv"), f"{rid}\t{dst}\n")
+        self.assertEqual(review.receipt_state(rid)["now"], "unverified")
+
+    def test_a_disposition_needs_a_recognised_status_word(self):
+        packet, rid = self.converge()
+        d = packet[:-3] + "-dispositions.md"
+        put(d, "| # | f | disposition |\n|---|---|---|\n| 1 | a | x |\n")
+        self.assertEqual(review.receipt_state(rid)["now"], "open")
+        put(d, "| # | f | disposition |\n|---|---|---|\n| 1 | a | done |\n")
+        self.assertEqual(review.receipt_state(rid)["now"], "open")
+        for word in ("Accepted, fixed in abc", "rejected: no", "Partly", "Left to PM", "noted"):
+            put(d, f"| # | f | disposition |\n|---|---|---|\n| 1 | a | {word} |\n")
+            self.assertEqual(review.receipt_state(rid)["now"], "converged", word)
 
 
 class Background(Sandbox):

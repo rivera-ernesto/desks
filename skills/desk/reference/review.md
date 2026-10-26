@@ -76,7 +76,9 @@ recommendation. The exceptions are the five kinds in § 4 of the contract.
   family. Building the Shortcut: `reference/setup.md`.
 - **The folder's own gate and private reviewer.** `Gate:` and `Private lane:` in the Desk block
   (`reference/setup.md`) replace the built-in scan and the Shortcut: one privacy rule, kept by the
-  folder, applied to both tiers. A gate that cannot run refuses.
+  folder, applied to both tiers. The gate is run as `<command> <file> public|private` and lets a tier out only by
+  exit 0 with a first output line of exactly `OK` (or `PASS`). A gate that cannot run, says nothing, says anything
+  else or exits non-zero refuses. Exit codes of every command: `reference/exit-codes.md`.
 - **No lanes at all.** Give the packet to a fresh `desk-reader` subagent with "attack this".
   Label `[same-vendor]`.
 
@@ -86,5 +88,5 @@ A family counts only when its answer, after tool calls and reasoning blocks are 
 200 characters of text. An empty answer, a trace with no answer, or an unclosed reasoning block does
 not count, and the family is replaced from the live free list until three have answered.
 Exit 0: three or more answered. Exit 6: fewer did, or only the private lane (label `[thin]`).
-Exit 1: the gate refused. Exit 4: nobody answered. `--background` returns at once and a watchdog
+Exit 1: the gate refused (also when only a private shortcut is set and no private lane can take the packet). Exit 4: nobody answered. `--background` returns at once and a watchdog
 (`DESK_REVIEW_WATCHDOG`, 1500 s) stops a run that hangs; read it with `--status <packet>`.

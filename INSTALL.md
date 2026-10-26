@@ -124,6 +124,8 @@ touched by an update.
 
 ## Removing
 
-Delete `DEST/skills/desk/`, the three `desk-*.md` files in `DEST/agents/`, and the marked block
-in `CLAUDE.md`. Your `desks/` folder is yours; keep it or delete it. The review key and private
-terms live in `~/.config/desk/`.
+In a session, type `desk remove`: it lists what it would take out and removes it on your yes. By hand:
+delete `DEST/skills/desk/`, the three `desk-*.md` files in `DEST/agents/`, and the marked block
+in `CLAUDE.md`. Nothing else is Desks'. Your records are plain Markdown in your own `desks/` folder (or
+wherever `Desk root:` and `Sessions:` point), and they are yours: uninstalling leaves them in place, and
+so it leaves the folder named by `Transcripts:`. The review key and private terms live in `~/.config/desk/`.

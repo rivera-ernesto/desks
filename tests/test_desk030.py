@@ -11,7 +11,7 @@ import time
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from test_desk import Base, desk, get, sh, DESK  # noqa: E402
+from test_desk import Base, desk, get, sh, DESK, READY_RUN  # noqa: E402
 import test_desk  # noqa: E402
 
 
@@ -109,7 +109,7 @@ class OneOpener(Topics):
         self.assertEqual(sh(["git", "worktree", "list"], self.root).stdout.count("desk-a"), 1)
 
     def test_close_finds_the_topic_from_the_working_copy(self):
-        desk(self.root, "set", "Close", "house run true")
+        desk(self.root, "set", "Close", "house run " + READY_RUN)
         desk(self.root, "open", "a")
         self.fill("a")
         put(os.path.join(self.root, "x"), "")  # an unrelated file in the main folder changes nothing
@@ -173,10 +173,29 @@ class Hooks(Topics):
         desk(self.root, "open", "a")
         self.fill("a")
         r = desk(self.work("a"), "close")
-        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(r.returncode, 8, r.stderr)  # a `run` routine that left no ready trailer is not a close
         self.assertIn("owns merge, push and rename", r.stdout)
+        self.assertIn("carries no `Desk-Status: ready` line", r.stderr)
+        self.assertNotIn("Closed line", r.stdout)
+
+    def test_control_a_run_routine_that_commits_the_trailer_closes_with_exit_0(self):
+        desk(self.root, "set", "Close", "house run " + READY_RUN)
+        desk(self.root, "open", "a")
+        self.fill("a")
+        r = desk(self.work("a"), "close")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("Closed line", r.stdout)
+
+    def test_a_follow_routine_without_the_trailer_only_warns(self):
+        put(os.path.join(self.root, "close.md"), "do the close\n")
+        sh(["git", "add", "close.md"], self.root)
+        commit(self.root, "close routine")
+        desk(self.root, "set", "Close", "house follow close.md")
+        desk(self.root, "open", "a")
+        self.fill("a")
+        r = desk(self.work("a"), "close")
+        self.assertEqual(r.returncode, 0, r.stderr)  # Desks cannot see a follow routine, so it warns
         self.assertIn("carries no `Desk-Status: ready` line", r.stdout)
-        self.assertIn("next step:", r.stdout)
 
     def test_get_prints_a_recorded_answer(self):
         self.block_line("- Base: origin/development")
@@ -202,16 +221,17 @@ class Labels(Topics):
         import hashlib
         disp = os.path.join(d, "p-dispositions.md")
         if closed is not None:
-            put(disp, "| # | finding | disposition |\n|---|---|---|\n| 1 | a | " + ("adopted" if closed else "TODO") + " |\n")
+            put(disp, "| # | finding | disposition |\n|---|---|---|\n| 1 | a | " + ("accepted" if closed else "TODO") + " |\n")
         rid = "abcdef0123"
-        put(os.path.join(d, f"receipt-{rid}.txt"), f"receipt {rid}\npacket {packet}\npacket_sha256 {hashlib.sha256(packet_text.encode()).hexdigest()}\n"
+        rf = os.path.join(d, "p-reviews", f"receipt-{rid}.txt")  # the packet's own review folder
+        put(rf, f"receipt {rid}\npacket {packet}\npacket_sha256 {hashlib.sha256(packet_text.encode()).hexdigest()}\n"
             f"label {label}\nfamilies_answered 3\nfamilies a b c\ndispositions {disp}\n")
-        put(os.path.join(self._conf.name, "receipts.tsv"), f"{rid}\t{os.path.join(d, 'receipt-' + rid + '.txt')}\n")
+        put(os.path.join(self._conf.name, "receipts.tsv"), f"{rid}\t{rf}\n")
         return rid
 
     def close(self):
-        self.block_line("- Close: house run true")
-        desk(self.root, "set", "Close", "house run true")
+        self.block_line("- Close: house run " + READY_RUN)
+        desk(self.root, "set", "Close", "house run " + READY_RUN)
         return desk(self.work("a"), "close")
 
     def start(self):
@@ -265,8 +285,8 @@ class Labels(Topics):
 
 class Lessons(Topics):
     def run_close(self, lesson, extra=""):
-        self.block_line("- Close: house run true")
-        desk(self.root, "set", "Close", "house run true")
+        self.block_line("- Close: house run " + READY_RUN)
+        desk(self.root, "set", "Close", "house run " + READY_RUN)
         desk(self.root, "open", "a")
         folder = self.fill("a")
         put(os.path.join(folder, "sessions", "2026-01-02-second.md"), f"# n\n\n## Lessons\n\n{lesson}\n{extra}")
@@ -397,8 +417,8 @@ class StateWhereVersioned(Topics):
 
     def test_the_session_notes_folder_is_configurable(self):
         self.block_line("- Sessions: notes/{topic}")
-        self.block_line("- Close: house run true")
-        desk(self.root, "set", "Close", "house run true")
+        self.block_line("- Close: house run " + READY_RUN)
+        desk(self.root, "set", "Close", "house run " + READY_RUN)
         desk(self.root, "open", "a")
         self.assertEqual(desk(self.work("a"), "close").returncode, 2 - 1)  # no note in notes/a yet: refused
         put(os.path.join(self.work("a"), "notes", "a", "2026-01-01-x.md"), "# x\n")

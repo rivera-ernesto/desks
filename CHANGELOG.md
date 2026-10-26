@@ -4,6 +4,24 @@
 
 ### 0.3.0 candidate
 
+Fixes from the code review of this candidate, in one list:
+
+- `close` refuses unless the checked-out branch is the closing topic's own (a session on `main` can no
+  longer have `main` pushed or merged); it stops with a clear message when a child's parent branch is
+  gone; and it checks the main folder is on the base before it commits the ready trailer.
+- `Escalate:` fails closed: an unknown rule kind, a bad number, an empty rules file and a rule with no
+  pattern escalate; "none" in an anomaly row matches as a whole word only.
+- The `open` lock is created with its content in one step (a temp file linked into place); an unreadable
+  lock counts as live until it is older than the TTL.
+- A review receipt is found only through the index and only from its packet's own review folder; a missing
+  packet is stale; a disposition needs a status word. The gate passes only on `OK` or `PASS`. A refused
+  packet with a private shortcut but no private lane exits 1 with an accurate message.
+- One table of exit codes per command (`reference/exit-codes.md`); `--alongside` is documented as self-declared.
+- `desk.py remove` lists, and on `--yes` removes, only the skill, its agents and its block; records and the
+  transcript archive always stay. New setting `Transcripts: <folder>` (off by default): `close` copies the
+  session's transcript there (never into a git working tree) and records its sha256 next to the Source ID.
+- The Spanish scan keywords `cierra` and `cierre` are gone, so "commands are in English only" is true.
+
 Principle: Desks owns the mechanism; a folder keeps only its policy, as lines in the Desk block. Every
 item below removes a manual step a folder had to script itself. Net surface: the scripts grow by
 about 900 lines for twelve items; items 6 and 12 are new machinery (a thin delegation contract and
@@ -19,19 +37,24 @@ the digest) and are counted as such. The contract stays under 300 lines.
 - **Hooks are first-class (item 2).** `Open:`, `Review:` and `Close:` take `house follow <file>` or
   `house run <command>`; a `run` command only runs in the form the user confirmed (per step).
   `House git:` states which git steps the folder's routine owns. After a house close Desks still
-  warns about unsaved files and a missing ready trailer, and prints the next step.
-- **One review lane (item 3).** `Gate:` (run as `<command> <file> public|private`; any non-zero exit,
-  a first line starting `REFUSE`, or a gate that cannot run, refuses) replaces the built-in scan and
+  warns about unsaved files and prints the next step; a `follow` close without the ready trailer warns,
+  and a `run` close without it exits 8 and is not recorded as closed.
+- **One review lane (item 3).** `Gate:` (run as `<command> <file> public|private`; it lets a tier out
+  only by exit 0 and a first line of exactly `OK` or `PASS`: silence, any other text, a non-zero exit or
+  a gate that cannot run refuses) replaces the built-in scan and
   the private-terms list when present. `Private lane:` is a command reading the packet path, answer on
   stdout, exit 3 for too large. `Reviews:` and `Dispositions:` name the folder and file. A family
   counts only when its answer, minus tool calls and reasoning blocks, has 200 characters; failed
   families are replaced from the live list until three answered; fewer than three, or only the
   private lane, exits 6 and is `[thin]`. `--verify` works from any folder (receipts are indexed in
-  `~/.config/desk/receipts.tsv`), says `converged` only when every row of the dispositions table has
-  a disposition and the packet is unchanged. `--background` returns at once and a watchdog stops a
+  `~/.config/desk/receipts.tsv`; the tree is never searched, and a receipt counts only from its own
+  packet's review folder), says `converged` only when every row of the dispositions table starts with
+  a status word (accepted, rejected, partly, left, noted) and the packet is present and unchanged. `--background` returns at once and a watchdog stops a
   hung run; `--status` reads it; `--help` exits 0.
 - **Review is not skippable (item 4).** `desk.py close` refuses a `[converged]`, `[thin]` or `[open]`
-  label with no verifiable receipt, a stale packet, and `[quick]` unless `- Quick loop: allowed`.
+  label with no verifiable receipt, a stale or missing packet, and `[quick]` unless `- Quick loop: allowed`.
+  `[open]` is a review that ran with enough families but has findings without a disposition yet; it is
+  not a finish line, and `close` takes it only with a receipt that checks out.
 - **State only where it is versioned (item 5).** `open` and `note` refuse a path git ignores;
   `Pointers only: yes` seeds only the README pointer; `status` reports state the main folder holds;
   `desk.py migrate <topic>` copies it into the working copy; `Sessions:` moves the session notes.

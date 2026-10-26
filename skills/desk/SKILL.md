@@ -30,7 +30,7 @@ file is the whole contract. Read it once when the Desk opens and follow it until
 A first message that is clearly work on a topic, with no command, is still a Desk: suggest a short
 name (or an existing topic that fits), confirm it, and open it. Reading and talking need no topic.
 
-The commands are in English. One plainly given in the user's language ("cierra el desk"), or with
+The commands are in English. One plainly given in the user's language ("close the desk", said in their own words), or with
 a word the Desk block records as theirs, is that command. Ordinary talk is not: "enough for today"
 is a reason to offer the close in one line, never to start it.
 
@@ -157,6 +157,7 @@ session. In short:
   what every Claude model would miss, and the user should know that. Offer `desk setup` once.
 
 **Labels.** `[converged]` at least three families answered and every finding has a disposition ·
+`[open]` the review ran and enough families answered, but some finding has no disposition yet: not finished, and `close` takes it only with a receipt that checks out ·
 `[thin]` fewer than three families answered · `[same-vendor]` reviewed by a Claude subagent only ·
 `[unreviewed]` no review ran yet. They come from the receipt, never from typing: `desk.py close`
 refuses a `[converged]`, `[thin]` or `[open]` label with no receipt that checks out (`review.py
@@ -230,6 +231,8 @@ To close, read `reference/close.md`. In short:
 4. Propose, do not impose, anything you noticed about how the user works (`reference/profile.md`).
 5. Save your files, then `desk.py close <topic>`, no flag. With no `Close:` line it stops: ask the
    setup question, record the answer, run it again. It refuses while placeholders or unsaved files remain.
+   With `Transcripts: <folder>` in the Desk block it also copies this session's transcript there and writes
+   its hash next to the `Source ID` (`reference/close.md` § Transcripts).
 
 Where the Desk block says `Close: house …`, the folder's own routine is the close and steps 1 to 5
 give way: run it to the end, then write the short note from `templates/session-house.md`, run

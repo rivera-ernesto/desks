@@ -17,8 +17,8 @@ Setup lives outside any project, so a key is never committed by accident:
     ~/.config/desk/apple-shortcut   name of a macOS Shortcut (private lane)
 
 A folder with its own rules says so in the Desk block (`desk.py set`):
-    Gate: <command>          run as `<command> <file> public|private`; exit 0 and a first line (any text) that
-                             does not start with REFUSE lets that tier go, anything else refuses (fails closed).
+    Gate: <command>          run as `<command> <file> public|private`; exit 0 and a first line of exactly `OK`
+                             (or `PASS`) lets that tier go, anything else refuses (fails closed).
                              When there is a gate, the built-in scan and the private-terms list stand down.
     Private lane: <command>  run as `<command> <packet>`, answer on stdout; exit 3 means "packet too large"
     Reviews: <name>          the answers folder, `{stem}` is the packet's name (default `{stem}-reviews`)
@@ -30,8 +30,13 @@ DESK_REVIEW_WATCHDOG seconds before a background run is stopped (1500).
 
 Exit codes: 0 enough families answered (the label is open until every finding has a disposition)
             1 packet refused by the gate or the built-in scan - 2 usage - 3 no key and no other lane
-            4 nobody answered - 6 fewer families answered than wanted, or only the private lane
+            4 nobody answered - 5 not sent: the folder reviews its own way, or its Desk block cannot be read
+            6 fewer families answered than wanted, or only the private lane
             7 a background run was stopped by its watchdog
+            (--verify: 0 the receipt checks out, its label now is printed - 1 no receipt, a stale packet, or a receipt that does not sit in its packet's review folder)
+
+`--alongside` is self-declared: any caller can pass it, so it only says "this run was started as the second
+opinion of the folder's own routine". It is a courtesy flag, not proof, and nothing here depends on it for safety.
 """
 import concurrent.futures as cf
 import datetime
@@ -334,6 +339,10 @@ def table_rows(text):
     return rows
 
 
+# A finding is closed by a recognised status word, then anything: `Accepted, fixed in abc123`, `Rejected: out of scope`.
+DISPOSITION = re.compile(r"(accepted|rejected|partly|left|noted)\b", re.I)
+
+
 def dispositions_closed(path):
     """True when the file has finding rows and every row ends in a real disposition."""
     try:
@@ -344,29 +353,27 @@ def dispositions_closed(path):
     rows = table_rows(text)
     if not rows:
         return False
-    return all(r and r[-1] and r[-1].lower() not in ("todo", "tbd", "?", "open", "pending") and "{{" not in r[-1] for r in rows)
+    return all(r and DISPOSITION.match(r[-1].lstrip("*_` ")) and "{{" not in r[-1] for r in rows)
 
 
 def index_file():
     return os.path.join(CONF, "receipts.tsv")
 
 
-def find_receipt(rid, roots):
-    """The receipt file, from the index kept in the config folder (so it works from any folder), else a search of `roots`."""
+def find_receipt(rid, roots=()):
+    """The receipt file named by the index kept in the config folder (so it works from any folder). There is
+    no search of the tree: a file someone wrote into the project is not a receipt. `roots` is accepted and ignored."""
+    if not re.fullmatch(r"[0-9a-f]{10}", rid or ""):
+        return None
     try:
         with open(index_file(), encoding="utf-8") as fh:
             index = fh.read().splitlines()
-        for line in index:
-            r, _, path = line.partition("\t")
-            if r == rid and os.path.isfile(path):
-                return path
     except OSError:
-        pass
-    for root in roots:
-        for d, dirs, files in os.walk(root or "."):
-            dirs[:] = [x for x in dirs if x not in (".git", "node_modules")]
-            if f"receipt-{rid}.txt" in files:
-                return os.path.join(d, f"receipt-{rid}.txt")
+        return None
+    for line in reversed(index):
+        r, _, path = line.partition("\t")
+        if r == rid and os.path.isfile(path):
+            return path
     return None
 
 
@@ -387,7 +394,13 @@ def receipt_state(rid, roots=(".",)):
     label, packet = f.get("label", ""), f.get("packet", "")
     disp = f.get("dispositions", "")
     now, why = label, ""
-    if packet and os.path.isfile(packet) and f.get("packet_sha256") != packet_hash(packet):
+    here = os.path.dirname(os.path.realpath(path))
+    pdir = os.path.dirname(os.path.realpath(packet)) if packet else ""
+    if f.get("receipt") != rid or not pdir or here == pdir or os.path.commonpath([pdir, here]) != pdir:
+        now, why = "unverified", "the receipt does not sit in the review folder of its own packet"
+    elif not os.path.isfile(packet):
+        now, why = "stale", "the packet is missing, so nothing says what this receipt covered"
+    elif f.get("packet_sha256") != packet_hash(packet):
         now, why = "stale", "the packet changed after the review ran, so this receipt does not cover it"
     elif label == "open":
         if disp and dispositions_closed(disp):
@@ -407,7 +420,7 @@ def verify(receipt, root):
         has = os.path.isfile(st["dispositions"])
         print(f"dispositions {'present' if has else 'missing'}: {st['dispositions']}")
     print(f"label now: {st['now']}" + (f" ({st['why']})" if st["why"] else ""))
-    return 0
+    return 1 if st["now"] in ("stale", "unverified") else 0
 
 
 def check():
@@ -444,8 +457,8 @@ def run_gate(cmd, text, tier, cwd):
         except (OSError, subprocess.TimeoutExpired) as e:
             return False, f"the gate could not run ({type(e).__name__})"
     out = (p.stdout or "").strip()
-    first = out.splitlines()[0] if out else ""
-    if p.returncode != 0 or not first or first.upper().startswith("REFUSE"):  # a gate that says nothing is not a pass
+    first = out.splitlines()[0].strip() if out else ""
+    if p.returncode != 0 or first not in ("OK", "PASS"):  # only an explicit pass passes: silence, noise and errors refuse
         why = first or (p.stderr or "").strip().splitlines()[-1:] or [f"exit {p.returncode}"]
         return False, why if isinstance(why, str) else why[0]
     return True, ""
@@ -561,10 +574,11 @@ def main(argv):
     else:
         hits = private_hits(screened)
         public_ok, private_ok, why_priv = not hits, True, ""
+    private_job = bool((plane and private_ok) or (apple and (not gate or private_ok)))  # what would really run below
     if hits:
         print("NOT SENT to outside vendors. The packet contains: " + "; ".join(sorted(set(hits))), file=sys.stderr)
-        if not (apple or (plane and private_ok)):
-            print(("The private lane refused it too: " + why_priv + ". " if gate and plane else "") +
+        if not private_job:
+            print(("The private lane will not take it either: " + why_priv + ". " if gate and why_priv else "") +
                   "Remove it and run again, or review with a subagent and label the reply [same-vendor].", file=sys.stderr)
             return 1
         print("Asking the private lane only.", file=sys.stderr)
