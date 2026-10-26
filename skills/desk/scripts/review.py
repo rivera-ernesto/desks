@@ -462,6 +462,8 @@ def ask_private_command(cmd, packet, focus, cwd):
     text = (p.stdout or "").strip()
     if p.returncode == 3:
         return "too-large", f"the lane refused the packet as too large ({size // 1024} KB); shorten it or split it"
+    if "canary missing" in ((p.stdout or "") + (p.stderr or "")):
+        return "canary-missing", "the lane's answer did not repeat both codes, so it may come from a small on-device model; not counted"
     if p.returncode != 0 or not text:
         return "failed", ((p.stderr or "empty answer")[:300] + (f" (the packet is {size // 1024} KB; some lanes fail above 15 KB)" if size > 15000 else ""))
     return ("answered" if substantive(text) else "thin-answer"), text
