@@ -929,6 +929,9 @@ def archive_transcript(cfg, root, work, note_path):
     raw = cfg.get("transcripts", "").strip()
     if not raw or is_off(cfg, "transcripts"):
         return []
+    if not os.path.isabs(os.path.expanduser(raw)):
+        die(f"`Transcripts: {raw}` is a relative path, which would change with the folder the close runs from. "
+            "Write a full path (or one starting with ~). The Desk is not closed.")
     target = os.path.realpath(os.path.expanduser(raw))  # resolved once: the check and the copy see the same place
     skill = os.path.realpath(os.path.dirname(HERE))
     if target == skill or target.startswith(skill + os.sep):
@@ -950,7 +953,7 @@ def archive_transcript(cfg, root, work, note_path):
     os.makedirs(target, mode=0o700, exist_ok=True)
     dest = os.path.join(target, sid + ".jsonl")
     tmp = f"{dest}.{os.getpid()}.tmp"
-    shutil.copyfile(src, tmp)
+    shutil.copyfile(os.path.realpath(src), tmp)
     os.chmod(tmp, 0o600)
     os.replace(tmp, dest)
     digest = sha256_of(dest)
