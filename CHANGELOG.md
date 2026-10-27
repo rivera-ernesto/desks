@@ -6,6 +6,9 @@
   and robots.txt, a not-found page in both languages, and a build that fails when any of them is
   missing. The pages name the three kinds of folder, the three workers, `desk setup` and `desk profile`,
   and say what the install runs.
+- **A cloud session on this repository runs as a Desk.** It loads the skill and workers from
+  copies in `.claude/` (a test keeps them identical), and `DESK_REVIEW_KEY=proxy` lets the review
+  use a key the network adds, one the session never sees; `review.py --check` says whether it is attached.
 
 ## 0.2.0 (2026-10-19)
 
