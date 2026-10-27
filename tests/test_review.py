@@ -41,7 +41,11 @@ class Sandbox(unittest.TestCase):
         review.CONF = os.path.join(self.dir, "conf")
         os.makedirs(review.CONF)
         review.time.sleep = lambda s: None
-        self._env = {k: os.environ.pop(k, None) for k in ("OPENROUTER_API_KEY", "DESK_REVIEW_KEY", "DESK_REVIEW_MODELS", "DESK_REVIEW_N", "DESK_REVIEW_MIN")}
+        self._env = {k: os.environ.pop(k, None) for k in ("OPENROUTER_API_KEY", "DESK_REVIEW_KEY", "DESK_REVIEW_MODELS", "DESK_REVIEW_N",
+                                                          "DESK_REVIEW_MIN", "DESK_CLOUD", "DESK_PRIVATE_TERMS")}
+        for k in [k for k in os.environ if k.startswith("DESK_ENDPOINT_")]:
+            self._env[k] = os.environ.pop(k)
+        os.environ["DESK_CLOUD"] = "0"  # the user's own machine, whatever this run happens on
 
     def tearDown(self):
         review.CONF, review.http, review.time.sleep = self._conf, self._http, self._sleep

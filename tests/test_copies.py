@@ -5,8 +5,8 @@ import os
 import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SYNC = ("rm -rf .claude/skills/desk .claude/agents/desk-*.md && mkdir -p .claude/skills .claude/agents"
-        " && cp -R skills/desk .claude/skills/desk && cp agents/*.md .claude/agents/")
+SYNC = ("rm -rf .claude/skills/desk .claude/agents/desk-*.md && mkdir -p .claude/skills .claude/agents .claude/commands"
+        " && cp -R skills/desk .claude/skills/desk && cp agents/*.md .claude/agents/ && cp commands/*.md .claude/commands/")
 IGNORED = {"__pycache__", ".DS_Store"}  # the same as .gitignore
 
 
@@ -58,6 +58,9 @@ class CopiesMatch(unittest.TestCase):
         self.check("agents", os.path.join(".claude", "agents"),
                    lambda src, dst: {os.path.join(".claude", "agents", p) for p in dst - src
                                      if p.startswith("desk-") and p.endswith(".md")})
+
+    def test_command_copies(self):
+        self.check("commands", os.path.join(".claude", "commands"), lambda src, dst: set())
 
 
 if __name__ == "__main__":

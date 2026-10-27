@@ -15,8 +15,15 @@ do on your machine, what leaves it, and where the weak points are.
   pattern matching and can miss things written unusually. The real control is that the packet is
   one readable file, written without identifying details, that you can read before it goes: set
   `Review: ask first` to approve each one.
-- **Your review key** lives in `~/.config/desk/openrouter.key`, outside any project, and is sent
-  only to openrouter.ai. It is never written to the chat or the repository.
+- **Your review keys** come only from environment variables, from key files in `~/.config/desk/`
+  (readable by you only, outside any project), or from a cloud environment's network secret that
+  the session never sees. Each is sent only to its own provider. `providers.json` records where a
+  key comes from, never the key. The scripts hide every known key in what they print and write
+  (answers, ledgers, the dashboard), refuse to write a key file or an export inside a git
+  repository, and refuse to send a key over plain `http` to another machine. Tests check all of it,
+  and that no tracked file holds anything that looks like a key.
+- **Endpoints you add** (a shared model, a gateway) receive the packet like any reviewer. Mark one
+  `private` only if it runs on a machine you control.
 
 ## What Desk does to your files
 

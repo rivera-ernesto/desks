@@ -9,6 +9,21 @@
 - **A cloud session on this repository runs as a Desk.** It loads the skill and workers from
   copies in `.claude/` (a test keeps them identical), and `DESK_REVIEW_KEY=proxy` lets the review
   use a key the network adds, one the session never sees; `review.py --check` says whether it is attached.
+- **A Desk opened in a cloud session works like a local one** (`reference/cloud.md`, with the
+  table of what works, what is reduced and what is off there). At the git levels the topic lives on
+  the session's own branch, and the close refuses until everything is committed and pushed.
+- **One provider layer, `providers.py`**: OpenRouter (free models only) and any endpoint that
+  speaks the OpenAI chat API (a shared model, your own, an Apple Intelligence gateway), each
+  declared by `base_url`, `model`, where its key comes from (`env:`, `file:`, `proxy`, `none`) and
+  its lane (`vendor` or `private`, the latter with the two-code check). A cloud environment
+  declares endpoints with `DESK_ENDPOINT_<NAME>_*` variables and private terms with
+  `DESK_PRIVATE_TERMS`.
+- **The dashboard**: `providers.py` shows which providers answer (one cheap ping each), which review
+  lanes this environment has, and the exact step for each missing piece; `html <file>` writes it
+  as a page, `serve` edits it on the user's machine (a pasted key goes to a private file), and
+  `export` lists the keys a machine has, by name and origin, for a cloud environment. `desk dashboard`
+  and `/dashboard` show it inside a Desk. Key values are never shown, logged or written to a
+  repository; tests check it.
 
 ## 0.2.0 (2026-10-19)
 

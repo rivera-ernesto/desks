@@ -20,6 +20,10 @@ Three levels, detected, never required:
   github   a repository with a GitHub remote and the gh tool: close can push the
            branch and open a pull request
 
+In a cloud session (Claude Code on the web) the container is thrown away and only
+the session's own branch may be pushed, so at the git levels a Desk works on that
+branch, in the checkout itself, and closes only once that branch is pushed.
+
 Run it from the folder Claude Code was opened on. It never pushes to a public
 repository unless told to, never forces, never deletes unmerged work.
 Standard library only.
@@ -42,6 +46,19 @@ def run(args, cwd=None, check=False):
     if check and p.returncode != 0:
         die(f"`{' '.join(args)}` failed:\n{(p.stderr or p.stdout).strip()}")
     return p.returncode, (p.stdout or "").strip(), (p.stderr or "").strip()
+
+
+def cloud():
+    """A Claude Code cloud session. DESK_CLOUD=1 or 0 overrides, as in providers.py."""
+    forced = os.environ.get("DESK_CLOUD", "").strip()
+    if forced in ("0", "1"):
+        return forced == "1"
+    return os.environ.get("CLAUDE_CODE_REMOTE", "").strip().lower() == "true"
+
+
+def session_branch(lv):
+    """In a cloud session at a git level, the branch the session was given: the topic lives there."""
+    return cloud() and lv != "folder"
 
 
 def die(msg, code=1):
@@ -273,6 +290,9 @@ def cmd_status():
     print(f"level:    {lv}{level_note(root, is_git, cfg, lv)}")
     print(f"desk root: {cfg.get('desk root', 'desks/')}")
     print(f"settings: {block_file(root) or 'none (defaults)'}")
+    if cloud():
+        print("environment: cloud session. Topics live on this session's branch; push it before the close. "
+              "Review providers: python3 " + os.path.join(HERE, "providers.py"))
     omode, oarg = open_mode(cfg)
     if omode:
         print("opens:    " + (f"with this folder's own routine (follow {oarg}); topics it keeps elsewhere are not listed"
@@ -333,7 +353,7 @@ def cmd_open(topic):
         return 0
     droot = cfg.get("desk root", "desks/").strip("/")
     lv = level(root, is_git, cfg)
-    if lv == "folder":
+    if lv == "folder" or session_branch(lv):
         work = root
     else:
         branch = f"desk/{topic}"
@@ -362,7 +382,12 @@ def cmd_open(topic):
         print(f"inbox:  {len(left)} note(s) left by other desks in {inbox}: fold each into the README, then delete it")
     if not new and "## Next step" not in open(os.path.join(folder, "README.md"), encoding="utf-8").read():
         print("readme: this README was here before Desks. Add the sections State, Next step, Open and What we learned to it; keep everything it already says")
-    if lv != "folder":
+    if session_branch(lv):
+        _, cur, _ = run(["git", "branch", "--show-current"], cwd=root)
+        print(f"branch: {cur or 'none'} (this cloud session's branch; no desk/{topic} branch or working copy)")
+        print("cloud:  this machine is thrown away after the session: commit by path and push this branch at each milestone. "
+              "What differs here: reference/cloud.md")
+    elif lv != "folder":
         print(f"branch: desk/{topic}  ·  working copy: {work}")
         print(f"note:   files in {root} that were never committed are not in the working copy; read them from there by full path")
     return 0
@@ -384,6 +409,8 @@ def cmd_close(topic, how, title):
         die(f"the `Close:` line of this folder is not one this script understands:\n    Close: {arg}\n"
             "It reads `merge`, `review`, `house run <command>` or `house follow <file>`. Nothing was run.")
     house = mode in ("run", "follow")
+    if session_branch(lv) and not house:
+        how = how or "cloud"  # the recorded Close: line is for the user's own machine
     if house and how:
         die(f"this folder closes with its own routine (`Close: house {mode} {arg}`), and {how} does not "
             "override it. Run `desk.py close <topic>` with no flag. Nothing was run.")
@@ -399,7 +426,7 @@ def cmd_close(topic, how, title):
                 os.path.isfile(os.path.join(root, droot, topic, "README.md")):
             work = root
     else:
-        work = root if lv == "folder" else worktree_of(root, branch)
+        work = root if lv == "folder" or session_branch(lv) else worktree_of(root, branch)
     if not work:
         die(f"no open desk named {topic}")
     folder = os.path.join(work, droot, topic)
@@ -426,6 +453,8 @@ def cmd_close(topic, how, title):
         die("unfilled placeholders, fill or remove each:\n" + "\n".join(unfilled))
     if house:
         return close_house(root, topic, folder, notes[-1], mode, arg, cfg.get("close", "").strip())
+    if session_branch(lv):
+        return close_cloud(root, topic, folder)
     if lv == "folder":
         print("closed (folder level): nothing to merge. The README is the state.")
         closed_line(topic, "folder level, the README is the state")
@@ -469,6 +498,29 @@ def cmd_close(topic, how, title):
     print(f"merged into {base} and tidied. The topic now lives in {os.path.join(root, droot, topic)}")
     print(f"to undo this whole desk later: git revert -m 1 {sha}")
     closed_line(topic, f"merged into {base} ({sha})")
+    return 0
+
+
+def close_cloud(root, topic, folder):
+    """A cloud session keeps nothing it has not pushed, so the close is: all saved, then all pushed."""
+    _, dirty, _ = run(["git", "status", "--porcelain", "--", folder], cwd=root)
+    if dirty:
+        die("uncommitted files in the topic. Commit the ones you wrote, by path:\n" + dirty)
+    _, cur, _ = run(["git", "branch", "--show-current"], cwd=root)
+    if not cur:
+        die("the checkout is on no branch, so nothing can be pushed. The Desk is not closed.")
+    rc, upstream, _ = run(["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], cwd=root)
+    if rc != 0:
+        die(f"{cur} has never been pushed. This cloud machine is thrown away after the session: push it "
+            f"(git push -u origin {cur}), then run the close again. The Desk is not closed.")
+    _, ahead, _ = run(["git", "rev-list", "--count", f"{upstream}..HEAD"], cwd=root)
+    if ahead.strip() not in ("", "0"):
+        die(f"{ahead.strip()} commit(s) on {cur} are not pushed yet. Push them (git push origin {cur}), then run "
+            "the close again. The Desk is not closed.")
+    _, sha, _ = run(["git", "rev-parse", "--short", "HEAD"], cwd=root)
+    print(f"closed in the cloud: the topic is saved and pushed on {cur} ({sha}). Its pull request, if the session "
+          "opens one, is where it is reviewed and merged; nothing was merged here.")
+    closed_line(topic, f"saved and pushed on {cur} ({sha}), cloud session")
     return 0
 
 
@@ -533,7 +585,7 @@ def cmd_note(current, other, text):
             die(f"this folder keeps its topics its own way (`Open: house follow {oarg}`), and {work} has no "
                 f"{droot}/ to leave a note in. Leave it the way {oarg} says. Nothing was written.")
     else:
-        work = root if lv == "folder" else worktree_of(root, f"desk/{current}")
+        work = root if lv == "folder" or session_branch(lv) else worktree_of(root, f"desk/{current}")
     if not work:
         die(f"no open desk named {current}")
     inbox = os.path.join(work, droot, other, "inbox")

@@ -31,11 +31,11 @@ every line in it costs every user some of their allowance on every Desk.
 
 - `python3 -m unittest discover tests` passes. A change to a script comes with a test that fails
   without it.
-- If you changed anything in `skills/desk/` or `agents/`, re-sync the copies in `.claude/` (they
+- If you changed anything in `skills/desk/`, `agents/` or `commands/`, re-sync the copies in `.claude/` (they
   are copies, not symlinks, so Windows clones work), from the repository root:
 
   ```
-  rm -rf .claude/skills/desk .claude/agents/desk-*.md && mkdir -p .claude/skills .claude/agents && cp -R skills/desk .claude/skills/desk && cp agents/*.md .claude/agents/
+  rm -rf .claude/skills/desk .claude/agents/desk-*.md && mkdir -p .claude/skills .claude/agents .claude/commands && cp -R skills/desk .claude/skills/desk && cp agents/*.md .claude/agents/ && cp commands/*.md .claude/commands/
   ```
 - `claude plugin validate .` passes.
 - If you changed the site: `npm run build` in `site/` passes.

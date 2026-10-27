@@ -70,6 +70,9 @@ recommendation. The exceptions are the five kinds in § 4 of the contract.
   an answer can be a reviewer. One line each in `~/.config/desk/reviewers.txt`:
   `name | command`. For example a command-line client for another AI subscription. These count as
   vendors. `reference/adopt.md` explains how to find them.
+- **Endpoints.** Any server that speaks the OpenAI chat API (a shared model, your own, an Apple
+  Intelligence gateway), declared in the dashboard or by variables (`reference/setup.md`
+  § Endpoints). A `vendor` endpoint counts as a vendor; a `private` one is a private lane.
 - **A private lane on a Mac.** A macOS Shortcut that sends its input to Apple's Private Cloud
   Compute model can review material you would not send to a free model. Put the Shortcut's name in
   `~/.config/desk/apple-shortcut`. The script proves each call read the whole input (it plants two

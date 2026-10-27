@@ -20,6 +20,7 @@ file is the whole contract. Read it once when the Desk opens and follow it until
 | `desk review` | Review your last substantive answer now (§ 3) |
 | `desk close` | Close the Desk (§ 7) |
 | `desk setup` | Walk through every setup question at once (`reference/setup.md`) |
+| `desk dashboard` · `/dashboard` | Run `scripts/providers.py`: which review providers answer here and the exact step for what is missing. Show its page where the surface can (`providers.py html <file>`), else its text. Never a key |
 | `desk adopt` · `desk import` | Fit Desk to the tools, folders and habits already here (`reference/adopt.md`) |
 | `desk profile` | Build or update the user's profile (`reference/profile.md`) |
 | `desk feedback` | Draft a report to the people who make Desks, for the user to send (`reference/adopt.md` § Feedback) |

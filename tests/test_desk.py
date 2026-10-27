@@ -30,7 +30,10 @@ def sh(args, cwd):
 
 
 def desk(cwd, *args):
-    return sh([sys.executable, DESK, *args], cwd)
+    # a machine of the user's own unless a test says otherwise, whatever this run happens on
+    env = dict(os.environ)
+    env.setdefault("DESK_CLOUD", "0")
+    return subprocess.run([sys.executable, DESK, *args], cwd=cwd, capture_output=True, text=True, env=env)
 
 
 class Base(unittest.TestCase):

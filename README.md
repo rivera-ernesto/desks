@@ -80,9 +80,10 @@ subscription you pay for as a stronger reviewer.
 ```
 skills/desk/SKILL.md      the contract: everything a Desk session follows
 skills/desk/reference/    read on demand: review, setup, adopt, surfaces, close, usage
-skills/desk/scripts/      review.py and desk.py (Python standard library only)
+skills/desk/scripts/      review.py, desk.py and providers.py, the dashboard (Python standard library only)
 skills/desk/templates/    topic README, session note, plan, review packet
 agents/                   desk-reader, desk-screen, desk-runner
+commands/                 /dashboard
 examples/                 a worked topic, with invented details
 tests/                    unit tests for both scripts (standard library only)
 docs/                     beta notes, benchmark protocol, guía en español

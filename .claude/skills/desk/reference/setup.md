@@ -5,7 +5,8 @@ matters**, never all at the start, unless they typed `desk setup`. Each question
 recommended default and one line on what it buys. Record every answer with
 `desk.py set "<Key>" "<value>"`, which writes the line in the Desk block of the main folder's
 `CLAUDE.md` and saves it by itself, so no session asks twice and a later close is not blocked. Start with `python3 <skill folder>/scripts/desk.py status`
-and `scripts/review.py --check`: do not ask what you can detect.
+and `scripts/providers.py` (the dashboard): do not ask what you can detect. In a cloud session,
+read `reference/cloud.md` first: keys and settings live in the environment's settings there.
 
 | When it first matters | Question | Recommended default | Line recorded |
 |---|---|---|---|
@@ -46,12 +47,16 @@ This turns `same-vendor` into `cross-vendor`.
 
 1. The user creates an account at openrouter.ai and creates a key. Creating an account is theirs to
    do (`[needs you: outside]`): give them the steps, do not do it for them.
-2. **The key never goes into the chat.** With the key copied to the clipboard, the user runs one
-   command in a terminal:
+2. **The key never goes into the chat.** The easiest way: the user runs
+   `python3 <skill folder>/scripts/providers.py serve` in a terminal, opens the address it prints
+   (this machine only), and pastes the key in the OpenRouter row. It is written to
+   `~/.config/desk/openrouter.key`, readable by them only, and never shown again. Or, with the key
+   copied to the clipboard, one command:
    - macOS: `mkdir -p ~/.config/desk && pbpaste > ~/.config/desk/openrouter.key && chmod 600 ~/.config/desk/openrouter.key`
    - Windows (PowerShell): `New-Item -Force -ItemType Directory $HOME\.config\desk; Get-Clipboard | Set-Content $HOME\.config\desk\openrouter.key`
    - Linux: the same as macOS with their clipboard tool in place of `pbpaste`.
-3. Run `--check` again, then one review on a harmless packet so they see it work.
+3. Run the dashboard again (`providers.py`), then one review on a harmless packet so they see it work.
+   In a cloud session the key goes in the environment's settings instead (`reference/cloud.md`).
 
 Tell them plainly:
 
@@ -95,6 +100,26 @@ Ask for the words that must never leave the machine: family names, a client, a s
 Write them one per line to `~/.config/desk/private-terms.txt`. The review script refuses any
 packet that contains one as a whole word or phrase, in any case; it does not match inside longer
 words. Without the file, names are not checked at all, and the review says so. Ask this right after the review key, and again when a profile is built.
+
+## Endpoints: a shared model, your own, or a gateway (optional)
+
+Any server that speaks the OpenAI chat API can review: a model a friend shares with a key, a model
+running on the user's own machine, or a gateway in front of Apple Intelligence. Each is declared by
+name, `base_url` (ending in `/v1`), `model`, where its key comes from, and its lane:
+
+- `vendor` (the default): it counts as a vendor, and gets only packets that passed the privacy
+  check. A Claude model is refused here: the review needs another family.
+- `private`: only for a machine the user controls. It may also get packets that are refused for
+  outside vendors, carries the same two-code check as the Shortcut lane, and never counts as a vendor.
+
+On the user's machine, add it in the dashboard (`providers.py serve`, the Endpoints form, or
+`providers.py set <name> --url … --model … --key env:VAR|file:NAME|proxy|none [--lane private]`).
+In a cloud session, as variables (`reference/cloud.md`). `providers.py` pings each one and says
+whether it answers. A key is never sent over plain `http` to another machine.
+
+**Apple Intelligence through a gateway** is such an endpoint: the gateway runs on the user's Mac,
+exposes the model as an OpenAI-compatible address with a key, and is declared with `--lane private`.
+Building the gateway is outside Desks.
 
 ## A private lane (Mac with Apple Intelligence, optional)
 
