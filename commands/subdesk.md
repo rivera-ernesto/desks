@@ -21,6 +21,8 @@ rebuild it by hand.
 3. **Register it (local).** Run `python3 <skill folder>/scripts/desk.py open <child> --parent <topic>`
    and fill `brief.md` (from `templates/brief.md` in the skill folder): the user's words verbatim, the goal in one sentence, what
    the child may touch, and how it ends. Start the session in the working copy it printed.
+   If `open` says the folder opens topics its own way, follow that routine for the child and name it so
+   its parent is plain (`<topic>--<child>`).
    **Cloud:** there is no local topic; write the same brief as the session's prompt and add one line
    under Open in this topic's README: `sub-desk <child> (cloud, <owner/repo>)`.
 4. **Brief and model.** The prompt carries the task, the area, what "done" looks like, and only the
