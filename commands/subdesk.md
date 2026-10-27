@@ -31,6 +31,7 @@ rebuild it by hand.
    for work that needs altitude (design, people, strategy), and say why when you do.
    The child keeps every gate of the folder: creating a repository or anything money, public or outside
    waits for the user's word, and the brief says so.
+   Tell the child to end its final message with `Archivable: yes/no` and why (SKILL.md § 8).
 5. **Tell the user in one line:** the child's name, local or cloud, the model, and that you will send
    it later ideas on this topic.
 

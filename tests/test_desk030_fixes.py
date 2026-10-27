@@ -443,7 +443,7 @@ class RemoveKeepsRecords(unittest.TestCase):
 
     def test_subdesk_command_states_the_rules(self):
         text = get(os.path.join(os.path.dirname(SKILL).rsplit(os.sep, 1)[0], "commands", "subdesk.md"))
-        for must in ("--parent", "SendMessage", "cloud", "Sonnet", "on its own", "cannot answer"):
+        for must in ("--parent", "SendMessage", "cloud", "Sonnet", "on its own", "cannot answer", "Archivable"):
             self.assertIn(must, text)
         self.assertIn("SendMessage", get(os.path.join(SKILL, "SKILL.md")))
 
