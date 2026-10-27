@@ -249,7 +249,12 @@ last the `Closed line:` that `desk.py close` printed, copied as is. No line, not
   repeats). `Depth cap:` is a hard limit, default 3, set per folder. The brief carries the user's words verbatim and the plan pinned to a commit; each level re-briefs the same way, and the parent checks the usage reserve from the host's reading before it starts a child. The child ends with a numbered one-line-per-item
   list and a coverage check. The parent checks each line against the diff with a runner, never
   trusts the child's report, and takes the child in with `desk.py receive <child>`. `desk.py children`
-  lists them: running, ready, received.
+  lists them: running, ready, received. `/subdesk <task>` (`commands/subdesk.md`) opens one for the user; a Desk may also propose or open one on its
+  own for a piece of work that is a task of its own. Local or cloud, nothing else (cloud: the task lives in a
+  public repository that already exists); a cheaper model by default. **Later ideas** the user writes about a
+  child's topic, the parent sends to that child with `SendMessage`. A cloud session cannot answer: what it
+  needs goes in its first brief.
+  **Final message:** every (sub-)desk ends with `Archivable: yes/no` and why; it closes only when the work needs it, else just the summary. The parent checks it (branch or PR, receipt, owner's to-dos), lists by title what to archive, and archives only on the user's yes.
 - **Receive.** A topic is ready when its branch head carries the ready trailer (`desk.py close` adds it).
   `desk.py receive` lists them; `receive <topic>` merges into a scratch copy, runs `Receive checks:`,
   then moves the target, all or nothing. Exit 0 received · 2 nothing ready · 3 blocked (nothing

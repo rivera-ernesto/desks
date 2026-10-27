@@ -441,12 +441,19 @@ class RemoveKeepsRecords(unittest.TestCase):
             self.assertTrue(os.path.isfile(os.path.join(arch, "x.jsonl")))
 
 
+    def test_subdesk_command_states_the_rules(self):
+        text = get(os.path.join(os.path.dirname(SKILL).rsplit(os.sep, 1)[0], "commands", "subdesk.md"))
+        for must in ("--parent", "SendMessage", "cloud", "Sonnet", "on its own", "cannot answer", "Archivable"):
+            self.assertIn(must, text)
+        self.assertIn("SendMessage", get(os.path.join(SKILL, "SKILL.md")))
+
     def test_remove_takes_out_desks_and_never_the_records_or_the_archive(self):
         with tempfile.TemporaryDirectory() as t:
             dest = os.path.realpath(t)
             shutil.copytree(SKILL, os.path.join(dest, ".claude", "skills", "desk"), ignore=shutil.ignore_patterns("__pycache__"))
             for n in ("desk-reader.md", "desk-runner.md", "other-agent.md"):
                 put(os.path.join(dest, ".claude", "agents", n), "agent\n")
+            put(os.path.join(dest, ".claude", "commands", "subdesk.md"), "command\n")
             arch = os.path.join(dest, "archive")
             put(os.path.join(arch, f"{SID}.jsonl"), "transcript\n")
             rec = os.path.join(dest, "desks", "a", "sessions", "2026-01-01-first.md")
@@ -463,6 +470,7 @@ class RemoveKeepsRecords(unittest.TestCase):
             self.assertFalse(os.path.exists(os.path.join(dest, ".claude", "skills", "desk")))
             self.assertFalse(os.path.exists(os.path.join(dest, ".claude", "agents", "desk-reader.md")))
             self.assertTrue(os.path.exists(os.path.join(dest, ".claude", "agents", "other-agent.md")))
+            self.assertFalse(os.path.exists(os.path.join(dest, ".claude", "commands", "subdesk.md")))
             self.assertEqual(get(rec), "# the record\n")
             self.assertEqual(get(os.path.join(arch, f"{SID}.jsonl")), "transcript\n")
             text = get(os.path.join(dest, "CLAUDE.md"))

@@ -4,6 +4,10 @@
 
 ### 0.3.0 candidate
 
+- `/subdesk <task>` (`commands/subdesk.md`): opens a sub-desk from the current Desk, local or cloud, on a cheaper
+  model by default, registered with `--parent`. SKILL.md § 8 states that the parent sends later ideas to the
+  child with `SendMessage`, that a cloud session cannot answer, and that a Desk may open one on its own.
+
 Fixes from the code review of this candidate, in one list:
 
 - `close` refuses unless the checked-out branch is the closing topic's own (a session on `main` can no
