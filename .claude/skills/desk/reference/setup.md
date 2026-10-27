@@ -1,0 +1,142 @@
+# Setup, one question at a time
+
+Desk configures itself with the user as the work goes. Ask each question **the first time it
+matters**, never all at the start, unless they typed `desk setup`. Each question comes with a
+recommended default and one line on what it buys. Record every answer with
+`desk.py set "<Key>" "<value>"`, which writes the line in the Desk block of the main folder's
+`CLAUDE.md` and saves it by itself, so no session asks twice and a later close is not blocked. Start with `python3 <skill folder>/scripts/desk.py status`
+and `scripts/providers.py` (the dashboard): do not ask what you can detect. In a cloud session,
+read `reference/cloud.md` first: keys and settings live in the environment's settings there.
+
+| When it first matters | Question | Recommended default | Line recorded |
+|---|---|---|---|
+| First Desk in a folder with no git | Keep a history of this folder, so every Desk can be undone and several can run at once? | Yes (§ Starting a history) | `- Git: on` or `- Git: off` |
+| First close at the `git` level | When a Desk closes, fold it into the main folder directly, or keep it for you to look at first? | Fold it in directly (`--merge`) for solo work | `- Close: merge` or `- Close: review` |
+| First open in a folder that already has its own way of opening a topic | Open topics with your own routine, so Desks keeps no second copy of them? | Yes (`reference/adopt.md`, An opening routine) | `- Open: house follow <file>` |
+| First review in a folder that already has its own review or privacy check | Review with your own routine, so nothing leaves the machine around it? | Yes (`reference/adopt.md`, The folder's own routines) | `- Review: house follow <file>` |
+| First close in a folder that already has its own way of closing a session | Close with your own routine, and have Desk only point at what it writes? | Yes: theirs stays the authority (`reference/close.md` § A folder with its own close, `[needs you: access]`) | `- Close: house run <command>` or `- Close: house follow <file>` |
+| The folder has no GitHub remote and the user wants a backup or to work from two machines | Create a **private** GitHub repository for this folder? | Yes, private (`[needs you: outside]`: it creates something on their account) | `- GitHub: on` |
+| First review that would leave the machine | Which names and words must never leave this machine: family, clients, a street? | Yes, a short list now (§ Private terms) | (a file, not a line) |
+| First advice-level answer with no review key | Add a free review key so other vendors check my answers? Three minutes. | Yes (§ Review key) | (detected, not recorded) |
+| First topic about the user, their voice or their people | Build a short profile so I stop asking who is who? | Yes, five minutes (`reference/profile.md`) | `- Profile: <path>` |
+| The folder already has rules, agents or project folders | Fit around what is here? | Yes (`reference/adopt.md`) | `- Setup: …` lines |
+| They say "just do what I ask", or seem tired of proposals | Want me to stop offering things you did not ask for? | Their call | `- Lead: quiet` |
+| The user mentions their phone | Continue sessions from the phone? | Their switch to turn (§ Phone) | none |
+
+A repository that is **public** is never pushed to unless the user says so in words; then record
+`- Public pushes: yes`. Everything in a Desk folder would become public with it.
+
+## Starting a history
+
+Only when `desk.py status` says the folder is **not** a repository. A folder that already has one
+is left exactly as it is: never run `git init` there, never touch its branches.
+
+1. Write a `.gitignore` first (or add to the one that exists, showing the lines): secrets
+   (`.env*`, `*.key`, `*.pem`, `credentials*`, `secrets*`), system files (`.DS_Store`), and
+   anything large that is not text (video, disk images, archives).
+2. Show the user the list of what would go into the first save, with sizes, and anything that
+   looks like a secret or is over a few megabytes called out. Wait for their yes.
+3. `git init`, add the listed files by path, one commit. Nothing is sent anywhere: a history on
+   this machine is not a backup and not public.
+
+Undoing it is deleting the hidden `.git` folder; say so.
+
+## Review key (free, about three minutes)
+
+This turns `same-vendor` into `cross-vendor`.
+
+1. The user creates an account at openrouter.ai and creates a key. Creating an account is theirs to
+   do (`[needs you: outside]`): give them the steps, do not do it for them.
+2. **The key never goes into the chat.** The easiest way: the user runs
+   `python3 <skill folder>/scripts/providers.py serve` in a terminal, opens the address it prints
+   (this machine only), and pastes the key in the OpenRouter row. It is written to
+   `~/.config/desk/openrouter.key`, readable by them only, and never shown again. Or, with the key
+   copied to the clipboard, one command:
+   - macOS: `mkdir -p ~/.config/desk && pbpaste > ~/.config/desk/openrouter.key && chmod 600 ~/.config/desk/openrouter.key`
+   - Windows (PowerShell): `New-Item -Force -ItemType Directory $HOME\.config\desk; Get-Clipboard | Set-Content $HOME\.config\desk\openrouter.key`
+   - Linux: the same as macOS with their clipboard tool in place of `pbpaste`.
+3. Run the dashboard again (`providers.py`), then one review on a harmless packet so they see it work.
+   In a cloud session the key goes in the environment's settings instead (`reference/cloud.md`).
+
+Tell them plainly:
+
+- The script only ever asks models whose price is zero, and refuses any other.
+- With no credit on the account the limit is 50 requests a day, about eight reviews. Buying 10 USD
+  of credit once raises it to 1000 a day, and free models do not consume that credit. **This is
+  the recommended setup**, and it is their money and their call (`[needs you: money]`).
+- What leaves the machine: only the packet file, with identifying details removed. Free models may
+  keep or train on what they receive: OpenRouter's privacy settings have a switch for providers
+  that train on inputs, and most free models are only reachable with it on. Have them look at
+  that page so the choice is theirs. Nothing else from the folder is sent.
+- The first time, **show them the packet before it goes**. If they want that every time, record
+  `- Review: ask first`.
+
+### A key the session never sees (cloud sessions)
+
+A cloud session runs on a machine that is not the user's, so there is no key file to read.
+Some cloud environments offer a **network secret** instead: the user stores the key once in the
+environment's settings, and the network proxy that every request leaves through adds it to
+requests going to openrouter.ai. The key never enters the session, the files or the chat, so
+nothing in the session can print it or leak it.
+
+The script cannot know that on its own, so the environment tells it with one variable:
+`DESK_REVIEW_KEY=proxy`. That is **a flag, not a key**: it means "send no key of your own; the
+network adds it". Never put a real key in that variable.
+
+- `review.py --check` then makes one real call and says either `via proxy, working` (with the
+  key's label and limit) or `via proxy, NOT attached (HTTP 401)`. Not attached means the secret
+  is missing or not set for openrouter.ai: the user fixes it in the environment's settings.
+  If the proxy explains why (its `X-Proxy-Error` header), the script prints it: a secret matched
+  but its value was refused, so re-enter it. No explanation usually means no secret is set for
+  openrouter.ai.
+  `via proxy, not reached` means the session cannot reach openrouter.ai at all: the environment's
+  network access must allow it.
+- If a review is refused the same way, the script stops asking OpenRouter, the label line says
+  `key not attached in this environment`, and the result is never `[converged]`.
+
+## Private terms
+
+Ask for the words that must never leave the machine: family names, a client, a street, a company.
+Write them one per line to `~/.config/desk/private-terms.txt`. The review script refuses any
+packet that contains one as a whole word or phrase, in any case; it does not match inside longer
+words. Without the file, names are not checked at all, and the review says so. Ask this right after the review key, and again when a profile is built.
+
+## Endpoints: a shared model, your own, or a gateway (optional)
+
+Any server that speaks the OpenAI chat API can review: a model a friend shares with a key, a model
+running on the user's own machine, or a gateway in front of Apple Intelligence. Each is declared by
+name, `base_url` (ending in `/v1`), `model`, where its key comes from, and its lane:
+
+- `vendor` (the default): it counts as a vendor, and gets only packets that passed the privacy
+  check. A Claude model is refused here: the review needs another family.
+- `private`: only for a machine the user controls. It may also get packets that are refused for
+  outside vendors, carries the same two-code check as the Shortcut lane, and never counts as a vendor.
+
+On the user's machine, add it in the dashboard (`providers.py serve`, the Endpoints form, or
+`providers.py set <name> --url … --model … --key env:VAR|file:NAME|proxy|none [--lane private]`).
+In a cloud session, as variables (`reference/cloud.md`). `providers.py` pings each one and says
+whether it answers. A key is never sent over plain `http` to another machine.
+
+**Apple Intelligence through a gateway** is such an endpoint: the gateway runs on the user's Mac,
+exposes the model as an OpenAI-compatible address with a key, and is declared with `--lane private`.
+Building the gateway is outside Desks.
+
+## A private lane (Mac with Apple Intelligence, optional)
+
+For material you would not send to a free model. In the Shortcuts app the user creates a Shortcut
+with three actions:
+
+1. *Receive* **Text** input.
+2. *Use Model*, model set to **Private Cloud Compute**, with the Shortcut input as the request.
+3. *Stop and Output* the model's response.
+
+They name it (for example `Desk Review`), and you write that name to
+`~/.config/desk/apple-shortcut`. Run a review to confirm that the answer repeats both codes. If
+the result says `canary-missing`, the Shortcut is using the small on-device model: check step 2.
+
+## Phone
+
+A session started on the computer can be continued from the Claude phone app once Remote Control is
+on for that session. It is the user's switch to turn, because it makes the session reachable, and
+approvable, from the phone. Tell them where it is; do not change settings for them. Links to
+files do not open on a phone: send the file itself when the surface can.

@@ -14,9 +14,12 @@ Setup lives outside any project, so a key is never committed by accident:
     ~/.config/desk/private-terms.txt  words that must never leave this machine
     ~/.config/desk/reviewers.txt    extra lanes: name | command reading stdin
     ~/.config/desk/apple-shortcut   name of a macOS Shortcut (private lane)
+Endpoints that speak the OpenAI chat API (a shared model, your own, an Apple
+Intelligence gateway) and where each key comes from: `providers.py`, the dashboard.
 
 Environment: DESK_REVIEW_N vendors to ask at once (6) · DESK_REVIEW_MIN answers
-wanted (3) · DESK_REVIEW_MODELS comma list instead of the live catalogue.
+wanted (3) · DESK_REVIEW_MODELS comma list instead of the live catalogue ·
+DESK_REVIEW_KEY=proxy a network proxy attaches the key; the script sends none.
 
 Exit codes: 0 at least one vendor answered · 1 packet refused · 2 usage
             3 no key and no other lane · 4 nobody answered
@@ -37,7 +40,12 @@ import time
 import urllib.error
 import urllib.request
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import providers  # noqa: E402  the one place keys and endpoints are read
+
 API = "https://openrouter.ai/api/v1"
+PROXY = "proxy"  # DESK_REVIEW_KEY=proxy: a flag, not a key. The network adds the real one.
+NOT_ATTACHED = "key not attached in this environment"
 CONF = os.environ.get("DESK_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".config", "desk")  # as desk.py (#62)
 SYSTEM = (
     "You are an independent reviewer from a different model vendor than the author. "
@@ -71,14 +79,28 @@ def conf(name):
 
 
 def api_key():
-    return os.environ.get("OPENROUTER_API_KEY", "").strip() or conf("openrouter.key")
+    p = providers.openrouter(CONF)
+    if not p:
+        return ""
+    return PROXY if p.source == PROXY else p.secret()
+
+
+def redact(text):
+    return providers.redact(text, CONF)
+
+
+def endpoint_lanes():
+    """(vendor lanes, private lanes): the declared OpenAI-compatible endpoints that can be asked."""
+    vendor, private = [], []
+    for p in providers.endpoints(CONF):
+        (private if p.lane == "private" else vendor).append(p)
+    return vendor, private
 
 
 def private_hits(text):
     """Why this packet must not be sent, or [] when it may go."""
     hits = []
-    for line in conf("private-terms.txt").splitlines():
-        term = line.strip()
+    for term in providers.private_terms(CONF)[0]:
         # A whole word or phrase, not part of a longer word (#51): "Mara" is not in "maracuya".
         if term and not term.startswith("#") and re.search(r"(?<!\w)" + re.escape(term) + r"(?!\w)", text, re.I):
             hits.append(f'your private term "{term}"')
@@ -89,9 +111,21 @@ def private_hits(text):
     return hits
 
 
+def proxy_error(e):
+    """The X-Proxy-Error header a refusal carries: there, a secret matched but its value failed."""
+    said = (e.headers.get("X-Proxy-Error") or "") if getattr(e, "headers", None) else ""
+    return re.sub(r"[\x00-\x1f\x7f]", " ", said).strip()[:300]
+
+
+def proxy_advice(said):
+    if said:
+        return f"proxy says: {said}\n  A secret matched this host but its value was refused: re-enter the secret."
+    return "no proxy note: probably no secret is set for openrouter.ai; add one."
+
+
 def http(url, payload=None, key=None, timeout=100):
     headers = {"Content-Type": "application/json", "X-Title": "Desk review"}
-    if key:
+    if key and key != PROXY:
         headers["Authorization"] = "Bearer " + key
     data = json.dumps(payload).encode() if payload is not None else None
     req = urllib.request.Request(url, data=data, headers=headers)
@@ -112,7 +146,7 @@ def past_rates(folder):
                 continue
             for r in rows[1:]:
                 c = r.split("\t")
-                if len(c) >= 5 and c[3] != "apple":
+                if len(c) >= 5 and c[3] != "apple" and not c[3].startswith("private-") and c[4] != "not-attached":  # not the vendor's fault
                     calls[c[3]] = calls.get(c[3], 0) + 1
                     ok[c[3]] = ok.get(c[3], 0) + (c[4] == "answered")
     return calls, ok
@@ -169,11 +203,17 @@ def ask_openrouter(model, packet_text, focus, key):
             r = http(API + "/chat/completions", body, key)
             if "error" in r:
                 last = json.dumps(r["error"])[:400]
+                code = r["error"].get("code") if isinstance(r["error"], dict) else None
+                if key == PROXY and code in (401, 403):
+                    return "not-attached", f"HTTP {code}: {NOT_ATTACHED}. {last}"
             else:
                 text = (r["choices"][0]["message"].get("content") or "").strip()
                 return ("answered" if substantive(text) else "thin-answer"), text
         except urllib.error.HTTPError as e:
             last = f"HTTP {e.code}: " + e.read().decode("utf-8", "replace")[:400]
+            if key == PROXY and e.code in (401, 403):
+                said = proxy_error(e)
+                return "not-attached", f"HTTP {e.code}: {NOT_ATTACHED}.\n" + (f"X-Proxy-Error: {said}\n" if said else "") + last
         except Exception as e:  # network, timeout, malformed answer
             last = f"{type(e).__name__}: {e}"
             if "timed out" in last.lower():
@@ -204,17 +244,8 @@ def ask_command(command, packet_text, focus):
     return ("answered" if substantive(text) else "thin-answer"), text
 
 
-def ask_apple(shortcut, packet_text, focus):
-    """Apple's Private Cloud Compute through a macOS Shortcut.
-
-    A successful run is not trusted by itself: the Shortcut can silently fall
-    back to the small on-device model, which reads only the first few pages.
-    So the prompt carries two random codes, one at the start and one after the
-    input has been padded past that model's reach, and the answer must repeat
-    both. Both present means this call read everything on the larger model.
-    """
-    if not shutil.which("shortcuts"):
-        return "failed", "the 'shortcuts' command is not available (macOS only)"
+def canary_prompt(packet_text, focus):
+    """The prompt with two codes, the second past a small model's reach: (prompt, a, b)."""
     a, b = secrets.token_hex(6), secrets.token_hex(6)
     prompt = (
         f"Your reply MUST begin with this exact line: CANARY-A: {a}\n"
@@ -228,7 +259,52 @@ def ask_apple(shortcut, packet_text, focus):
     while len(prompt.encode()) < 24576:  # repeats, not filler: identical filler made the model error out
         prompt += f"\n--- repeat {i} ---\n{packet_text}"
         i += 1
-    prompt += f"\nCANARY-B: {b}\n"
+    return prompt + f"\nCANARY-B: {b}\n", a, b
+
+
+def canary_result(text, a, b):
+    if f"CANARY-A: {a}" not in text or f"CANARY-B: {b}" not in text:
+        return "canary-missing", "the answer did not repeat both codes, so it may come from a smaller model that read only part; not counted"
+    text = "\n".join(l for l in text.splitlines() if "CANARY-" not in l).strip()
+    return ("answered" if substantive(text) else "thin-answer"), text
+
+
+def ask_endpoint(p, packet_text, focus):
+    """An OpenAI-compatible endpoint. A private lane carries the two codes, as the Shortcut lane does."""
+    why = p.problem()
+    if why:
+        return "refused", why
+    if p.lane == "private":
+        prompt, a, b = canary_prompt(packet_text, focus)
+        messages = [{"role": "user", "content": prompt}]
+    else:
+        messages = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": f"FOCUS: {focus}\n\n---\n\n{packet_text}"}]
+    try:
+        r = providers.call(p, "/chat/completions", {"model": p.model, "messages": messages, "max_tokens": 4000,
+                                                    "temperature": 0.3}, timeout=180)
+        text = (r["choices"][0]["message"].get("content") or "").strip()
+    except urllib.error.HTTPError as e:
+        code = "key-refused" if e.code in (401, 403) else ("rate-limited" if e.code == 429 else "failed")
+        return code, f"HTTP {e.code}: " + e.read().decode("utf-8", "replace")[:400]
+    except Exception as e:  # network, timeout, malformed answer
+        return "failed", f"{type(e).__name__}: {e}"
+    if p.lane == "private":
+        return canary_result(text, a, b)
+    return ("answered" if substantive(text) else "thin-answer"), text
+
+
+def ask_apple(shortcut, packet_text, focus):
+    """Apple's Private Cloud Compute through a macOS Shortcut.
+
+    A successful run is not trusted by itself: the Shortcut can silently fall
+    back to the small on-device model, which reads only the first few pages.
+    So the prompt carries two random codes, one at the start and one after the
+    input has been padded past that model's reach, and the answer must repeat
+    both. Both present means this call read everything on the larger model.
+    """
+    if not shutil.which("shortcuts"):
+        return "failed", "the 'shortcuts' command is not available (macOS only)"
+    prompt, a, b = canary_prompt(packet_text, focus)
     with tempfile.TemporaryDirectory() as td:
         # named files with extensions: Shortcuts reads the input's type from its extension
         src, out = os.path.join(td, "prompt.txt"), os.path.join(td, "answer.txt")
@@ -245,10 +321,7 @@ def ask_apple(shortcut, packet_text, focus):
             text = open(out, encoding="utf-8").read()
         except OSError:
             return "failed", "the Shortcut returned nothing"
-    if f"CANARY-A: {a}" not in text or f"CANARY-B: {b}" not in text:
-        return "canary-missing", "the answer did not repeat both codes, so it may come from the small on-device model; not counted"
-    text = "\n".join(l for l in text.splitlines() if "CANARY-" not in l).strip()
-    return ("answered" if substantive(text) else "thin-answer"), text
+    return canary_result(text, a, b)
 
 
 def command_lanes():
@@ -282,12 +355,43 @@ def verify(receipt, root):
     return 1
 
 
+def proxy_status():
+    """One live call through the proxy: (working, what to print after "review key:")."""
+    try:
+        data = http(API + "/key", key=PROXY, timeout=30).get("data") or {}
+    except urllib.error.HTTPError as e:
+        line = f"via proxy, NOT attached (HTTP {e.code})"
+        if e.code in (401, 403):
+            line += "\n                 " + proxy_advice(proxy_error(e)).replace("\n  ", "\n                 ")
+        return False, line
+    except Exception as e:  # no answer at all: DNS, refused, timeout
+        return False, f"via proxy, not reached ({type(e).__name__}: {e})"
+    about = []
+    if data.get("label"):
+        about.append(f'label "{data["label"]}"')
+    if "limit" in data:
+        about.append("limit " + ("none" if data["limit"] is None else str(data["limit"])))
+    return True, "via proxy, working" + (f" ({', '.join(about)})" if about else "")
+
+
 def check():
     key, lanes, apple = api_key(), command_lanes(), conf("apple-shortcut")
-    print("review key:      " + ("set" if key else "not set  ->  run `desk setup`"))
+    if key == PROXY:
+        working, said = proxy_status()
+        print("review key:      " + said)
+        key = key if working else ""
+    else:
+        print("review key:      " + ("set" if key else "not set  ->  run `desk setup`"))
+    vend, priv = endpoint_lanes()
+    lanes = lanes + [(p.name, p) for p in vend if p.has_key() and not p.problem()]
+    priv = [p for p in priv if p.has_key() and not p.problem()]
+    apple = apple if apple and not providers.cloud() else ""
     print("your own lanes:  " + (", ".join(n for n, _ in lanes) or "none"))
-    print("private lane:    " + (f'Shortcut "{apple}"' if apple else "none"))
-    print("private terms:   " + (f"{len(conf('private-terms.txt').splitlines())} lines" if conf("private-terms.txt") else "none"))
+    print("private lane:    " + (", ".join([f'Shortcut "{apple}"'] * bool(apple) + [f"endpoint {p.name}" for p in priv]) or "none"))
+    terms, where = providers.private_terms(CONF)
+    print("private terms:   " + (f"{len(terms)} from {where}" if terms else "none"))
+    print("dashboard:       python3 " + os.path.join(os.path.dirname(os.path.abspath(__file__)), "providers.py") + "  (what answers, what is missing)")
+    apple = apple or bool(priv)
     print("mode:            " + ("cross-vendor" if (key or lanes) else "same-vendor"))
     return 0 if (key or lanes or apple) else 3
 
@@ -334,17 +438,21 @@ def main(argv):
     out = os.path.join(os.path.dirname(packet) or ".", stem + "-reviews")
 
     key, lanes, apple = api_key(), command_lanes(), conf("apple-shortcut")
+    if apple and providers.cloud():
+        print("note: the Shortcut lane is macOS only and is off in a cloud session; a gateway endpoint can take its place.", file=sys.stderr)
+        apple = ""
+    vend, priv = endpoint_lanes()
     hits = private_hits(text + "\n" + focus)
     public_ok = not hits
     if hits:
         print("NOT SENT to outside vendors. The packet contains: " + "; ".join(sorted(set(hits))), file=sys.stderr)
-        if not apple:
+        if not (apple or priv):
             print("Remove it and run again, or review with a subagent and label the reply [same-vendor].", file=sys.stderr)
             return 1
         print("Asking the private lane only.", file=sys.stderr)
-    if public_ok and not conf("private-terms.txt"):
+    if public_ok and not providers.private_terms(CONF)[0]:
         print("note: no private-terms list, so names are not checked. Ask the user for them (reference/setup.md, Private terms).", file=sys.stderr)
-    if not (key or lanes or apple):
+    if not (key or lanes or apple or vend or priv):
         print("No review key and no other lane. Label the reply [same-vendor] after a subagent pass, or run `desk setup`.", file=sys.stderr)
         return 3
 
@@ -354,16 +462,20 @@ def main(argv):
         open(ledger, "w", encoding="utf-8").write("date\tpacket\tmodel\tvendor\tstatus\tseconds\n")
     today = datetime.date.today().isoformat()
     results = []  # (vendor, model, status, seconds)
+    proxy_said = set()  # X-Proxy-Error headers from refusals
 
     def record(vendor, model, fn):
         t0 = time.time()
         status, body = fn()
+        body = redact(body)
         secs = int(time.time() - t0)
         with open(os.path.join(out, vendor + ".txt"), "w", encoding="utf-8") as f:
             f.write(f"packet: {packet}\nmodel:  {model}\nstatus: {status}\n\n{body}\n")
         with open(ledger, "a", encoding="utf-8") as f:
             f.write(f"{today}\t{stem}\t{model}\t{vendor}\t{status}\t{secs}\n")
         results.append((vendor, model, status, secs))
+        if status == "not-attached":
+            proxy_said.update(l[len("X-Proxy-Error: "):] for l in body.splitlines() if l.startswith("X-Proxy-Error: "))
         return status
 
     n = int(os.environ.get("DESK_REVIEW_N", "6"))
@@ -373,11 +485,13 @@ def main(argv):
         try:
             models = pick_models(out)
         except Exception as e:
-            print(f"Could not read the model list ({e}).", file=sys.stderr)
+            print(f"Could not read the model list ({redact(e)}).", file=sys.stderr)
     jobs = []
     if public_ok:
         jobs += [(name, "your lane: " + name, (lambda c=cmd: ask_command(c, text, focus))) for name, cmd in lanes]
+        jobs += [(p.name, f"endpoint {p.name}: {p.model}", (lambda p=p: ask_endpoint(p, text, focus))) for p in vend]
         jobs += [(m.split("/")[0], m, (lambda m=m: ask_openrouter(m, text, focus, key))) for m in models[:n]]
+    jobs += [("private-" + p.name, f"private endpoint {p.name}: {p.model}", (lambda p=p: ask_endpoint(p, text, focus))) for p in priv]
     if apple:
         jobs.append(("apple", f'Shortcut "{apple}"', lambda: ask_apple(apple, text, focus)))
     if jobs:
@@ -386,17 +500,19 @@ def main(argv):
         list(ex.map(lambda j: record(*j), jobs))
 
     def answered():
-        return sorted({v for v, _, s, _ in results if s == "answered" and v != "apple"})
+        return sorted({v for v, _, s, _ in results if s == "answered" and v != "apple" and not v.startswith("private-")})
 
     # Top up: free models fail often. Keep asking other vendors, one at a time,
     # until enough have answered or the list runs out.
     topped = []
     capped = any(s == "account-cap" for _, _, s, _ in results)
+    detached = any(s == "not-attached" for _, _, s, _ in results)
     for m in models[n:]:
-        if len(answered()) >= want or capped:
+        if len(answered()) >= want or capped or detached:
             break
-        if record(m.split("/")[0], m, lambda m=m: ask_openrouter(m, text, focus, key)) == "account-cap":
-            capped = True
+        status = record(m.split("/")[0], m, lambda m=m: ask_openrouter(m, text, focus, key))
+        capped = capped or status == "account-cap"
+        detached = detached or status == "not-attached"
         topped.append(m.split("/")[0])
 
     print()
@@ -409,27 +525,34 @@ def main(argv):
         print("ACCOUNT CAP: OpenRouter refused on the daily limit for free models. Another model will not help.\n"
               "  It is 50 requests a day, or 1000 a day once the account has bought 10 USD of credit\n"
               "  (the credit is not spent by free models). Otherwise wait for the daily reset.")
+    if detached:
+        print(f"REVIEW KEY: DESK_REVIEW_KEY=proxy, but the aggregator refused: {NOT_ATTACHED}.\n"
+              "  Its lane stopped. Run `review.py --check` to see what the proxy sends.\n"
+              "  " + proxy_advice(sorted(proxy_said)[0] if proxy_said else ""))
     vendors = answered()
-    apple_ok = any(v == "apple" and s == "answered" for v, _, s, _ in results)
+    apple_ok = any((v == "apple" or v.startswith("private-")) and s == "answered" for v, _, s, _ in results)
     sha = hashlib.sha256(text.encode()).hexdigest()
     rid = hashlib.sha256(f"{sha}{time.time()}{len(vendors)}".encode()).hexdigest()[:10]
     if vendors:
-        label = "thin" if len(vendors) == 1 else "open"
+        label = "thin" if len(vendors) == 1 or detached else "open"  # a lane refused for want of a key is not agreement
     else:
         label = "private-lane-only" if apple_ok else "unreviewed"
+    why = f" · {NOT_ATTACHED}" if detached else ""
     with open(os.path.join(out, f"receipt-{rid}.txt"), "w", encoding="utf-8") as f:
         f.write(f"receipt {rid}\ndate {datetime.datetime.now():%Y-%m-%d %H:%M:%S}\npacket {packet}\n"
                 f"packet_sha256 {sha}\nlabel {label}\nvendors_answered {len(vendors)}\n"
-                f"vendors {' '.join(vendors)}\nprivate_lane {'answered, both codes repeated' if apple_ok else 'no'}\n")
+                f"vendors {' '.join(vendors)}\nprivate_lane {'answered, both codes repeated' if apple_ok else 'no'}\n"
+                + (f"review_key {NOT_ATTACHED}\n" if detached else ""))
     plus = " + private lane" if apple_ok and vendors else ""
     print()
     if label == "unreviewed":
-        print(f"Label line: Review: [unreviewed] · receipt {rid}   (nobody answered)")
+        print(f"Label line: Review: [unreviewed]{why} · receipt {rid}   (nobody answered)")
         return 4
     if label == "private-lane-only":
-        print(f"Label line: Review: [thin] · private lane only · receipt {rid}")
+        print(f"Label line: Review: [thin] · private lane only{why} · receipt {rid}")
     elif label == "thin":
-        print(f"Label line: Review: [thin] · 1 vendor{plus} · receipt {rid}")
+        many = "1 vendor" if len(vendors) == 1 else f"{len(vendors)} vendors"
+        print(f"Label line: Review: [thin] · {many}{plus}{why} · receipt {rid}")
     else:
         print(f"Label line: Review: [converged] · {len(vendors)} vendors{plus} · receipt {rid}\n"
               f"  Earn it first: give every finding a disposition in {stem}-dispositions.md, next to the packet.\n"

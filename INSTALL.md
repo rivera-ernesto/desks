@@ -41,6 +41,9 @@ Check `SRC/skills/desk/SKILL.md` exists before going on.
   `DEST=.claude`
 - **Everywhere**: only if the user asks for Desk in every folder. `DEST=~/.claude`. Skip step 4
   unless they also want the block in this folder.
+- **In a cloud session** (Claude Code on the web): only "this folder" works, because the cloud
+  machine is thrown away after the session. The files must be committed to the repository to be
+  there next time; say so, and commit only on the user's yes (`skills/desk/reference/cloud.md`).
 
 ## 3) Copy
 
@@ -50,6 +53,7 @@ Check `SRC/skills/desk/SKILL.md` exists before going on.
 | `SRC/agents/desk-reader.md` | `DEST/agents/desk-reader.md` | ask |
 | `SRC/agents/desk-screen.md` | `DEST/agents/desk-screen.md` | ask |
 | `SRC/agents/desk-runner.md` | `DEST/agents/desk-runner.md` | ask |
+| `SRC/commands/dashboard.md` | `DEST/commands/dashboard.md` | ask |
 
 Create the folders as needed; an existing `.claude/` with other content is left as it is. Skip
 `__pycache__` folders. Copy nothing else: not the site, not the examples, not `.git`.
@@ -124,6 +128,6 @@ touched by an update.
 
 ## Removing
 
-Delete `DEST/skills/desk/`, the three `desk-*.md` files in `DEST/agents/`, and the marked block
+Delete `DEST/skills/desk/`, the three `desk-*.md` files in `DEST/agents/`, `DEST/commands/dashboard.md`, and the marked block
 in `CLAUDE.md`. Your `desks/` folder is yours; keep it or delete it. The review key and private
 terms live in `~/.config/desk/`.

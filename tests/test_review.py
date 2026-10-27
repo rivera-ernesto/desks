@@ -7,7 +7,9 @@ import os
 import sys
 import tempfile
 import unittest
+import urllib.error
 from contextlib import redirect_stderr, redirect_stdout
+from unittest import mock
 
 PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "skills", "desk", "scripts", "review.py")
 spec = importlib.util.spec_from_file_location("review", PATH)
@@ -39,7 +41,11 @@ class Sandbox(unittest.TestCase):
         review.CONF = os.path.join(self.dir, "conf")
         os.makedirs(review.CONF)
         review.time.sleep = lambda s: None
-        self._env = {k: os.environ.pop(k, None) for k in ("OPENROUTER_API_KEY", "DESK_REVIEW_MODELS", "DESK_REVIEW_N", "DESK_REVIEW_MIN")}
+        self._env = {k: os.environ.pop(k, None) for k in ("OPENROUTER_API_KEY", "DESK_REVIEW_KEY", "DESK_REVIEW_MODELS", "DESK_REVIEW_N",
+                                                          "DESK_REVIEW_MIN", "DESK_CLOUD", "DESK_PRIVATE_TERMS")}
+        for k in [k for k in os.environ if k.startswith("DESK_ENDPOINT_")]:
+            self._env[k] = os.environ.pop(k)
+        os.environ["DESK_CLOUD"] = "0"  # the user's own machine, whatever this run happens on
 
     def tearDown(self):
         review.CONF, review.http, review.time.sleep = self._conf, self._http, self._sleep
@@ -267,6 +273,161 @@ class Labels(Sandbox):
         code, _, err = self.run_main(os.path.join(self.dir, "nope.md"))
         self.assertEqual(code, 2)
         self.assertIn("packet not found", err)
+
+
+def refused(code, headers=None):
+    return urllib.error.HTTPError("https://openrouter.ai/api/v1", code, "no", headers or {}, io.BytesIO(b'{"error":"no"}'))
+
+
+SAID = 'upstream auth failed: connection "a-secret", host "openrouter.ai"'
+
+
+class Proxy(Sandbox):
+    """DESK_REVIEW_KEY=proxy: a network proxy attaches the key, the script never sees one."""
+
+    def setUp(self):
+        super().setUp()
+        os.environ["DESK_REVIEW_KEY"] = "proxy"
+
+    def lane(self, name):
+        script = os.path.join(self.dir, name + ".py")
+        put(script, "import sys; sys.stdin.read(); print(%r)" % LONG)
+        return f'{name} | "{sys.executable}" "{script}"\n'
+
+    def test_no_authorization_header_of_its_own_even_with_a_key_set(self):
+        os.environ["OPENROUTER_API_KEY"] = "sk-should-not-be-sent"
+        self.conf("openrouter.key", "k")
+        self.assertEqual(review.api_key(), "proxy")
+        sent = []
+
+        class Answer(io.BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+        def urlopen(req, timeout=None):
+            sent.append(req)
+            return Answer(b'{"choices": [{"message": {"content": "fine"}}]}')
+
+        with mock.patch.object(review.urllib.request, "urlopen", urlopen):
+            review.ask_openrouter("alpha/big:free", "x", "f", review.api_key())
+        self.assertEqual(len(sent), 1)
+        self.assertIsNone(sent[0].get_header("Authorization"))
+
+    def fake_key(self, answer):
+        calls = []
+
+        def http(url, payload=None, key=None, timeout=100):
+            calls.append((url, key))
+            if isinstance(answer, Exception):
+                raise answer
+            return answer
+
+        review.http = http
+        return calls
+
+    def test_check_working_names_label_and_limit(self):
+        calls = self.fake_key({"data": {"label": "desk-cloud", "limit": 10, "usage": 0}})
+        code, out, _ = self.run_main("--check")
+        self.assertEqual(code, 0)
+        self.assertIn('review key:      via proxy, working (label "desk-cloud", limit 10)', out)
+        self.assertIn("cross-vendor", out)
+        self.assertEqual(calls, [("https://openrouter.ai/api/v1/key", "proxy")])
+
+    def test_check_working_without_details(self):
+        self.fake_key({"data": {}})
+        code, out, _ = self.run_main("--check")
+        self.assertEqual(code, 0)
+        self.assertIn("review key:      via proxy, working\n", out)
+
+    def test_check_not_attached_counts_as_no_key(self):
+        for status in (401, 403):
+            self.fake_key(refused(status))
+            code, out, _ = self.run_main("--check")
+            self.assertEqual(code, 3)
+            self.assertIn(f"review key:      via proxy, NOT attached (HTTP {status})", out)
+            self.assertIn("same-vendor", out)
+
+    def test_check_prints_the_proxy_error_header(self):
+        self.fake_key(refused(401, {"X-Proxy-Error": SAID}))
+        code, out, _ = self.run_main("--check")
+        self.assertEqual(code, 3)
+        self.assertIn("via proxy, NOT attached (HTTP 401)\n", out)
+        self.assertIn("proxy says: " + SAID, out)
+        self.assertIn("re-enter the secret", out)
+
+    def test_check_without_the_header_says_no_secret_matched(self):
+        self.fake_key(refused(403))
+        _, out, _ = self.run_main("--check")
+        self.assertIn("no proxy note: probably no secret is set for openrouter.ai", out)
+
+    def test_check_not_attached_with_another_lane_still_exits_0(self):
+        self.conf("reviewers.txt", self.lane("mine"))
+        self.fake_key(refused(401))
+        code, out, _ = self.run_main("--check")
+        self.assertEqual(code, 0)
+        self.assertIn("NOT attached (HTTP 401)", out)
+
+    def test_check_with_no_answer_at_all_is_not_working(self):
+        self.fake_key(urllib.error.URLError("no route"))
+        code, out, _ = self.run_main("--check")
+        self.assertEqual(code, 3)
+        self.assertIn("via proxy, not reached", out)
+
+    def chat(self, error):
+        calls = []
+
+        def http(url, payload=None, key=None, timeout=100):
+            if payload is None:
+                return CATALOGUE
+            calls.append(payload["model"])
+            raise error
+
+        review.http = http
+        return calls
+
+    def test_a_refusal_stops_the_lane_and_says_why(self):
+        for status in (401, 403):
+            os.environ["DESK_REVIEW_N"] = "1"
+            calls = self.chat(refused(status))
+            code, out, _ = self.run_main(self.packet())
+            self.assertEqual(code, 4)
+            self.assertEqual(len(calls), 1)  # no retry, no top-up
+            self.assertIn("not-attached", out)
+            self.assertIn("Review: [unreviewed] · key not attached in this environment · receipt", out)
+
+    def test_a_refusal_during_review_prints_the_proxy_error_header(self):
+        os.environ["DESK_REVIEW_N"] = "1"
+        self.chat(refused(401, {"X-Proxy-Error": SAID + "\x1b[2J"}))
+        _, out, _ = self.run_main(self.packet())
+        self.assertIn("proxy says: " + SAID, out)
+        self.assertNotIn("\x1b", out)  # the header is shown, never obeyed by the terminal
+        answers = os.path.join(self.dir, "reviews", "2026-01-01-price-reviews")
+        self.assertTrue(any(SAID in open(os.path.join(answers, f)).read() for f in os.listdir(answers) if f.endswith(".txt")))
+
+    def test_a_refusal_means_never_converged(self):
+        self.conf("reviewers.txt", self.lane("one") + self.lane("two"))
+        self.chat(refused(401))
+        code, out, _ = self.run_main(self.packet())
+        self.assertEqual(code, 0)
+        self.assertNotIn("[converged]", out)
+        self.assertIn("Review: [thin] · 2 vendors · key not attached in this environment · receipt", out)
+        rid = out.split("receipt ")[-1].split()[0]
+        self.assertIn("review_key key not attached", self.run_main("--verify", rid, self.dir)[1])
+
+    def test_rate_limits_and_server_errors_keep_their_handling(self):
+        for status, expected in ((429, "rate-limited"), (502, "failed")):
+            calls = self.chat(refused(status))
+            got, _ = review.ask_openrouter("alpha/big:free", "x", "f", review.api_key())
+            self.assertEqual(got, expected)
+            self.assertEqual(len(calls), 2)  # retried once, as before
+
+    def test_without_the_flag_a_refusal_is_an_ordinary_failure(self):
+        del os.environ["DESK_REVIEW_KEY"]
+        self.chat(refused(401))
+        self.assertEqual(review.ask_openrouter("alpha/big:free", "x", "f", "k")[0], "failed")
 
 
 if __name__ == "__main__":

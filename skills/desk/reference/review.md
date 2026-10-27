@@ -36,6 +36,9 @@ tops up with other vendors until three have answered. Expect two to four minutes
   The limit is 50 requests a day, or 1000 once the account has bought 10 USD of credit. Free
   models do not spend that credit. This is the user's money and the user's decision
   (`[needs you: money]`); never suggest paid models as the way around it.
+- **"key not attached in this environment"** means `DESK_REVIEW_KEY=proxy` is set but the network
+  did not add the key: OpenRouter refused, its lane stopped, and the label is never `[converged]`.
+  `reference/setup.md` § A key the session never sees.
 - **Check a label** someone doubts: `review.py --verify <receipt> desks/`.
 
 ## Reading the answers
@@ -67,6 +70,9 @@ recommendation. The exceptions are the five kinds in § 4 of the contract.
   an answer can be a reviewer. One line each in `~/.config/desk/reviewers.txt`:
   `name | command`. For example a command-line client for another AI subscription. These count as
   vendors. `reference/adopt.md` explains how to find them.
+- **Endpoints.** Any server that speaks the OpenAI chat API (a shared model, your own, an Apple
+  Intelligence gateway), declared in the dashboard or by variables (`reference/setup.md`
+  § Endpoints). A `vendor` endpoint counts as a vendor; a `private` one is a private lane.
 - **A private lane on a Mac.** A macOS Shortcut that sends its input to Apple's Private Cloud
   Compute model can review material you would not send to a free model. Put the Shortcut's name in
   `~/.config/desk/apple-shortcut`. The script proves each call read the whole input (it plants two
