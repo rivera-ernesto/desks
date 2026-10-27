@@ -2,6 +2,97 @@
 
 ## Unreleased
 
+### 0.3.0 candidate
+
+Fixes from the code review of this candidate, in one list:
+
+- `close` refuses unless the checked-out branch is the closing topic's own (a session on `main` can no
+  longer have `main` pushed or merged); it stops with a clear message when a child's parent branch is
+  gone; and it checks the main folder is on the base before it commits the ready trailer.
+- `Escalate:` fails closed: an unknown rule kind, a bad number, an empty rules file and a rule with no
+  pattern escalate; "none" in an anomaly row matches as a whole word only.
+- `Escalate:` rules can leave out a topic's own files (#82). `path` and `max-lines` rules take an optional
+  column `except=<glob>`; `max-lines` counts only lines outside the topic's own folders. A folder whose
+  close writes notes on every close no longer escalates every topic. A malformed option escalates.
+- `Escalate:` path rules see every changed file under its real name: a path with non-ASCII characters is
+  no longer quoted out of a match, and a file moved out of a ruled folder still matches under its old path.
+- The `open` lock is created with its content in one step (a temp file linked into place); an unreadable
+  lock counts as live until it is older than the TTL.
+- A review receipt is found only through the index and only from its packet's own review folder; a missing
+  packet is stale; a disposition needs a status word. The gate passes only on `OK` or `PASS`. A refused
+  packet with a private shortcut but no private lane exits 1 with an accurate message.
+- One table of exit codes per command (`reference/exit-codes.md`); `--alongside` is documented as self-declared.
+- `desk.py remove` lists, and on `--yes` removes, only the skill, its agents and its block; records and the
+  transcript archive always stay. New setting `Transcripts: <folder>` (off by default): `close` copies the
+  session's transcript there (never into a git working tree) and records its sha256 next to the Source ID.
+- The Spanish scan keywords `cierra` and `cierre` are gone, so "commands are in English only" is true.
+
+Principle: Desks owns the mechanism; a folder keeps only its policy, as lines in the Desk block. Every
+item below removes a manual step a folder had to script itself. Net surface: the scripts grow by
+about 900 lines for twelve items; items 6 and 12 are new machinery (a thin delegation contract and
+the digest) and are counted as such. The contract stays under 300 lines.
+
+- **One opener, one closer (item 1).** `desk.py open` cuts a topic from `Base:` (fetched; a missing
+  base stops it, never the checked-out branch), takes a lock (a pid and a 10-minute TTL; a dead owner
+  or an old lock is reclaimed, a live fresh one is waited for), refuses to reopen a topic whose close
+  was already received (exit 4, names `<topic>-2`) and asks once before reopening one that was handed
+  over and not received (exit 5, `--reopen`). It never creates folders in the main folder and prints
+  the working copy. `desk.py close` finds the topic from the working copy. `Branch prefix:` and
+  `Ready trailer:` name the branch family and the line that marks a handed-over head.
+- **Hooks are first-class (item 2).** `Open:`, `Review:` and `Close:` take `house follow <file>` or
+  `house run <command>`; a `run` command only runs in the form the user confirmed (per step).
+  `House git:` states which git steps the folder's routine owns. After a house close Desks still
+  warns about unsaved files and prints the next step; a `follow` close without the ready trailer warns,
+  and a `run` close without it exits 8 and is not recorded as closed.
+- **One review lane (item 3).** `Gate:` (run as `<command> <file> public|private`; it lets a tier out
+  only by exit 0 and a first line of exactly `OK` or `PASS`: silence, any other text, a non-zero exit or
+  a gate that cannot run refuses) replaces the built-in scan and
+  the private-terms list when present. `Private lane:` is a command reading the packet path, answer on
+  stdout, exit 3 for too large. `Reviews:` and `Dispositions:` name the folder and file. A family
+  counts only when its answer, minus tool calls and reasoning blocks, has 200 characters; failed
+  families are replaced from the live list until three answered; fewer than three, or only the
+  private lane, exits 6 and is `[thin]`. `--verify` works from any folder (receipts are indexed in
+  `~/.config/desk/receipts.tsv`; the tree is never searched, and a receipt counts only from its own
+  packet's review folder), says `converged` only when every row of the dispositions table starts with
+  a status word (accepted, rejected, partly, left, noted) and the packet is present and unchanged. `--background` returns at once and a watchdog stops a
+  hung run; `--status` reads it; `--help` exits 0.
+- **Review is not skippable (item 4).** `desk.py close` refuses a `[converged]`, `[thin]` or `[open]`
+  label with no verifiable receipt, a stale or missing packet, and `[quick]` unless `- Quick loop: allowed`.
+  `[open]` is a review that ran with enough families but has findings without a disposition yet; it is
+  not a finish line, and `close` takes it only with a receipt that checks out.
+- **State only where it is versioned (item 5).** `open` and `note` refuse a path git ignores;
+  `Pointers only: yes` seeds only the README pointer; `status` reports state the main folder holds;
+  `desk.py migrate <topic>` copies it into the working copy; `Sessions:` moves the session notes.
+- **Delegation contract (item 6, thin).** `desk.py open <child> --parent <topic>` cuts from the
+  parent's branch, writes `brief.md` from `templates/brief.md`, enforces `Depth cap:` (a hard limit, default 3,
+  configurable, `none` lifts it) and prints `Usage reserve:` for that level, which the parent checks from the host's
+  usage reading (no counter shared across the tree). The brief carries the user's words verbatim and the plan pinned to a commit. `desk.py children` lists running, ready and
+  received children. Not in this version: resuming a paused child, scheduling.
+- **Permission wording (item 7).** A refusal is asked once through the app's prompt and retried once
+  on a yes; a standing yes is never written into the project's permission settings; adopt never opens
+  a key file.
+- **Install and docs (item 8).** One update path in INSTALL.md (#48); the skill header declares its
+  `license:` and what it `requires:` (#76); `--help` exits 0 for both scripts; the settings table
+  lists every line of the Desk block.
+- **Lessons land (item 9).** Every line under `## Lessons` ends with `→ topic`, `→ house <file>`,
+  `→ issue <ref>` or `→ dropped: <reason>`; the close refuses one without. `Close note:` names template files (several, separated by `;`)
+  whose `##` headings the note must have: the format is the folder's, not Desks'. Desks ships one
+  opt-in template, `templates/living-memory.md`, based on the public Living Memory Prompt by Verdecito
+  (CC BY 4.0), with a `Source ID / UUID` field (the raw conversation is found by id, never copied) and a
+  separate `living-memory-personal.md` whose section the user opts into and writes or approves.
+  `Close sections:` lists headings directly and wins.
+- **Receive (item 11).** `desk.py receive [<topic>]` lists, or takes a ready topic in all or nothing:
+  a scratch merge (or `Receive merge:`), `Receive checks:`, then the target moves; any failure leaves
+  the working copy, branch and trailer untouched and the digest shows `blocked`. Exit 0 received,
+  2 nothing ready, 3 blocked, 4 escalation (`Escalate:` names a tab-separated rules file: `path`,
+  `doctrine`, `max-lines`, `undeclared`, `anomalies`; computed from git and the file, a missing file
+  escalates). `--escalated-ok "<why>" --head <sha>` is a reader's decision at that exact head.
+  `Differed log:` collects the close note's "Where Desks differed" rows in the same step.
+- **Digest (item 12).** `desk.py digest [--fetch]` prints lane, working copy, ready and blocked
+  topics, escalations, children and base staleness with exit codes 0, 2, 3, 4, 5;
+  `--freeze <file> --next "<step>"` writes that state and refuses while a child runs (exit 6);
+  `--compare <file>` checks a later boot against it (exit 1 on a difference).
+
 - Site: Astro 7.3.8; canonical addresses, language pairs, a share image per language, a sitemap
   and robots.txt, a not-found page in both languages, and a build that fails when any of them is
   missing. The pages name the three kinds of folder, the three workers, `desk setup` and `desk profile`,

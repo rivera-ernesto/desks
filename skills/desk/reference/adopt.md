@@ -91,8 +91,10 @@ touched. If the changelog lists a **Migration** for a version in between, do eac
 and say what it changed. Do not check for updates on your own; it costs a network call per session
 and nobody asked.
 
-`desk remove`: list the files from the "Removing" section of the source's `INSTALL.md`, and delete
-them on the user's yes. `desks/` and the profile are theirs and stay.
+`desk remove`: run `desk.py remove` (it lists what it would take out), show the user the list, and on
+their yes run it again with `--yes`. It takes out the skill folder, the `desk-*.md` agents and the marked
+block, and nothing else. The records, the transcript archive (`Transcripts:`) and the profile are
+theirs and stay.
 
 ## Feedback
 

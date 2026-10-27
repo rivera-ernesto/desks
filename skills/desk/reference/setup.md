@@ -92,3 +92,24 @@ A session started on the computer can be continued from the Claude phone app onc
 on for that session. It is the user's switch to turn, because it makes the session reachable, and
 approvable, from the phone. Tell them where it is; do not change settings for them. Links to
 files do not open on a phone: send the file itself when the surface can.
+
+## The Desk block's lines, 0.3.0
+
+All optional; record each with `desk.py set "<Key>" "<value>"`. A folder that records none behaves as before.
+
+| Line | Does |
+|---|---|
+| `Base:` | what a new topic is cut from and measured against, such as `origin/development`; `open` fetches it and stops if it is not there |
+| `Branch prefix:` · `Ready trailer:` | topic branch names (default `desk/`) and the line that marks a handed-over head (default `Desk-Status: ready`) |
+| `Open:` · `Close:` · `Review:` | `house follow <file>` or `house run <command>`; a `run` command only runs in the form the user confirmed |
+| `House git:` | which git steps the folder's close routine owns; the session does none of them |
+| `Gate:` · `Private lane:` | the folder's privacy gate (`<command> <file> public\|private`; only exit 0 with a first output line of exactly `OK` (or `PASS`) lets it out; silence, any other text and any other exit refuse) and its private reviewer (`<command> <packet>`, answer on stdout, exit 3 for too large) |
+| `Reviews:` · `Dispositions:` | names of the answers folder and the dispositions file, `{stem}` for the packet's name |
+| `Transcripts:` | a folder outside every repository (default: unset, off); `close` copies the session's transcript into it and records its sha256 next to the `Source ID` (`reference/close.md` § Transcripts) |
+| `Quick loop:` | `allowed` lets a reply carry `[quick]`; without it the close refuses that label |
+| `Sessions:` · `Pointers only:` | where session notes live (`notes/{topic}`); with `yes`, a topic folder holds only its README pointer and `status` reports state left outside history |
+| `Close note:` | a template file inside the folder; every `##` heading of it is a section the close note must have, so the folder's own note format plugs in (Desks ships none) |
+| `Close sections:` | headings a close note must have (wins over the template), `Done \| Open items` |
+| `Receive into:` · `Receive merge:` · `Receive checks:` · `Differed log:` | where a ready topic lands (default: the base's own name), the command that merges it in the scratch copy, the check that must pass, and a file that collects the rows of "Where Desks differed" |
+| `Escalate:` | a tab-separated rules file for `receive`, one rule per line: kind, value, then an optional reason. Kinds: `path<TAB>glob`, `doctrine<TAB>glob`, `max-lines<TAB>N` (counts only lines outside the topic's own folders), `undeclared<TAB>*` (the diff touches files the note's "Files" section does not list), `anomalies<TAB>N`. `path`, `doctrine` and `max-lines` take an extra column `except=<glob>`, matched the same way as the rule's glob: a file that matches it is left out (`path<TAB>*Journal*<TAB>journal notes<TAB>except=desks/*/closes/*`). No line means no rules; a named file that is missing, an empty `except=`, an unknown option or an option on a kind that does not take it means escalate |
+| `Depth cap:` · `Usage reserve:` · `Maintainer prefix:` | nesting depth (default 3, `none`), the reserve per level (`50, 40`, the last repeats), and the branch prefix the digest calls the maintainer lane |

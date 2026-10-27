@@ -116,14 +116,16 @@ open a Desk there.
 
 ## Updating
 
-In a session, type `desk update`: it shows what changed since your version and, on your yes, runs
-these install steps again for you. Pasting the install prompt again does the same without the
-summary. Step 3 replaces the Desk skill folder and asks about the agents.
+One way: in a session, type `desk update`. It shows what changed since your version and, on your
+yes, runs the install steps above again, which replace the Desk skill folder (step 3) and ask about
+the agents. Pasting the install prompt again is the same thing without the summary.
 Your `desks/` folder, your `CLAUDE.md` outside the marked block, and `~/.config/desk/` are never
 touched by an update.
 
 ## Removing
 
-Delete `DEST/skills/desk/`, the three `desk-*.md` files in `DEST/agents/`, and the marked block
-in `CLAUDE.md`. Your `desks/` folder is yours; keep it or delete it. The review key and private
-terms live in `~/.config/desk/`.
+In a session, type `desk remove`: it lists what it would take out and removes it on your yes. By hand:
+delete `DEST/skills/desk/`, the three `desk-*.md` files in `DEST/agents/`, and the marked block
+in `CLAUDE.md`. Nothing else is Desks'. Your records are plain Markdown in your own `desks/` folder (or
+wherever `Desk root:` and `Sessions:` point), and they are yours: uninstalling leaves them in place, and
+so it leaves the folder named by `Transcripts:`. The review key and private terms live in `~/.config/desk/`.
