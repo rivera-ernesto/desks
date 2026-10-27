@@ -1439,6 +1439,29 @@ def child_rows(root, cfg):
     return rows
 
 
+def rule_options(kind, cols):
+    """The `except=<glob>` columns of an escalate rule, and what is wrong with them, if anything.
+    A column after the rule's value that starts with a word and `=`, or with the word `except`, is an
+    option; any other column is the rule's reason, free text. Only `path`, `doctrine` and `max-lines`
+    take `except`."""
+    excepts = []
+    for c in (c.strip() for c in cols):
+        m = re.match(r"^([A-Za-z][\w-]*)\s*=\s*(.*)$", c)
+        if not m:
+            if re.match(r"^except\b", c, re.I):
+                return [], f"has an option that is not `except=<glob>`: `{c}`"
+            continue
+        key, glob = m.group(1).lower(), m.group(2).strip()
+        if key != "except":
+            return [], f"has an option this script does not know: `{c}`"
+        if kind not in ("path", "doctrine", "max-lines"):
+            return [], "has `except=`, which only path, doctrine and max-lines rules take"
+        if not glob:
+            return [], "has `except=` with no glob"
+        excepts.append(glob)
+    return excepts, ""
+
+
 def escalation_reasons(root, cfg, topic, sha, target):
     """Why this topic may not be taken in by the script alone. Computed from git and the rules file,
     never from what the close note claims about itself. No `Escalate:` line, no rules."""
@@ -1450,8 +1473,9 @@ def escalation_reasons(root, cfg, topic, sha, target):
         return [f"the rules file `{spec}` named in `Escalate:` is not there (the answer is escalate, not skip)"]
     _, names, _ = run(["git", "diff", "--name-only", f"{target}...{sha}"], cwd=root)
     changed = [n for n in names.splitlines() if n]
-    _, num, _ = run(["git", "diff", "--numstat", f"{target}...{sha}"], cwd=root)
-    size = sum(int(a) + int(b) for a, b, *_ in (l.split("\t") for l in num.splitlines()) if a.isdigit() and b.isdigit())
+    _, num, _ = run(["git", "diff", "--numstat", "-z", "--no-renames", f"{target}...{sha}"], cwd=root)
+    sizes = [(n, int(a) + int(b)) for a, b, n in (e.split("\t", 2) for e in num.split("\0") if e.count("\t") >= 2)
+             if a.isdigit() and b.isdigit()]  # binary files count no lines
     droot = cfg.get("desk root", "desks/").strip("/")
     sdir = sessions_dir("", cfg, topic, droot)
     _, listing, _ = run(["git", "ls-tree", "-r", "--name-only", sha, "--", sdir], cwd=root)
@@ -1463,20 +1487,27 @@ def escalation_reasons(root, cfg, topic, sha, target):
         if not raw.strip() or raw.startswith("#"):
             continue
         kind, _, rest = raw.partition("\t")
-        val = rest.split("\t")[0].strip()
+        cols = rest.split("\t")
+        val = cols[0].strip()
         kind = kind.strip().lower()
         ruled += 1
+        excepts, bad = rule_options(kind, cols[1:])
+        if bad:
+            out.append(f"the {kind} rule `{val}` {bad} (the answer is escalate, not skip)")
+            continue
         if kind in ("path", "doctrine"):
             if not val:
                 out.append(f"the {kind} rule has no pattern (the answer is escalate, not skip)")
             for n in changed:
-                if val and fnmatch.fnmatch(n, val):
+                if val and fnmatch.fnmatch(n, val) and not any(fnmatch.fnmatch(n, e) for e in excepts):
                     out.append(f"{n} matches {kind} rule `{val}`")
         elif kind == "max-lines":
+            # the topic's own folders (its README, notes, close files) are not the change being measured
+            size = sum(k for n, k in sizes if not n.startswith(own) and not any(fnmatch.fnmatch(n, e) for e in excepts))
             if not val.isdigit():
                 out.append(f"the max-lines rule has no number: `{val}` (the answer is escalate, not skip)")
             elif size > int(val):
-                out.append(f"the diff is {size} lines, over the limit of {val}")
+                out.append(f"the diff is {size} lines outside the topic's own folders, over the limit of {val}")
         elif kind == "undeclared":
             body = section_body(note, "Files")
             declared = {re.sub(r"^[-*]\s*`?([^`\s]+)`?.*$", r"\1", l.strip()) for l in body.splitlines() if l.strip().startswith(("-", "*"))}

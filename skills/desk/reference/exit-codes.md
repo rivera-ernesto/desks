@@ -20,7 +20,7 @@ Any command that is given something it does not understand exits 2 and prints it
 | `receive` | 0 | the topic was taken in (or, with no topic, the ready ones are listed) |
 | | 2 | nothing ready |
 | | 3 | blocked: the merge, the checks or the target failed; working copy, branch and trailer are untouched |
-| | 4 | escalation: a reader must decide (`--escalated-ok "<why>" --head <sha>`); this includes a rules file that is missing, empty, or has a rule Desks does not know |
+| | 4 | escalation: a reader must decide (`--escalated-ok "<why>" --head <sha>`); this includes a rules file that is missing, empty, or has a rule or option Desks does not know |
 | `digest` | 0 | nothing waiting |
 | | 2 | ready topics waiting (also: not a git folder) |
 | | 3 | a blocked topic |

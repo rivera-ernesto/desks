@@ -11,6 +11,9 @@ Fixes from the code review of this candidate, in one list:
   gone; and it checks the main folder is on the base before it commits the ready trailer.
 - `Escalate:` fails closed: an unknown rule kind, a bad number, an empty rules file and a rule with no
   pattern escalate; "none" in an anomaly row matches as a whole word only.
+- `Escalate:` rules can leave out a topic's own files (#82). `path` and `max-lines` rules take an optional
+  column `except=<glob>`; `max-lines` counts only lines outside the topic's own folders. A folder whose
+  close writes notes on every close no longer escalates every topic. A malformed option escalates.
 - The `open` lock is created with its content in one step (a temp file linked into place); an unreadable
   lock counts as live until it is older than the TTL.
 - A review receipt is found only through the index and only from its packet's own review folder; a missing

@@ -79,6 +79,59 @@ class EscalationFailsClosed(t30.Escalation):
         self.assertEqual(self.run_a("anomalies\t1\tn\nmax-lines\t500\tsize\n").returncode, 0)
 
 
+class EscalateExcept(t30.Topics):
+    """#82: a folder whose close writes its own notes and packs on every close must not escalate every topic."""
+
+    rules = t30.Escalation.rules
+    JOURNAL = "path\t*Journal*\tjournal notes\texcept=desks/a/closes/*\n"
+
+    def test_a_match_only_inside_the_topics_own_close_folder_is_received(self):
+        self.rules(self.JOURNAL)
+        self.ready("a", {"desks/a/closes/Journal-2026-01-01.md": "closed\n"})
+        r = desk(self.root, "receive", "a")
+        self.assertEqual(r.returncode, 0, r.stdout)
+
+    def test_control_the_same_file_outside_that_folder_escalates(self):
+        self.rules(self.JOURNAL)
+        self.ready("a", {"journal/Journal-2026-01-01.md": "closed\n"})
+        r = desk(self.root, "receive", "a")
+        self.assertEqual(r.returncode, 4)
+        self.assertIn("journal/Journal-2026-01-01.md matches path rule `*Journal*`", r.stdout)
+
+    def test_lines_inside_the_topics_own_folders_do_not_count_toward_max_lines(self):
+        self.rules("max-lines\t20\tsize\n")
+        self.ready("a", {"desks/a/closes/pack.md": "line\n" * 200})
+        r = desk(self.root, "receive", "a")
+        self.assertEqual(r.returncode, 0, r.stdout)
+
+    def test_control_the_same_lines_outside_them_escalate(self):
+        self.rules("max-lines\t20\tsize\n")
+        self.ready("a", {"pack.md": "line\n" * 200})
+        r = desk(self.root, "receive", "a")
+        self.assertEqual(r.returncode, 4)
+        self.assertIn("over the limit of 20", r.stdout)
+
+    def test_max_lines_takes_an_except_glob(self):
+        self.rules("max-lines\t20\tsize\texcept=vendor/*\n")
+        self.ready("a", {"vendor/lib.txt": "line\n" * 200})
+        r = desk(self.root, "receive", "a")
+        self.assertEqual(r.returncode, 0, r.stdout)
+
+    def test_a_malformed_except_escalates(self):
+        for rule, says in (("path\t*Journal*\twhy\texcept=\n", "no glob"),
+                           ("path\t*Journal*\twhy\texcept closes/*\n", "not `except=<glob>`"),
+                           ("path\t*Journal*\twhy\tunless=closes/*\n", "does not know: `unless=closes/*`"),
+                           ("undeclared\t*\twhy\texcept=closes/*\n", "only path, doctrine and max-lines")):
+            with self.subTest(rule=rule):
+                self.rules(rule)
+                if "desk/a" not in self.branches():
+                    self.ready("a", {"plain.txt": "x\n"})  # nothing here matches any rule's glob
+                r = desk(self.root, "receive", "a")
+                self.assertEqual(r.returncode, 4, r.stdout)
+                self.assertIn(says, r.stdout)
+                self.assertIn("the answer is escalate, not skip", r.stdout)
+
+
 class LockFile(t30.Topics):
     def lock(self, text, age=0):
         d = os.path.join(self.root, ".git", "desk-state")
