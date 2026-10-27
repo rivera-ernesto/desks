@@ -50,6 +50,7 @@ Check `SRC/skills/desk/SKILL.md` exists before going on.
 | `SRC/agents/desk-reader.md` | `DEST/agents/desk-reader.md` | ask |
 | `SRC/agents/desk-screen.md` | `DEST/agents/desk-screen.md` | ask |
 | `SRC/agents/desk-runner.md` | `DEST/agents/desk-runner.md` | ask |
+| `SRC/commands/subdesk.md` | `DEST/commands/subdesk.md` | ask |
 
 Create the folders as needed; an existing `.claude/` with other content is left as it is. Skip
 `__pycache__` folders. Copy nothing else: not the site, not the examples, not `.git`.
@@ -125,7 +126,7 @@ touched by an update.
 ## Removing
 
 In a session, type `desk remove`: it lists what it would take out and removes it on your yes. By hand:
-delete `DEST/skills/desk/`, the three `desk-*.md` files in `DEST/agents/`, and the marked block
+delete `DEST/skills/desk/`, the three `desk-*.md` files in `DEST/agents/`, `DEST/commands/subdesk.md`, and the marked block
 in `CLAUDE.md`. Nothing else is Desks'. Your records are plain Markdown in your own `desks/` folder (or
 wherever `Desk root:` and `Sessions:` point), and they are yours: uninstalling leaves them in place, and
 so it leaves the folder named by `Transcripts:`. The review key and private terms live in `~/.config/desk/`.

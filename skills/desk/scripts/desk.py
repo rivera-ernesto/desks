@@ -1791,6 +1791,9 @@ def cmd_remove(yes):
     bf = block_file(root)
     gone = [skill] + sorted(os.path.join(dest, "agents", n) for n in (os.listdir(os.path.join(dest, "agents")) if os.path.isdir(os.path.join(dest, "agents")) else [])
                             if n.startswith("desk-") and n.endswith(".md"))
+    cmd = os.path.join(dest, "commands", "subdesk.md")
+    if os.path.isfile(cmd):
+        gone.append(cmd)
     print("would remove:" if not yes else "removing:")
     for g in gone:
         print("  " + g)
