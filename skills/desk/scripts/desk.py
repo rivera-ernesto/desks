@@ -1471,8 +1471,10 @@ def escalation_reasons(root, cfg, topic, sha, target):
     path = os.path.join(root, spec)
     if not inside(root, spec) or not os.path.isfile(path):
         return [f"the rules file `{spec}` named in `Escalate:` is not there (the answer is escalate, not skip)"]
-    _, names, _ = run(["git", "diff", "--name-only", f"{target}...{sha}"], cwd=root)
-    changed = [n for n in names.splitlines() if n]
+    # -z: git quotes a path with non-ASCII or special characters, which a glob would not match;
+    # --no-renames: a file moved away shows under its old path too, so a rule on that path still fires
+    _, names, _ = run(["git", "diff", "--name-only", "-z", "--no-renames", f"{target}...{sha}"], cwd=root)
+    changed = [n for n in names.split("\0") if n]
     _, num, _ = run(["git", "diff", "--numstat", "-z", "--no-renames", f"{target}...{sha}"], cwd=root)
     sizes = [(n, int(a) + int(b)) for a, b, n in (e.split("\t", 2) for e in num.split("\0") if e.count("\t") >= 2)
              if a.isdigit() and b.isdigit()]  # binary files count no lines

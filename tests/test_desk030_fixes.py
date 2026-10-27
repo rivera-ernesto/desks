@@ -132,6 +132,33 @@ class EscalateExcept(t30.Topics):
                 self.assertIn("the answer is escalate, not skip", r.stdout)
 
 
+class EscalatePathNames(t30.Topics):
+    """Path rules see each changed file under its real name: not quoted, and not only its new name after a move."""
+
+    rules = t30.Escalation.rules
+
+    def test_a_path_with_non_ascii_characters_matches_its_rule(self):
+        self.rules("path\tprivate/*\tprivate notes\n")
+        self.ready("a", {"private/dise\u00f1o.md": "x\n"})
+        r = desk(self.root, "receive", "a")
+        self.assertEqual(r.returncode, 4, r.stdout)
+        self.assertIn("private/dise\u00f1o.md matches path rule `private/*`", r.stdout)
+
+    def test_a_file_moved_out_of_a_ruled_folder_still_escalates(self):
+        put(os.path.join(self.root, "private", "notes.md"), "line one\nline two\nline three\n")
+        commit(self.root, "a private note", "private/notes.md")
+        self.rules("path\tprivate/*\tprivate notes\n")
+        self.assertEqual(desk(self.root, "open", "a").returncode, 0)
+        work = self.work("a")
+        os.makedirs(os.path.join(work, "public"), exist_ok=True)
+        sh(["git", "mv", "private/notes.md", "public/notes.md"], work)
+        self.fill("a")
+        commit(work, f"desk: a ready\n\n{TRAILER}")
+        r = desk(self.root, "receive", "a")
+        self.assertEqual(r.returncode, 4, r.stdout)
+        self.assertIn("private/notes.md matches path rule `private/*`", r.stdout)
+
+
 class LockFile(t30.Topics):
     def lock(self, text, age=0):
         d = os.path.join(self.root, ".git", "desk-state")
