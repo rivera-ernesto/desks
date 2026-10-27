@@ -18,7 +18,7 @@ rebuild it by hand.
      files). This is the default when unsure.
    If the host has no session-start tool, run step 3 for a local child, then give the user the
    working-copy path and the one line to open it there.
-3. **Register it (local).** Run `python3 <skill folder>/scripts/desk.py open <child> --parent <topic>`
+3. **Name and register it (local).** Make the child's name a short slug of the task. Run `python3 <skill folder>/scripts/desk.py open <child> --parent <topic>`
    and fill `brief.md` (from `templates/brief.md` in the skill folder): the user's words verbatim, the goal in one sentence, what
    the child may touch, and how it ends. Start the session in the working copy it printed.
    If `open` says the folder opens topics its own way, follow that routine for the child and name it so
