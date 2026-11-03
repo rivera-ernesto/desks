@@ -42,6 +42,11 @@ Check `SRC/skills/desk/SKILL.md` exists before going on.
 - **Everywhere**: only if the user asks for Desk in every folder. `DEST=~/.claude`. Skip step 4
   unless they also want the block in this folder.
 
+If the folder is a repository the user also opens in **cloud sessions** (Claude Code on the web,
+or a cloud session from the app), only **This folder** works there, and only once `.claude/` and the
+block are committed and pushed: a cloud session starts from the repository alone. Say so, and
+leave committing to them.
+
 ## 3) Copy
 
 | From | To | If it already exists |
@@ -112,7 +117,8 @@ In a terminal session of Claude Code:
 
 The skill then appears as `/desk:desk` and the workers as `desk:desk-reader` and so on, in every
 folder. Add the block from step 4 to a folder's `CLAUDE.md` if you want plain `desk <topic>` to
-open a Desk there.
+open a Desk there. A plugin installed this way is not loaded in cloud sessions; there, use
+**This folder** and commit it (`skills/desk/reference/cloud.md`).
 
 The plugin also brings two small hooks (`hooks/hooks.json`). At the start of a session in a folder
 that uses Desks, one tells Claude so, with the topic names. When a reply leaves out a line a script

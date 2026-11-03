@@ -19,6 +19,44 @@
   A folder install leaves settings alone; INSTALL.md says how to add them by hand.
 - Design reviewed by 3 families (receipt 99ff24f0e9). Adopted: enforce all three lines alike, not
   only the label; no next steps at session start.
+### Cloud sessions
+
+- **A Desk works in a Claude Code cloud session** (`CLAUDE_CODE_REMOTE=true`; `DESK_CLOUD=1|0`
+  overrides). At the git levels the topic lives on the session's own branch, in the checkout:
+  no `desk/<topic>` branch or working copy, which the thrown-away machine would lose and the
+  session could not push. The close checks that the topic is committed and the branch pushed,
+  then prints the `Closed line:`; it merges nothing. A child topic is refused there. `status` says
+  it is a cloud session. Taken from #86, without its dashboard.
+- `reference/cloud.md`: what works, what is reduced and what is off in a cloud session.
+  INSTALL.md says a cloud session loads Desks only from a committed `.claude/`, never from a
+  plugin or `~/.claude/`.
+- This repository's own sessions, cloud ones included, load Desks from `.claude/`: symlinks to
+  `skills/desk` and `agents/`, so nothing drifts (#41 used copies). A test checks the links and
+  that agent front matter is plain YAML; `desk-runner` and `desk-screen` descriptions are quoted.
+### More review providers, and OpenRouter checked
+
+- **More review providers.** A free-tier key in `~/.config/desk/<name>.key` for `groq`, `gemini`,
+  `mistral`, `cerebras` or `github` (GitHub Models) adds a lane that does not depend on
+  OpenRouter's busy free models or its daily cap. Each provider's model is picked from its live
+  list; a line in `~/.config/desk/providers.txt` pins one, or adds any endpoint that speaks the
+  OpenAI chat format.
+- **A model on this machine** (Ollama, LM Studio) is a `providers.txt` line with a `localhost`
+  address. It needs no key and is the one lane that still reviews a packet the script refuses to
+  send out.
+- **One family is one maker**: Gemma through OpenRouter and Gemini directly count once, and
+  OpenRouter is not asked for a family a direct provider already covers unless that lane fails.
+- **`review.py --test`** asks OpenRouter and each provider whether its key works, and says which
+  daily limit the OpenRouter key has (50 or 1000), sending no packet. `--check` still sends
+  nothing. A refused key used to look like every model failing and gave `[unreviewed]`; now the
+  review says `KEY REFUSED` and stops asking with it.
+- An OpenRouter answer that carries the provider's error inside a 200 reply is a failure (and is
+  retried), not an empty review.
+- **In a Claude Code cloud session** (setup.md, Review key): the key goes in the environment's
+  network secrets, header `Authorization` with the prefix `Bearer`, and `OPENROUTER_API_KEY` is set
+  to a placeholder. A secret saved without the prefix made OpenRouter answer 401 to every call;
+  `--test` now says so in one line. Verified with a real review from a cloud session: three
+  vendors answered in under a minute.
+- On equal context length, OpenRouter's larger free model of a family is asked (31b over 26b).
 
 ### 0.3.0 candidate
 
