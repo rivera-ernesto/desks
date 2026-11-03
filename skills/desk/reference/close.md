@@ -39,6 +39,23 @@ the work without asking the user what happened.
 
 A Desk that keeps going after its close just closes again later: update the same files.
 
+## Transcripts, and what stays when Desks goes
+
+The records are plain Markdown in the user's own folder, with plain metadata, never inside the skill.
+They belong to the user: uninstalling Desks (`desk remove`) leaves every record and the transcript
+archive in place, and any other tool can read them.
+
+The host keeps its own transcripts only for a while, so a source ID alone can outlive the conversation
+it names. `- Transcripts: <folder>` in the Desk block (default: unset, which is off) makes
+`desk.py close` copy the session's transcript into that folder, named by its source ID, and write
+`Transcript sha256: <hash>` on the line after `Source ID / UUID:` in the close note. The transcript is
+found by the ID the note carries; with no ID, by the newest transcript of this project. An ID that is
+named but not found stops the close: it is never replaced by some other conversation. The folder must
+lie outside every git working tree (the copy is refused inside one, so a transcript cannot be committed
+or pushed), and Desks never deletes anything in it. `desk.py remove` never touches it.
+Under `Close: house` the transcript is archived before the routine runs, and Desks saves the close note with its
+own one-file commit so the routine finds a clean tree: the only git step Desks takes in a house close.
+
 ## A folder with its own close
 
 Some folders had a way of closing a session before Desk arrived: their own record of the session,
@@ -93,3 +110,14 @@ the yes; a procedure file is a file inside the folder.
 **No `Close:` line, but the folder looks like it has a routine** (a closing script, a "closing"
 section in its rules): ask once, proposing the line. With no answer, close the Desk way and say
 in the final reply what the folder's routine would have done that this close did not.
+
+## What the close checks, 0.3.0
+
+Before any routine runs, `desk.py close` refuses, and lists every reason at once, when: a `{{...}}`
+is left, a heading from `Close sections:` is missing or empty, a line under `## Lessons` does not end
+with `→ topic`, `→ house <file>` (the file must exist), `→ issue <ref>` or `→ dropped: <reason>`, or a
+review label has no receipt that checks out. The topic is found from the working copy when none is
+named. After a house routine, Desks still looks for unsaved files and for the ready trailer on the
+branch head, and prints the README's next step. With the folder's `Receive` lines recorded, the
+trailer is what `desk.py receive` and `desk.py digest` read: a topic is handed over when the
+close wrote it, and taken in by `receive`, not by hand.

@@ -12,6 +12,7 @@ import tempfile
 import unittest
 
 DESK = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "skills", "desk", "scripts", "desk.py")
+READY_RUN = 'git commit -q --allow-empty -m x -m "Desk-Status: ready"'  # a house routine that hands the topic over
 BLOCK = "# Mine\n\nMy own rule.\n\n<!-- desk:start -->\n## Desk\n\nA paragraph.\n\n- Desk root: `desks/`\n- Version: 0\n<!-- desk:end -->\n"
 
 
@@ -484,7 +485,7 @@ class HouseCloseWithGit(Base):
     def test_desk_does_no_git_of_its_own(self):
         desk(self.root, "open", "a")
         self.fill("a")
-        desk(self.root, "set", "Close", "house run true")
+        desk(self.root, "set", "Close", "house run " + READY_RUN)
         head = sh(["git", "rev-parse", "HEAD"], self.root).stdout
         put(os.path.join(self.work("a"), "unsaved.txt"), "x")  # saving is the routine's business now
         r = desk(self.root, "close", "a")

@@ -12,24 +12,26 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
       <Prompt id="install" text={INSTALL_PROMPT_ES} caption="Pega en Claude Code" copy="Copiar" done="Copiado" />
     </li>
     <li><strong>Abre una sesión nueva en la misma carpeta</strong> y cuenta, con tus palabras, algo real que tengas pendiente. Claude propone un nombre corto para el tema y lo abre cuando le dices que sí. Si ya sabes el nombre, <code>desk mi-primer-tema</code> hace lo mismo.</li>
-    <li><strong>Cuando ofrezca una clave de revisión, di que sí.</strong> Tres minutos, gratis, y es lo que convierte a un segundo Claude en varias otras empresas.</li>
+    <li><strong>Cuando ofrezca una clave de revisión, di que sí.</strong> Tres minutos, gratis, y es lo que convierte a un segundo Claude en varias otras empresas. Si prefieres pasar por todas las preguntas de configuración de una vez, escribe <code>desk setup</code>.</li>
   </ol>
 
   <h2>Qué hace el texto</h2>
-  <p>Le estás diciendo a un agente de IA que siga instrucciones de internet. Desconfía de cualquier texto así, venga de quien venga, y mira primero. <a href={`${REPO}/blob/main/INSTALL.md`}>INSTALL.md</a> tiene unas cien líneas (en inglés), y esto es todo:</p>
+  <p>Le estás diciendo a un agente de IA que siga instrucciones de internet. Desconfía de cualquier texto así, venga de quien venga, y mira primero. <a href={`${REPO}/blob/main/INSTALL.md`}>INSTALL.md</a> es corto (en inglés), y esto es todo:</p>
   <ul>
     <li>Descarga una versión fija del repositorio a una carpeta temporal.</li>
+    <li>Instala en esta carpeta. En todas tus carpetas (<code>~/.claude/</code>) solo si se lo pides.</li>
     <li>Te muestra la lista de archivos que va a crear o cambiar, y espera tu sí.</li>
     <li>Copia una carpeta de habilidad y tres archivos de ayudantes a <code>.claude/</code> en tu carpeta.</li>
     <li>Añade un bloque claramente marcado a <code>CLAUDE.md</code>, o crea el archivo solo con ese bloque. En un proyecto compartido cuyo <code>CLAUDE.md</code> no te toca cambiar, el bloque puede ir en <code>CLAUDE.local.md</code>: Desks lo lee de ahí y no toca el archivo compartido.</li>
     <li>Crea una carpeta <code>desks/</code> vacía.</li>
+    <li>Corre una vez el script de revisión, para comprobar que funciona y si hay una clave de revisión.</li>
     <li>Informa qué archivos creó o cambió.</li>
   </ul>
-  <p>No instala programas, no cambia ajustes, no crea cuentas y pregunta antes de tocar cualquier archivo que ya exista. Después nada se ejecuta desde la red: los scripts son dos archivos de Python en la carpeta de la habilidad, y los puedes leer.</p>
+  <p>No instala programas, no cambia ajustes, no crea cuentas y pregunta antes de tocar cualquier archivo que ya exista. Fuera de esa comprobación no corre nada, y después nada se ejecuta desde la red: los scripts son dos archivos de Python en la carpeta de la habilidad, y los puedes leer.</p>
 
   <h2>Otras formas</h2>
   <ul>
-    <li><strong>Como plugin</strong>, en una sesión de terminal: <code>/plugin marketplace add rivera-ernesto/desks</code> y luego <code>/plugin install desk@desks</code>.</li>
+    <li><strong>Como plugin</strong>, en una sesión de terminal: <code>/plugin marketplace add rivera-ernesto/desks</code> y luego <code>/plugin install desk@desks</code>. Esta forma está menos probada que el texto.</li>
     <li><strong>Desde una copia descargada</strong>: descarga el zip de GitHub, descomprímelo y dile a Claude dónde está en lugar de la dirección.</li>
   </ul>
 

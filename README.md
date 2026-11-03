@@ -1,5 +1,8 @@
 # Desks
 
+The user is the source and the purpose of Desks.
+Desks is only the box, and it will keep improving. Each interaction happens once, belongs to the user, and stays useful for as long as what they wanted from it is not yet met.
+
 **A way of working for Claude Code: work sorted by topic, answers checked by other AI vendors, a written close.**
 
 You say what you want to get done: "I want to sell my old camera." Claude proposes a short name
@@ -62,7 +65,7 @@ desk my-first-topic
   there to disagree, and Claude has to answer each objection.
 - **More free providers** (optional): a free-tier key from Groq, Gemini, Mistral, Cerebras or
   GitHub Models, or a model running on your machine through Ollama, adds a reviewer that does not
-  depend on OpenRouter. Vendors are counted by who made the model, not where it runs.
+  depend on OpenRouter. Each maker counts once, wherever the model runs.
 - **Without a key**: a separate Claude subagent attacks the answer, and the reply says
   `[same-vendor]`. That catches slips. It does not catch what every Claude model would miss.
 - **What leaves your machine**: only the review packet, a single file with identifying details

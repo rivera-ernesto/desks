@@ -14,6 +14,10 @@
 
 - {{what was proposed}}: {{why it was dropped}}
 
+## Lessons
+
+- {{what held next time}} → {{topic | house <file> | issue <ref> | dropped: <reason>}}
+
 ## Snags
 
 | What happened | End |

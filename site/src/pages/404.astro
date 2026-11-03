@@ -2,7 +2,12 @@
 import Base from '../layouts/Base.astro';
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 ---
-<Base title="Not found · Desk" description="This page does not exist.">
+<!-- GitHub Pages serves one 404 page for every language, so it speaks both. -->
+<Base title="Not found · Desks" description="This page does not exist." noindex>
   <h1>Not found</h1>
   <p>That page does not exist. <a href={base}>Back to the start.</a></p>
+  <div lang="es">
+    <h2>No existe</h2>
+    <p>Esa página no existe. <a href={`${base}es/`}>Volver al inicio.</a></p>
+  </div>
 </Base>
