@@ -55,6 +55,15 @@ This turns `same-vendor` into `cross-vendor`.
 3. Run `review.py --test`: it asks OpenRouter whether the key works and which daily limit it has,
    without sending any packet. Then one review on a harmless packet so they see it work.
 
+**In a Claude Code cloud session** there is no clipboard and no home folder that lasts. The key
+goes in the cloud environment's settings instead (the environment menu, Edit, Network secrets):
+host `openrouter.ai`, header name `Authorization`, **prefix `Bearer`**, value the key. Without the
+prefix OpenRouter answers 401 and every review fails. Then add an environment variable
+`OPENROUTER_API_KEY` with any placeholder value: the script needs a key to start, and the
+environment puts the real one in on the way out, so it never sits in the session. Run
+`review.py --test` in a new session. Other providers work the same way, each with its host
+allowed in the environment's network settings and a placeholder `~/.config/desk/<name>.key`.
+
 Tell them plainly:
 
 - The script only ever asks models whose price is zero, and refuses any other.
