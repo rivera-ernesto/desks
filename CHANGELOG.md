@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### Cloud sessions
+
+- **A Desk works in a Claude Code cloud session** (`CLAUDE_CODE_REMOTE=true`; `DESK_CLOUD=1|0`
+  overrides). At the git levels the topic lives on the session's own branch, in the checkout:
+  no `desk/<topic>` branch or working copy, which the thrown-away machine would lose and the
+  session could not push. The close checks that the topic is committed and the branch pushed,
+  then prints the `Closed line:`; it merges nothing. A child topic is refused there. `status` says
+  it is a cloud session. Taken from #86, without its dashboard.
+- `reference/cloud.md`: what works, what is reduced and what is off in a cloud session.
+  INSTALL.md says a cloud session loads Desks only from a committed `.claude/`, never from a
+  plugin or `~/.claude/`.
+- This repository's own sessions, cloud ones included, load Desks from `.claude/`: symlinks to
+  `skills/desk` and `agents/`, so nothing drifts (#41 used copies). A test checks the links and
+  that agent front matter is plain YAML; `desk-runner` and `desk-screen` descriptions are quoted.
+
 ### 0.3.0 candidate
 
 Fixes from the code review of this candidate, in one list:

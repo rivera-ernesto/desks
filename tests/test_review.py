@@ -9,6 +9,9 @@ import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 
+# These tests are of the user's own machine; a cloud session runs them too (test_cloud.py sets its own).
+os.environ["DESK_CLOUD"] = "0"
+
 PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "skills", "desk", "scripts", "review.py")
 spec = importlib.util.spec_from_file_location("review", PATH)
 review = importlib.util.module_from_spec(spec)
