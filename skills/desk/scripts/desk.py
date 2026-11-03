@@ -16,6 +16,7 @@
     python3 desk.py scan                       (the folder's own open, review and close routines)
     python3 desk.py tidy
     python3 desk.py remove [--yes]             (takes Desks out; lists first; the records and transcript archive always stay)
+    python3 desk.py hook session-start | stop  (run by Claude Code hooks; see hooks/hooks.json)
 
 Three levels, detected, never required:
   folder   not a git repository: the topic is desks/<topic>/ and that is all
@@ -636,10 +637,14 @@ def cmd_open(topic, reopen=False, parent=None):
     print(f"work in: {folder}")
     inbox = os.path.join(folder, "inbox")
     left = sorted(os.listdir(inbox)) if os.path.isdir(inbox) else []
+    attention = []
     if left:
         print(f"inbox:  {len(left)} note(s) left by other desks in {inbox}: fold each into the README, then delete it")
+        attention.append(f"{len(left)} note(s) from other desks")
     if not new and "## Next step" not in open(os.path.join(folder, "README.md"), encoding="utf-8").read():
         print("readme: this README was here before Desks. Add the sections State, Next step, Open and What we learned to it; keep everything it already says")
+        attention.append("README needs the Desk sections")
+    boot_line(topic, new, lv, attention)
     if lv != "folder":
         print(f"branch: {branch}  ·  working copy: {work}")
         print(f"worktree: {work}")
@@ -659,6 +664,23 @@ def cmd_open(topic, reopen=False, parent=None):
                 open(brief, "w", encoding="utf-8").write(text)
                 print(f"brief:  {brief} (fill the {{{{...}}}} parts and commit it before the child starts)")
     return 0
+
+
+def review_mode():
+    """cross-vendor when any lane other than a Claude subagent is set up; read offline, never a key."""
+    rv = load_review()
+    if rv is None:
+        return "same-vendor"
+    lanes = [rv.api_key(), rv.command_lanes(), rv.conf("apple-shortcut")]
+    if hasattr(rv, "direct_lanes"):
+        lanes.append(rv.direct_lanes())
+    return "cross-vendor" if any(lanes) else "same-vendor"
+
+
+def boot_line(topic, new, lv, attention):
+    """The line a session copies as its first words, like the label and the close line (§ 1)."""
+    print(f"Boot line: Desk `{topic}` · {'new' if new else 'continued'} · {lv} level · review {review_mode()} · "
+          + ("; ".join(attention) if attention else "nothing waiting"))
 
 
 def cut_of(root, cfg, parent):
@@ -1825,6 +1847,86 @@ def cmd_remove(yes):
     return 0
 
 
+# Lines the scripts print for the session to copy into its reply as they are. The Stop hook checks
+# that a reply carries the ones its own turn printed: Boot (open), Label (review), Closed (close).
+PRINTED = (("Boot line: ", r"Desk `[^`]+`"), ("Label line: ", r"receipt [0-9a-f]{10}"), ("Closed line: ", r"Desk `[^`]+` closed"))
+
+
+def transcript_turn(path):
+    """(texts the tools returned, the reply's own text) for the last turn of a Claude Code transcript."""
+    rows = []
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            try:
+                rows.append(json.loads(line))
+            except ValueError:
+                continue
+
+    def blocks(r):
+        c = (r.get("message") or {}).get("content")
+        return [{"type": "text", "text": c}] if isinstance(c, str) else (c if isinstance(c, list) else [])
+
+    start = 0
+    for i, r in enumerate(rows):  # the turn starts at the user's own last message, not at a tool result
+        if r.get("type") == "user" and not any(b.get("type") == "tool_result" for b in blocks(r) if isinstance(b, dict)):
+            start = i
+    tools, reply = [], []
+    for r in rows[start + 1:]:
+        for b in blocks(r):
+            if not isinstance(b, dict):
+                continue
+            if b.get("type") == "tool_result":
+                c = b.get("content")
+                tools.append(c if isinstance(c, str) else "\n".join(x.get("text", "") for x in c or [] if isinstance(x, dict)))
+                reply = []  # only what was said after the last tool result is the reply
+            elif b.get("type") == "text" and r.get("type") == "assistant":
+                reply.append(b.get("text", ""))
+    return tools, "\n".join(reply)
+
+
+def missing_lines(tools, reply):
+    """The printed lines of this turn that the reply does not carry: the last of each kind, as printed."""
+    out = []
+    for prefix, key in PRINTED:
+        found = [l.strip()[len(prefix):] for t in tools for l in t.splitlines() if l.strip().startswith(prefix)]
+        if found:
+            m = re.search(key, found[-1])
+            if m and m.group(0) not in reply:
+                out.append(found[-1])
+    return out
+
+
+def cmd_hook(kind):
+    """Claude Code hooks. They never fail loudly: a hook that breaks must not break the session."""
+    try:
+        if kind == "session-start":
+            root, _ = main_root()
+            cfg = settings(root)
+            droot = cfg.get("desk root", "desks/").strip("/")
+            dr = os.path.join(root, droot)
+            if not block_file(root) and not os.path.isdir(dr):
+                return 0  # not a Desks folder: say nothing
+            topics = sorted(d for d in os.listdir(dr) if os.path.isfile(os.path.join(dr, d, "README.md"))) if os.path.isdir(dr) else []
+            print("This folder uses Desks. When the user starts real work on a topic, or names one, load the `desk` skill "
+                  "and open it with desk.py before working.")
+            if topics:
+                print(f"Topics under {droot}/: " + ", ".join(topics[:20]) + (" and more" if len(topics) > 20 else ""))
+            return 0
+        if kind == "stop":
+            data = json.load(sys.stdin)
+            if data.get("stop_hook_active") or not data.get("transcript_path"):
+                return 0  # one block per reply at most: never loop on our own reminder
+            lost = missing_lines(*transcript_turn(data["transcript_path"]))
+            if lost:
+                print(json.dumps({"decision": "block", "reason":
+                                  "Desk: the scripts printed lines for your reply that it does not carry. Add each, as printed:\n"
+                                  + "\n".join(lost)}))
+            return 0
+    except Exception:
+        return 0
+    return 0
+
+
 def flag(a, name, takes=False):
     """(present, value) for `--name [value]`; the pair is removed from `a`."""
     if name not in a:
@@ -1885,6 +1987,8 @@ def main(a):
         return cmd_tidy()
     if cmd == "remove":
         return cmd_remove("--yes" in a[2:])
+    if cmd == "hook" and len(a) >= 3:
+        return cmd_hook(a[2])
     print(__doc__, file=sys.stderr)
     return 2
 

@@ -114,6 +114,13 @@ The skill then appears as `/desk:desk` and the workers as `desk:desk-reader` and
 folder. Add the block from step 4 to a folder's `CLAUDE.md` if you want plain `desk <topic>` to
 open a Desk there.
 
+The plugin also brings two small hooks (`hooks/hooks.json`). At the start of a session in a folder
+that uses Desks, one tells Claude so, with the topic names. When a reply leaves out a line a script
+printed for it (`Boot line:`, `Label line:`, `Closed line:`), the other asks once for it to be
+added. A folder install does not add them, because it changes no settings. To have them there,
+the user copies the `hooks` part of this repository's `.claude/settings.json` into their own and
+replaces `$CLAUDE_PROJECT_DIR/skills/desk` with `$CLAUDE_PROJECT_DIR/.claude/skills/desk`.
+
 ## Updating
 
 One way: in a session, type `desk update`. It shows what changed since your version and, on your
