@@ -3,16 +3,25 @@
 
     python3 review.py <packet.md> ["what to look for"]
     python3 review.py --verify <receipt>  [folder to search, default: .]
-    python3 review.py --check             (is a review key set up? which lanes?)
+    python3 review.py --check             (is a review key set up? which lanes? sends nothing)
+    python3 review.py --test              (asks each provider whether its key works;
+                                           sends no packet and spends nothing)
 
-It asks free models only, one per vendor, through OpenRouter, in parallel. It
-writes each answer next to the packet, in <packet>-reviews/, with a ledger and
-a receipt. Standard library only: nothing to install.
+It asks one model per vendor, in parallel: free models through OpenRouter, and
+any free-tier provider the user has set up a key for. It writes each answer
+next to the packet, in <packet>-reviews/, with a ledger and a receipt.
+Standard library only: nothing to install.
 
 Setup lives outside any project, so a key is never committed by accident:
     ~/.config/desk/openrouter.key   the key, one line (or env OPENROUTER_API_KEY)
     ~/.config/desk/private-terms.txt  words that must never leave this machine
     ~/.config/desk/reviewers.txt    extra lanes: name | command reading stdin
+    ~/.config/desk/<provider>.key   a free-tier key for groq, gemini, mistral,
+                                    cerebras or github (GitHub Models)
+    ~/.config/desk/providers.txt    any OpenAI-compatible endpoint, one per line:
+                                    name | base url | model [| key file]
+                                    (a localhost one, e.g. Ollama, also reviews
+                                    packets that must not leave the machine)
     ~/.config/desk/apple-shortcut   name of a macOS Shortcut (private lane)
 
 Environment: DESK_REVIEW_N vendors to ask at once (6) · DESK_REVIEW_MIN answers
@@ -35,6 +44,7 @@ import sys
 import tempfile
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 API = "https://openrouter.ai/api/v1"
@@ -48,6 +58,38 @@ SYSTEM = (
 )
 # Models that answer nothing useful to a review prompt.
 SKIP = ("guard", "safety", "moderation", "embed", "anthropic/", "thinkingmachines/")
+# ...and, in a direct provider's list, models that are not for chat.
+SKIP_DIRECT = SKIP + ("tts", "whisper", "transcri", "audio", "image", "imagen", "veo", "realtime",
+                      "live", "aqa", "ocr", "rerank", "-search", "orpheus", "playai")
+
+# Direct providers with a free tier, set up by putting a key in ~/.config/desk/<name>.key.
+# Each speaks the OpenAI chat format. The patterns choose its model from the live list:
+# the first pattern that matches a vendor not already asked, the newest match. They are
+# patterns and not fixed ids because the lists change every few weeks. A line in
+# providers.txt with the same name pins the model instead.
+PROVIDERS = {
+    "groq": {"base": "https://api.groq.com/openai/v1",
+             "prefer": [r"gpt-oss-120b", r"kimi-k\d", r"qwen3?-.*32b|qwen3", r"llama-4-maverick", r"llama-3\.3-70b", r"llama"]},
+    "gemini": {"base": "https://generativelanguage.googleapis.com/v1beta/openai",
+               "prefer": [r"^gemini-[\d.]+-pro$", r"^gemini-[\d.]+-flash$", r"^gemini-[\d.]+-pro", r"^gemini-[\d.]+-flash(?!-lite)", r"^gemini"]},
+    "mistral": {"base": "https://api.mistral.ai/v1",
+                "prefer": [r"^mistral-large-latest$", r"^mistral-medium-latest$", r"^magistral-medium-latest$", r"^mistral-small-latest$"]},
+    "cerebras": {"base": "https://api.cerebras.ai/v1",
+                 "prefer": [r"gpt-oss-120b", r"qwen-3.*235b", r"glm", r"llama.*70b", r"qwen", r"llama"]},
+    "github": {"base": "https://models.github.ai/inference", "models": "https://models.github.ai/catalog/models",
+               "prefer": [r"^openai/gpt-\d", r"^deepseek/", r"^meta/llama", r"^mistral-ai/", r"^xai/", r"^microsoft/", r"^cohere/"]},
+}
+
+# Who made a model, whoever hosts it: one answer per maker is what makes a review cross-vendor.
+VENDOR_ALIASES = {"meta-llama": "meta", "deepseek-ai": "deepseek", "xai": "x-ai", "zai-org": "z-ai",
+                  "mistral-ai": "mistralai", "mistral": "mistralai", "qwen": "qwen", "alibaba": "qwen"}
+VENDOR_WORDS = [
+    (r"llama", "meta"), (r"gemma|gemini", "google"), (r"qwen|qwq", "qwen"),
+    (r"mistral|mixtral|magistral|codestral|ministral|devstral|pixtral", "mistralai"),
+    (r"gpt|^o\d", "openai"), (r"deepseek", "deepseek"), (r"kimi", "moonshotai"), (r"glm", "z-ai"),
+    (r"nemotron", "nvidia"), (r"command|aya", "cohere"), (r"phi-?\d", "microsoft"), (r"grok", "x-ai"),
+    (r"claude", "anthropic"), (r"granite", "ibm"),
+]
 MIN_CHARS = 200  # a one-word or empty answer does not count as a review
 
 # Things that should not leave the machine whatever the topic is.
@@ -74,6 +116,117 @@ def api_key():
     return os.environ.get("OPENROUTER_API_KEY", "").strip() or conf("openrouter.key")
 
 
+def vendor_of(model, fallback=""):
+    """The maker of a model id, as one name: meta-llama/llama-4 and llama-3.3-70b are both meta."""
+    m = model.lower()
+    if m.startswith("models/"):
+        m = m[len("models/"):]
+    if "/" in m:
+        prefix = m.split("/")[0]
+        return VENDOR_ALIASES.get(prefix, prefix)
+    for pattern, vendor in VENDOR_WORDS:
+        if re.search(pattern, m):
+            return vendor
+    return fallback or m.split(":")[0].split("-")[0]
+
+
+def is_local(url):
+    host = (urllib.parse.urlparse(url).hostname or "").lower()
+    return host in ("localhost", "127.0.0.1", "::1") or host.startswith("127.")
+
+
+def direct_lanes():
+    """Providers asked directly: the presets with a key file, and every providers.txt line."""
+    lanes, pinned = [], {}
+    for line in conf("providers.txt").splitlines():
+        if line.strip().startswith("#") or "|" not in line:
+            continue
+        parts = [p.strip() for p in line.split("|")]
+        name, base, model = (parts + ["", "", ""])[:3]
+        keyfile = parts[3] if len(parts) > 3 and parts[3] else name + ".key"
+        if not name:
+            continue
+        if name in PROVIDERS and not base:
+            pinned[name] = model  # a preset with its model pinned
+            continue
+        if base and model:
+            lanes.append({"name": name, "base": base.rstrip("/"), "model": model, "key": conf(keyfile),
+                          "local": is_local(base)})
+    for name, p in PROVIDERS.items():
+        key = conf(name + ".key")
+        if key and name not in {l["name"] for l in lanes}:
+            lanes.append({"name": name, "base": p["base"], "model": pinned.get(name), "key": key,
+                          "prefer": p["prefer"], "models": p.get("models"), "local": False})
+    return lanes
+
+
+def model_ids(data):
+    items = data if isinstance(data, list) else (data or {}).get("data", [])
+    ids = []
+    for m in items:
+        i = (m.get("id") or m.get("name") or "") if isinstance(m, dict) else str(m)
+        if i.startswith("models/"):
+            i = i[len("models/"):]
+        if i:
+            ids.append(i)
+    return ids
+
+
+def newest(ids):
+    return max(ids, key=lambda i: ([int(n) for n in re.findall(r"\d+", i)], -len(i)))
+
+
+def choose(lane, ids, taken):
+    """The model this lane asks: the first preferred pattern that brings a vendor not yet asked."""
+    ids = [i for i in ids if not any(s in i.lower() for s in SKIP_DIRECT)]
+    for pattern in lane["prefer"]:
+        found = [i for i in ids if re.search(pattern, i, re.I) and vendor_of(i, lane["name"]) not in taken | {"anthropic"}]
+        if found:
+            return newest(found)
+    return None
+
+
+def resolve_lanes(lanes):
+    """Give every direct lane its model and vendor, one lane per vendor. Lanes that cannot answer
+    are returned apart, with the reason, so the user hears about a bad key instead of a silent gap."""
+    def listing(lane):
+        if lane.get("model"):
+            return None
+        try:
+            return model_ids(http(lane.get("models") or lane["base"] + "/models", key=lane["key"], timeout=20))
+        except urllib.error.HTTPError as e:
+            return e
+        except Exception as e:
+            return e
+
+    with cf.ThreadPoolExecutor(max_workers=max(len(lanes), 1)) as ex:
+        lists = list(ex.map(listing, lanes))
+    ready, broken, taken = [], [], set()
+    for lane, ids in zip(lanes, lists):
+        if isinstance(ids, Exception):
+            broken.append((lane["name"], explain(ids)))
+            continue
+        model = lane.get("model") or choose(lane, ids, taken)
+        if not model:
+            broken.append((lane["name"], "no model in its list matches; pin one in providers.txt"))
+            continue
+        vendor = vendor_of(model, lane["name"])
+        if vendor == "anthropic" or vendor in taken:
+            broken.append((lane["name"], f"{model} is by {vendor}, already asked or the author's vendor"))
+            continue
+        taken.add(vendor)
+        ready.append(dict(lane, model=model, vendor=vendor))
+    return ready, broken
+
+
+def explain(e):
+    if isinstance(e, urllib.error.HTTPError):
+        if e.code in (401, 403):
+            return f"the key was refused (HTTP {e.code})"
+        return f"HTTP {e.code}"
+    return f"could not reach it ({type(e).__name__}: {e})"[:200]
+
+
 def private_hits(text):
     """Why this packet must not be sent, or [] when it may go."""
     hits = []
@@ -90,7 +243,9 @@ def private_hits(text):
 
 
 def http(url, payload=None, key=None, timeout=100):
-    headers = {"Content-Type": "application/json", "X-Title": "Desk review"}
+    headers = {"Content-Type": "application/json", "X-Title": "Desk review", "User-Agent": "desk-review"}
+    if url.startswith(API):
+        headers["HTTP-Referer"] = "https://github.com/rivera-ernesto/desks"
     if key:
         headers["Authorization"] = "Bearer " + key
     data = json.dumps(payload).encode() if payload is not None else None
@@ -129,11 +284,11 @@ def pick_models(folder):
         i = m.get("id", "")
         if not i.endswith(":free") or any(s in i for s in SKIP):
             continue
-        vendor = i.split("/")[0]
-        ctx = m.get("context_length") or 0
-        # the largest context per vendor is a rough stand-in for its stronger model
-        if vendor not in best or ctx > best[vendor][1]:
-            best[vendor] = (i, ctx)
+        vendor = vendor_of(i)
+        # the largest context, then the most parameters, is a rough stand-in for a vendor's stronger model
+        size = (m.get("context_length") or 0, max([int(n) for n in re.findall(r"(\d+)b(?![a-z])", i.lower())] or [0]))
+        if vendor not in best or size > best[vendor][1]:
+            best[vendor] = (i, size)
     ids = sorted(v[0] for v in best.values())
     if not ids:
         return []
@@ -142,7 +297,7 @@ def pick_models(folder):
     calls, ok = past_rates(folder)
 
     def band(i):
-        v = i.split("/")[0]
+        v = vendor_of(i)
         n = calls.get(v, 0)
         if n < 5:
             return 1  # unknown
@@ -154,6 +309,16 @@ def pick_models(folder):
 def ask_openrouter(model, packet_text, focus, key):
     if not model.endswith(":free"):
         return "refused", f"'{model}' is not a free model; this script only asks free models"
+    return ask_chat(API, model, packet_text, focus, key)
+
+
+def ask_direct(lane, packet_text, focus):
+    return ask_chat(lane["base"], lane["model"], packet_text, focus, lane["key"],
+                    patience=600 if lane["local"] else 100)
+
+
+def ask_chat(base, model, packet_text, focus, key, patience=100):
+    """One review from any endpoint that speaks the OpenAI chat format."""
     body = {
         "model": model,
         "messages": [
@@ -166,11 +331,14 @@ def ask_openrouter(model, packet_text, focus, key):
     last = ""
     for attempt in (1, 2):  # one retry: free endpoints fail under load for a minute or two
         try:
-            r = http(API + "/chat/completions", body, key)
-            if "error" in r:
-                last = json.dumps(r["error"])[:400]
+            r = http(base + "/chat/completions", body, key, timeout=patience)
+            err = r.get("error") or ((r.get("choices") or [{}])[0] or {}).get("error")
+            if err:  # OpenRouter can answer 200 with the upstream provider's error inside the choice
+                last = json.dumps(err)[:400]
+                if isinstance(err, dict) and err.get("code") == 429:
+                    last = "429 " + last
             else:
-                text = (r["choices"][0]["message"].get("content") or "").strip()
+                text = answer_text(r)
                 return ("answered" if substantive(text) else "thin-answer"), text
         except urllib.error.HTTPError as e:
             last = f"HTTP {e.code}: " + e.read().decode("utf-8", "replace")[:400]
@@ -180,9 +348,22 @@ def ask_openrouter(model, packet_text, focus, key):
                 return "failed", last  # a model that slow will not be quick the second time
         if "free-models-per-day" in last:
             return "account-cap", last
+        if "HTTP 401" in last or "HTTP 403" in last:
+            return "key-refused", last  # a refused key is refused the second time too
         if attempt == 1:
             time.sleep(20)
     return ("rate-limited" if "429" in last else "failed"), last
+
+
+def answer_text(r):
+    """The answer in a chat reply. Some reasoning models leave content empty when the whole budget
+    went to thinking; that is reported as a thin answer, not passed off as a review."""
+    choice = (r.get("choices") or [{}])[0]
+    msg = choice.get("message") or {}
+    content = msg.get("content") or ""
+    if isinstance(content, list):  # some endpoints answer in parts
+        content = "".join(p.get("text", "") for p in content if isinstance(p, dict))
+    return content.strip()
 
 
 def substantive(text):
@@ -282,14 +463,47 @@ def verify(receipt, root):
     return 1
 
 
-def check():
+def key_status(key):
+    """What OpenRouter says about the key, without spending anything. Never prints the key."""
+    try:
+        d = http(API + "/key", key=key, timeout=15).get("data") or {}
+    except urllib.error.HTTPError as e:
+        if e.code in (401, 403):
+            return False, f"set, but OpenRouter refused it (HTTP {e.code}): make a new key, `desk setup`"
+        return None, f"set (not checked: HTTP {e.code})"
+    except Exception as e:
+        return None, f"set (not checked: {explain(e)})"
+    if d.get("is_free_tier"):
+        return True, "set and working · no credit bought: 50 free requests a day (about eight reviews)"
+    return True, "set and working · credit bought once: 1000 free requests a day"
+
+
+def check(live=False):
+    """What is set up. Offline unless `live`: then each provider is asked whether its key works."""
     key, lanes, apple = api_key(), command_lanes(), conf("apple-shortcut")
-    print("review key:      " + ("set" if key else "not set  ->  run `desk setup`"))
+    direct = direct_lanes()
+    ok_key, ready = True, direct
+    if not key:
+        print("review key:      not set  ->  run `desk setup`")
+    elif live:
+        ok_key, said = key_status(key)
+        print("review key:      " + said)
+    else:
+        print("review key:      set  (`--test` asks OpenRouter whether it works)")
+    if live and direct:
+        ready, broken = resolve_lanes(direct)
+        print("providers:       " + (", ".join(f"{l['name']} ({l['model']}{', on this machine' if l['local'] else ''})"
+                                               for l in ready) or "none working"))
+        for name, why in broken:
+            print(f"  not working:   {name}: {why}")
+    else:
+        print("providers:       " + (", ".join(l["name"] + (" (on this machine)" if l["local"] else "") for l in direct) or "none"))
     print("your own lanes:  " + (", ".join(n for n, _ in lanes) or "none"))
     print("private lane:    " + (f'Shortcut "{apple}"' if apple else "none"))
     print("private terms:   " + (f"{len(conf('private-terms.txt').splitlines())} lines" if conf("private-terms.txt") else "none"))
-    print("mode:            " + ("cross-vendor" if (key or lanes) else "same-vendor"))
-    return 0 if (key or lanes or apple) else 3
+    cross = (key and ok_key is not False) or lanes or ready
+    print("mode:            " + ("cross-vendor" if cross else "same-vendor"))
+    return 0 if (key or lanes or apple or direct) else 3
 
 
 def house_review():
@@ -308,8 +522,8 @@ def house_review():
 def main(argv):
     alongside = "--alongside" in argv  # started by the folder's own review routine, as its second opinion
     argv = [a for a in argv if a != "--alongside"]
-    if len(argv) >= 2 and argv[1] == "--check":
-        return check()
+    if len(argv) >= 2 and argv[1] in ("--check", "--test"):
+        return check(live=argv[1] == "--test")
     if len(argv) >= 3 and argv[1] == "--verify":
         return verify(argv[2], argv[3] if len(argv) > 3 else ".")
     if len(argv) >= 2 and not argv[1].startswith("-") and not os.path.isfile(argv[1]):
@@ -334,17 +548,19 @@ def main(argv):
     out = os.path.join(os.path.dirname(packet) or ".", stem + "-reviews")
 
     key, lanes, apple = api_key(), command_lanes(), conf("apple-shortcut")
+    direct = direct_lanes()
     hits = private_hits(text + "\n" + focus)
     public_ok = not hits
     if hits:
         print("NOT SENT to outside vendors. The packet contains: " + "; ".join(sorted(set(hits))), file=sys.stderr)
-        if not apple:
+        direct = [l for l in direct if l["local"]]  # a model on this machine sends nothing anywhere
+        if not (apple or direct):
             print("Remove it and run again, or review with a subagent and label the reply [same-vendor].", file=sys.stderr)
             return 1
-        print("Asking the private lane only.", file=sys.stderr)
+        print("Asking only the lanes that keep it on this machine.", file=sys.stderr)
     if public_ok and not conf("private-terms.txt"):
         print("note: no private-terms list, so names are not checked. Ask the user for them (reference/setup.md, Private terms).", file=sys.stderr)
-    if not (key or lanes or apple):
+    if not (key or lanes or apple or direct):
         print("No review key and no other lane. Label the reply [same-vendor] after a subagent pass, or run `desk setup`.", file=sys.stderr)
         return 3
 
@@ -355,11 +571,11 @@ def main(argv):
     today = datetime.date.today().isoformat()
     results = []  # (vendor, model, status, seconds)
 
-    def record(vendor, model, fn):
+    def record(vendor, model, fn, file=None):
         t0 = time.time()
         status, body = fn()
         secs = int(time.time() - t0)
-        with open(os.path.join(out, vendor + ".txt"), "w", encoding="utf-8") as f:
+        with open(os.path.join(out, (file or vendor) + ".txt"), "w", encoding="utf-8") as f:
             f.write(f"packet: {packet}\nmodel:  {model}\nstatus: {status}\n\n{body}\n")
         with open(ledger, "a", encoding="utf-8") as f:
             f.write(f"{today}\t{stem}\t{model}\t{vendor}\t{status}\t{secs}\n")
@@ -368,16 +584,24 @@ def main(argv):
 
     n = int(os.environ.get("DESK_REVIEW_N", "6"))
     want = int(os.environ.get("DESK_REVIEW_MIN", "3"))
+    ready, broken = resolve_lanes(direct) if direct else ([], [])
+    for name, why in broken:
+        print(f"Not asking {name}: {why}", file=sys.stderr)
+    asked = {l["vendor"] for l in ready}
     models = []
     if public_ok and key:
         try:
-            models = pick_models(out)
+            # vendors a direct provider already covers go last: asked again only if that lane fails
+            models = sorted(pick_models(out), key=lambda m: vendor_of(m) in asked)
         except Exception as e:
             print(f"Could not read the model list ({e}).", file=sys.stderr)
     jobs = []
     if public_ok:
         jobs += [(name, "your lane: " + name, (lambda c=cmd: ask_command(c, text, focus))) for name, cmd in lanes]
-        jobs += [(m.split("/")[0], m, (lambda m=m: ask_openrouter(m, text, focus, key))) for m in models[:n]]
+    jobs += [(l["vendor"], f"{l['name']}: {l['model']}", (lambda l=l: ask_direct(l, text, focus)),
+              f"{l['vendor']}-{l['name']}") for l in ready]
+    first = [m for m in models if vendor_of(m) not in asked][:max(n - len(jobs), 0)]
+    jobs += [(vendor_of(m), m, (lambda m=m: ask_openrouter(m, text, focus, key))) for m in first]
     if apple:
         jobs.append(("apple", f'Shortcut "{apple}"', lambda: ask_apple(apple, text, focus)))
     if jobs:
@@ -392,12 +616,16 @@ def main(argv):
     # until enough have answered or the list runs out.
     topped = []
     capped = any(s == "account-cap" for _, _, s, _ in results)
-    for m in models[n:]:
-        if len(answered()) >= want or capped:
+    dead_key = lambda: any(s == "key-refused" and m.endswith(":free") for _, m, s, _ in results)
+    for m in models:
+        if len(answered()) >= want or capped or dead_key():
             break
-        if record(m.split("/")[0], m, lambda m=m: ask_openrouter(m, text, focus, key)) == "account-cap":
+        v = vendor_of(m)
+        if m in first or v in answered():
+            continue
+        if record(v, m, lambda m=m: ask_openrouter(m, text, focus, key), v if v not in asked else v + "-openrouter") == "account-cap":
             capped = True
-        topped.append(m.split("/")[0])
+        topped.append(v)
 
     print()
     for v, m, s, secs in results:
@@ -405,6 +633,9 @@ def main(argv):
     print(f"\nAnswers: {out}")
     if topped:
         print("Topped up with: " + " ".join(topped))
+    refused = sorted({m.split(": ")[0] if ": " in m else "openrouter" for _, m, s, _ in results if s == "key-refused"})
+    if refused:
+        print("KEY REFUSED by: " + ", ".join(refused) + ". Run `review.py --check` and make a new key there.")
     if capped:
         print("ACCOUNT CAP: OpenRouter refused on the daily limit for free models. Another model will not help.\n"
               "  It is 50 requests a day, or 1000 a day once the account has bought 10 USD of credit\n"

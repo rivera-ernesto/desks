@@ -30,7 +30,9 @@ Look first, then propose a short list, then change only what they agree to.
 - **Reviewers.** Each other AI subscription with a command-line client can be a review lane, and a
   stronger one than a free model. Find the command that takes a prompt on standard input and
   prints the answer, test it by hand, then add `name | command` to `~/.config/desk/reviewers.txt`.
-  If their client cannot run that way, leave it out.
+  If their client cannot run that way, leave it out. A free-tier API key they already have (Groq,
+  Gemini, Mistral, Cerebras, GitHub Models) or a local Ollama is a lane too: `reference/setup.md`,
+  More free providers.
 - **Connected tools** are surfaces like any other: reading is free, anything that sends or changes
   waits for their go (`reference/surfaces.md`).
 - **The folder's own routines** (what `scan` found, after you read it). Propose them together, in

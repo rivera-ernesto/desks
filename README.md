@@ -60,6 +60,9 @@ desk my-first-topic
 - **With a free OpenRouter key** (three minutes, `desk setup`): several vendors review each
   substantive answer. Free models are weaker than Claude. They are not there to be right; they are
   there to disagree, and Claude has to answer each objection.
+- **More free providers** (optional): a free-tier key from Groq, Gemini, Mistral, Cerebras or
+  GitHub Models, or a model running on your machine through Ollama, adds a reviewer that does not
+  depend on OpenRouter. Vendors are counted by who made the model, not where it runs.
 - **Without a key**: a separate Claude subagent attacks the answer, and the reply says
   `[same-vendor]`. That catches slips. It does not catch what every Claude model would miss.
 - **What leaves your machine**: only the review packet, a single file with identifying details

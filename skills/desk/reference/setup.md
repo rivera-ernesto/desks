@@ -17,6 +17,7 @@ and `scripts/review.py --check`: do not ask what you can detect.
 | The folder has no GitHub remote and the user wants a backup or to work from two machines | Create a **private** GitHub repository for this folder? | Yes, private (`[needs you: outside]`: it creates something on their account) | `- GitHub: on` |
 | First review that would leave the machine | Which names and words must never leave this machine: family, clients, a street? | Yes, a short list now (§ Private terms) | (a file, not a line) |
 | First advice-level answer with no review key | Add a free review key so other vendors check my answers? Three minutes. | Yes (§ Review key) | (detected, not recorded) |
+| Reviews keep coming back `[thin]` or hit the daily cap | Add a second free provider, so reviews do not depend on one service? | Yes, one (§ More free providers) | (detected, not recorded) |
 | First topic about the user, their voice or their people | Build a short profile so I stop asking who is who? | Yes, five minutes (`reference/profile.md`) | `- Profile: <path>` |
 | The folder already has rules, agents or project folders | Fit around what is here? | Yes (`reference/adopt.md`) | `- Setup: …` lines |
 | They say "just do what I ask", or seem tired of proposals | Want me to stop offering things you did not ask for? | Their call | `- Lead: quiet` |
@@ -51,7 +52,8 @@ This turns `same-vendor` into `cross-vendor`.
    - macOS: `mkdir -p ~/.config/desk && pbpaste > ~/.config/desk/openrouter.key && chmod 600 ~/.config/desk/openrouter.key`
    - Windows (PowerShell): `New-Item -Force -ItemType Directory $HOME\.config\desk; Get-Clipboard | Set-Content $HOME\.config\desk\openrouter.key`
    - Linux: the same as macOS with their clipboard tool in place of `pbpaste`.
-3. Run `--check` again, then one review on a harmless packet so they see it work.
+3. Run `review.py --test`: it asks OpenRouter whether the key works and which daily limit it has,
+   without sending any packet. Then one review on a harmless packet so they see it work.
 
 Tell them plainly:
 
@@ -65,6 +67,46 @@ Tell them plainly:
   that page so the choice is theirs. Nothing else from the folder is sent.
 - The first time, **show them the packet before it goes**. If they want that every time, record
   `- Review: ask first`.
+
+## More free providers (optional, a few minutes each)
+
+OpenRouter's free models are busy at peak hours and share one daily cap. A key from a provider
+with a free tier adds a lane that does not depend on it. Each is the same three steps as the review
+key: the user makes the account and the key (`[needs you: outside]`), saves it from the clipboard
+to `~/.config/desk/<name>.key` with the command above (file name changed), and you run
+`review.py --test`.
+
+| `<name>.key` | Where the key is made | What to tell them |
+|---|---|---|
+| `groq` | console.groq.com, API Keys | Free tier with daily limits; fast. |
+| `gemini` | aistudio.google.com, Get API key | Free **only in a project with no billing**. With billing on, Google charges for it. Inputs on the free tier may be used to improve Google's products. |
+| `mistral` | console.mistral.ai, the free Experiment plan | They may be asked for a phone number. Inputs on that plan may be used for training. |
+| `cerebras` | cloud.cerebras.ai | Free tier with daily limits. |
+| `github` | github.com, Settings, Developer settings, a fine-grained token with the Models permission | GitHub Models, free with rate limits unless paid usage is turned on. |
+
+- The script picks each provider's model from its live list and asks one model per maker, so
+  Gemma through OpenRouter and Gemini directly count as one vendor, not two.
+- Unlike OpenRouter, the script cannot tell a free key from a paid one. A key goes in only from a
+  free tier, and a paid one is `[needs you: money]`.
+- To pin a model: a line `<name> | | <model id>` in `~/.config/desk/providers.txt`.
+- `--test` names a refused key or a provider it cannot reach. Fix or delete that file; the review
+  still runs on the others.
+
+### Any other endpoint, or a model on this machine
+
+Any service that speaks the OpenAI chat format is one line in `~/.config/desk/providers.txt`:
+`name | base URL | model | key file` (the key file is optional, default `<name>.key`).
+
+A model running on this machine, through Ollama or LM Studio, needs no key and sends nothing
+anywhere, so it also reviews packets the script refuses to send out:
+
+```
+ollama   | http://localhost:11434/v1 | qwen3:14b
+lmstudio | http://localhost:1234/v1  | <the model id it shows>
+```
+
+Installing Ollama and downloading a model is the user's to do (several GB; `[needs you: access]`).
+A small local model is weak. It counts as a vendor, so say which one answered.
 
 ## Private terms
 

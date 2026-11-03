@@ -52,7 +52,7 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 
   <h2>What leaves your machine</h2>
   <ul>
-    <li>Only the review file, a single document with identifying details removed, goes to OpenRouter and from there to the model vendors.</li>
+    <li>Only the review file, a single document with identifying details removed, goes to OpenRouter and from there to the model vendors, and to any other provider you added a key for. A model on your own machine receives it without it leaving.</li>
     <li>The script refuses to send a file containing an email address, a phone-like number, something that looks like a key, or any word on your private list.</li>
     <li>Free models may keep or train on what they receive. Treat a review file as something you would be willing to post anonymously.</li>
     <li>Material that cannot be made anonymous is reviewed by a second Claude instead, or by a private lane if you set one up.</li>

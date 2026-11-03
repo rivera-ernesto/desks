@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+- **More review providers.** A free-tier key in `~/.config/desk/<name>.key` for `groq`, `gemini`,
+  `mistral`, `cerebras` or `github` (GitHub Models) adds a lane that does not depend on
+  OpenRouter's busy free models or its daily cap. Each provider's model is picked from its live
+  list; a line in `~/.config/desk/providers.txt` pins one, or adds any endpoint that speaks the
+  OpenAI chat format.
+- **A model on this machine** (Ollama, LM Studio) is a `providers.txt` line with a `localhost`
+  address. It needs no key and is the one lane that still reviews a packet the script refuses to
+  send out.
+- **One vendor is one maker**: Gemma through OpenRouter and Gemini directly count once, and
+  OpenRouter is not asked for a vendor a direct provider already covers unless that lane fails.
+- **`review.py --test`** asks OpenRouter and each provider whether its key works, and says which
+  daily limit the OpenRouter key has (50 or 1000), sending no packet. `--check` still sends
+  nothing. A refused key used to look like every model failing and gave `[unreviewed]`; now the
+  review says `KEY REFUSED` and stops asking with it.
+- An OpenRouter answer that carries the provider's error inside a 200 reply is a failure (and is
+  retried), not an empty review.
+- On equal context length, OpenRouter's larger free model of a vendor is asked (31b over 26b).
+
 ## 0.2.0 (2026-10-19)
 
 - **Licence:** MIT now says, in the README, that it covers the instructions, documentation, site
