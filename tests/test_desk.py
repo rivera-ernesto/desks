@@ -11,6 +11,9 @@ import sys
 import tempfile
 import unittest
 
+# These tests are of the user's own machine; a cloud session runs them too (test_cloud.py sets its own).
+os.environ["DESK_CLOUD"] = "0"
+
 DESK = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "skills", "desk", "scripts", "desk.py")
 READY_RUN = 'git commit -q --allow-empty -m x -m "Desk-Status: ready"'  # a house routine that hands the topic over
 BLOCK = "# Mine\n\nMy own rule.\n\n<!-- desk:start -->\n## Desk\n\nA paragraph.\n\n- Desk root: `desks/`\n- Version: 0\n<!-- desk:end -->\n"

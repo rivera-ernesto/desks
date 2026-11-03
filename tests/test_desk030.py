@@ -10,6 +10,9 @@ import tempfile
 import time
 import unittest
 
+# These tests are of the user's own machine; a cloud session runs them too (test_cloud.py sets its own).
+os.environ["DESK_CLOUD"] = "0"
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from test_desk import Base, desk, get, sh, DESK, READY_RUN  # noqa: E402
 import test_desk  # noqa: E402

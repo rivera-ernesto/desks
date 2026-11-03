@@ -1,6 +1,6 @@
 ---
 name: desk-runner
-description: Runs commands for a Desk and reports what happened: scripts, test suites, builds, long logs. Keeps long output out of the main conversation. Evidence only; it never approves its own result and never edits files.
+description: 'Runs commands for a Desk and reports what happened: scripts, test suites, builds, long logs. Keeps long output out of the main conversation. Evidence only; it never approves its own result and never edits files.'
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
