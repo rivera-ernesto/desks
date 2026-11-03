@@ -151,7 +151,7 @@ session. In short:
 4. End the reply with the label line, copied from the script's output.
 
 **Review modes**, said once in the boot line:
-- `cross-vendor`: a review key is set up. The full loop.
+- `cross-vendor`: a review key or provider is set up (`review.py --check`). The full loop.
 - `same-vendor`: no key. Give the packet to a fresh `desk-reader` subagent with the instruction to
   attack it, and label the reply `Review: [same-vendor]`. This catches slips. It does not catch
   what every Claude model would miss, and the user should know that. Offer `desk setup` once.
