@@ -27,8 +27,10 @@ to get around. Rewrite the packet, or use a lane that keeps the material private
 python3 <skill folder>/scripts/review.py desks/<topic>/reviews/<packet>.md "what to look for"
 ```
 
-It picks one free model per vendor from the live list, asks them in parallel, retries once, and
-tops up with other vendors until three have answered. Expect two to four minutes. It writes the answers to
+It asks every provider the user set up a key for (`reference/setup.md`, More free providers),
+picks one free OpenRouter model for each family not yet asked, asks them in parallel, retries once,
+and tops up with other families until three have answered. A family is the model's maker, not
+the service it runs on. Expect two to four minutes. It writes the answers to
 `<packet>-reviews/` with a ledger and a receipt, and prints the label line.
 
 - **Some will fail.** Free endpoints are often busy. The script keeps going; you do not need to.
@@ -36,6 +38,8 @@ tops up with other vendors until three have answered. Expect two to four minutes
   The limit is 50 requests a day, or 1000 once the account has bought 10 USD of credit. Free
   models do not spend that credit. This is the user's money and the user's decision
   (`[needs you: money]`); never suggest paid models as the way around it.
+- **"KEY REFUSED"** or a line `Not asking <provider>`: run `review.py --test` and tell the user which
+  key to replace. The other lanes still ran; the label counts only who answered.
 - **Check a label** someone doubts: `review.py --verify <receipt> desks/`.
 
 ## Reading the answers
@@ -69,6 +73,8 @@ recommendation. The exceptions are the five kinds in § 4 of the contract.
   an answer can be a reviewer. One line each in `~/.config/desk/reviewers.txt`:
   `name | command`. For example a command-line client for another AI subscription. These count as
   families. `reference/adopt.md` explains how to find them.
+- **A model on this machine** (Ollama, LM Studio): a `providers.txt` line with a `localhost`
+  address. It also reviews packets the script refuses to send out, and only it does then.
 - **A private lane on a Mac.** A macOS Shortcut that sends its input to Apple's Private Cloud
   Compute model can review material you would not send to a free model. Put the Shortcut's name in
   `~/.config/desk/apple-shortcut`. The script proves each call read the whole input (it plants two

@@ -557,5 +557,191 @@ class Background(Sandbox):
         self.assertIn("WATCHDOG", self.run_main("--status", packet)[1])
 
 
+class Providers(Sandbox):
+    """Free tiers asked directly, and endpoints on this machine."""
+
+    def fake_direct(self, lists, answers, refuse=()):
+        """lists: base url fragment -> model ids; answers: model -> text; refuse: url fragments that answer 401."""
+        calls = []
+
+        def http(url, payload=None, key=None, timeout=100):
+            for frag in refuse:
+                if frag in url:
+                    raise review.urllib.error.HTTPError(url, 401, "Unauthorized", {}, io.BytesIO(b"{}"))
+            if payload is None:
+                if url.startswith(review.API):
+                    return CATALOGUE
+                for frag, ids in lists.items():
+                    if frag in url:
+                        return {"data": [{"id": i} for i in ids]}
+                raise RuntimeError("no list")
+            calls.append(payload["model"])
+            a = answers.get(payload["model"], RuntimeError("down"))
+            if isinstance(a, Exception):
+                raise a
+            return {"choices": [{"message": {"content": a}}]}
+
+        review.http = http
+        return calls
+
+    def test_the_maker_counts_not_the_host(self):
+        for model, vendor in (("meta-llama/llama-4-scout", "meta"), ("llama-3.3-70b-versatile", "meta"),
+                              ("models/gemini-2.5-flash", "google"), ("google/gemma-4-31b-it:free", "google"),
+                              ("openai/gpt-oss-120b", "openai"), ("mistral-large-latest", "mistralai"),
+                              ("mistral-ai/mistral-medium", "mistralai"), ("kimi-k2-instruct", "moonshotai"),
+                              ("alpha/big:free", "alpha"), ("qwen3:14b", "qwen")):
+            self.assertEqual(review.vendor_of(model), vendor, model)
+
+    def test_a_key_file_is_a_lane_and_its_vendor_is_not_asked_twice(self):
+        self.conf("groq.key", "g")
+        self.conf("openrouter.key", "k")
+        os.environ["DESK_REVIEW_N"] = "3"
+        calls = self.fake_direct(
+            {"groq.com": ["whisper-large-v3", "llama-3.1-8b-instant", "alpha-instruct-70b", "openai/gpt-oss-20b", "openai/gpt-oss-120b"]},
+            {"openai/gpt-oss-120b": LONG, "alpha/big:free": LONG, "beta/one:free": LONG})
+        code, out, _ = self.run_main(self.packet())
+        self.assertEqual(code, 0)
+        self.assertIn("groq: openai/gpt-oss-120b", out)
+        self.assertIn("[converged] · 3 families", out)
+        self.assertNotIn("whisper-large-v3", calls)
+        self.assertEqual([c for c in calls if c.startswith("openai/")], ["openai/gpt-oss-120b"])
+
+    def test_a_pinned_model_is_asked_without_reading_the_list(self):
+        self.conf("mistral.key", "m")
+        self.conf("providers.txt", "# pin\nmistral | | mistral-small-latest\n")
+        calls = self.fake_direct({}, {"mistral-small-latest": LONG})
+        code, out, _ = self.run_main(self.packet())
+        self.assertEqual(code, 6)  # one family is thin
+        self.assertEqual(calls, ["mistral-small-latest"])
+        self.assertIn("[thin] · 1 family", out)
+
+    def test_a_refused_key_is_named_not_silent(self):
+        self.conf("gemini.key", "bad")
+        self.fake_direct({}, {}, refuse=("googleapis",))
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = review.check(live=True)
+        self.assertIn("gemini: the key was refused (HTTP 401)", buf.getvalue())
+        self.assertEqual(code, 0)
+        code, _, err = self.run_main(self.packet())
+        self.assertEqual(code, 4)
+        self.assertIn("Not asking gemini: the key was refused", err)
+
+    def test_check_says_when_openrouter_refuses_the_key(self):
+        self.conf("openrouter.key", "old")
+        self.fake_direct({}, {}, refuse=("/key",))
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            review.check(live=True)
+        self.assertIn("OpenRouter refused it", buf.getvalue())
+        self.assertIn("mode:            same-vendor", buf.getvalue())
+
+    def test_check_names_the_daily_limit(self):
+        self.conf("openrouter.key", "k")
+        review.http = lambda url, payload=None, key=None, timeout=100: {"data": {"is_free_tier": True}}
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            review.check(live=True)
+        self.assertIn("50 free requests a day", buf.getvalue())
+
+    def test_check_sends_nothing(self):
+        self.conf("openrouter.key", "k")
+        self.conf("groq.key", "g")
+        review.http = lambda *a, **k: self.fail("--check went to the network")
+        code, out, _ = self.run_main("--check")
+        self.assertEqual(code, 0)
+        self.assertIn("providers:       groq", out)
+        self.assertIn("mode:            cross-vendor", out)
+
+    def test_a_refused_openrouter_key_stops_the_top_up(self):
+        self.conf("openrouter.key", "old")
+        os.environ["DESK_REVIEW_N"] = "1"
+        calls = []
+
+        def http(url, payload=None, key=None, timeout=100):
+            if payload is None:
+                return CATALOGUE
+            calls.append(payload["model"])
+            raise review.urllib.error.HTTPError(url, 401, "Unauthorized", {}, io.BytesIO(b"{}"))
+
+        review.http = http
+        code, out, _ = self.run_main(self.packet())
+        self.assertEqual(code, 4)
+        self.assertEqual(len(calls), 1)
+        self.assertIn("KEY REFUSED by: openrouter", out)
+
+
+class LocalModel(Sandbox):
+    """A real server on this machine speaking the OpenAI chat format, as Ollama or LM Studio do."""
+
+    def setUp(self):
+        super().setUp()
+        import http.server
+        import json
+        import threading
+        seen = self.seen = []
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_POST(self):
+                body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                seen.append(body)
+                out = json.dumps({"choices": [{"message": {"content": LONG}}]}).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(out)
+
+            def log_message(self, *a):
+                pass
+
+        self.server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+        self.conf("providers.txt", f"ollama | http://127.0.0.1:{self.server.server_port}/v1 | qwen3:14b\n")
+
+    def tearDown(self):
+        self.server.shutdown()
+        self.server.server_close()
+        super().tearDown()
+
+    def test_a_local_model_reviews(self):
+        code, out, _ = self.run_main(self.packet())
+        self.assertEqual(code, 6)  # one family is thin
+        self.assertIn("[thin] · 1 family", out)
+        self.assertEqual(self.seen[0]["model"], "qwen3:14b")
+        self.assertIn("used bicycle", self.seen[0]["messages"][1]["content"])
+        self.assertTrue(os.path.isfile(os.path.join(self.dir, "reviews", "2026-01-01-price-reviews", "qwen-ollama.txt")))
+
+    def test_a_private_packet_goes_only_to_the_local_model(self):
+        self.conf("openrouter.key", "k")
+        calls = self.fake({"alpha": LONG})
+        real = self._http
+        review.http = lambda url, *a, **k: real(url, *a, **k) if url.startswith("http://127.0.0.1") else self.fail("sent outside: " + url)
+        code, out, err = self.run_main(self.packet("mail a@b.co about the bicycle"))
+        self.assertEqual(code, 6)  # one family, and nothing went out
+        self.assertIn("keep it on this machine", err)
+        self.assertEqual(calls, [])
+        self.assertEqual(len(self.seen), 1)
+
+
+class OpenRouterFixes(Sandbox):
+    def test_on_equal_context_the_bigger_model_is_asked(self):
+        review.http = lambda *a, **k: {"data": [{"id": "eta/e-26b-it:free", "context_length": 8}, {"id": "eta/e-31b-it:free", "context_length": 8},
+                                                {"id": "eta/e-2.6b:free", "context_length": 8}]}
+        self.assertEqual(review.pick_models(self.dir), ["eta/e-31b-it:free"])
+
+    def test_an_error_inside_a_200_answer_is_a_failure_not_an_empty_review(self):
+        calls = []
+
+        def http(url, payload=None, key=None, timeout=100):
+            calls.append(1)
+            return {"choices": [{"error": {"code": 429, "message": "upstream busy"}, "finish_reason": "error"}]}
+
+        review.http = http
+        status, body = review.ask_openrouter("alpha/big:free", "x", "f", "k")
+        self.assertEqual(status, "rate-limited")
+        self.assertIn("upstream busy", body)
+        self.assertEqual(len(calls), 2)
+
+
 if __name__ == "__main__":
     unittest.main()
