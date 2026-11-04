@@ -1,0 +1,11 @@
+{
+  "description": "Desks: say at the start of a session that the folder uses Desks; at the end of a reply, ask once for a Boot, Label or Closed line the scripts printed and the reply lost.",
+  "hooks": {
+    "SessionStart": [
+      {"hooks": [{"type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/skills/desk/scripts/desk.py\" hook session-start", "timeout": 10}]}
+    ],
+    "Stop": [
+      {"hooks": [{"type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/skills/desk/scripts/desk.py\" hook stop", "timeout": 10}]}
+    ]
+  }
+}

@@ -60,6 +60,8 @@ class CloudDesk(unittest.TestCase):
         self.assertEqual(p.returncode, 0, p.stderr)
         self.assertIn(f"work in: {os.path.join(self.root, 'desks', 'sell-bike')}", p.stdout)
         self.assertIn("claude/session-branch (this cloud session's branch", p.stdout)
+        self.assertIn("Boot line: Desk `sell-bike` · new · git level", p.stdout)
+        self.assertIn("cloud session: push this branch before the close", p.stdout)
         self.assertNotIn("desk/sell-bike", self.git("branch", "--list"))
         self.assertFalse(os.path.exists(os.path.join(self.root, ".claude", "worktrees")))
         self.assertIn("environment: cloud session", self.desk("status").stdout)

@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### The promised lines, enforced
+
+- **`Boot line:`**: `desk.py open` prints the session's first line ready to copy (topic · new or
+  continued · level · review mode · what needs attention), like `Label line:` and `Closed line:`.
+  The contract says to copy it; § 1 changed in place.
+- **Stop hook** (`desk.py hook stop`): when a reply leaves out a `Boot line:`, `Label line:` or
+  `Closed line:` that a script printed in the same turn, it asks once for the line to be added and
+  quotes it. It matches the line by receipt id or topic, never judges whether a reply "was advice",
+  and never blocks its own continuation. Advice given with no review run is not caught; that is
+  on purpose.
+- **SessionStart hook** (`desk.py hook session-start`): in a folder that uses Desks, two lines in
+  Claude's context, saying to load the skill when work on a topic starts and naming the topics.
+  It gives no next steps, because they can be stale. Anywhere else it says nothing.
+- Hooks ship in the plugin (`hooks/hooks.json`) and in this repository's `.claude/settings.json`.
+  A folder install leaves settings alone; INSTALL.md says how to add them by hand.
+- Design reviewed by 3 families (receipt 99ff24f0e9). Adopted: enforce all three lines alike, not
+  only the label; no next steps at session start.
 ### Cloud sessions
 
 - **A Desk works in a Claude Code cloud session** (`CLAUDE_CODE_REMOTE=true`; `DESK_CLOUD=1|0`

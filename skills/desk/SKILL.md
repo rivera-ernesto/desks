@@ -58,8 +58,8 @@ read "the topic's folder under the Desk root", which may have another name (`des
 3. **Existing topic:** read its `README.md` (state, what was learned, next step) and the newest
    file in `sessions/`. If the script reports an inbox, fold each note into the README (usually
    under "Open") and delete the note file. Read nothing else until the task needs it.
-4. Say one boot line: topic · new or continued · level · review mode (§ 3) · anything that needs
-   attention. Then lead (§ 10).
+4. Copy the `Boot line:` that `open` printed (topic · new or continued · level · review mode ·
+   what needs attention) as your first words. Then lead (§ 10).
 
 **Git stays under the hood.** The user never has to type or understand it: `desk.py` does the
 plumbing, and you commit your own files by path at each milestone, with a plain message (review
