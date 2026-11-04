@@ -289,9 +289,10 @@ def rename_hint(base, name, topic):
         return f"{path} is a symlink: point it, or its target, at {topic}/ yourself"
     tracked = run(["git", "ls-files", "--error-unmatch", "--", name], cwd=base)[0] == 0
     mv = "git mv" if tracked else "mv"
+    q = shlex.quote  # the command is pasted into a shell: a root like `/Users/First Last/` must survive it
     if name.lower() == topic:  # a case-only rename is a no-op on a case-insensitive file system
-        return f"cd {base} && {mv} {name} {topic}.tmp && {mv} {topic}.tmp {topic}"
-    return f"cd {base} && {mv} {name} {topic}"
+        return f"cd {q(base)} && {mv} {q(name)} {q(topic + '.tmp')} && {mv} {q(topic + '.tmp')} {q(topic)}"
+    return f"cd {q(base)} && {mv} {q(name)} {q(topic)}"
 
 
 def check_spelling(base, topic, verb="open"):

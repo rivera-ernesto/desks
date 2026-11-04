@@ -1,5 +1,6 @@
 """#95: a topic folder whose name is not its slug is found, never silently doubled. Standard library only."""
 import os
+import shlex
 import sys
 import unittest
 
@@ -78,6 +79,18 @@ class Spelling(Base):
         r = desk(self.root, "note", "here", "a.b", "something")
         self.assertEqual(r.returncode, 1)
         self.assertIn("a.b/ has the same name in another spelling", r.stderr)
+
+    def test_a_root_with_a_space_gets_a_quoted_command(self):  # a pasted rename must survive `/Users/First Last/`
+        spaced = os.path.join(self.root, "First Last")
+        os.makedirs(os.path.join(spaced, "desks", "a.b"))
+        put(os.path.join(spaced, "desks", "a.b", "README.md"), "# a.b\n")
+        sh(["git", "init", "-q"], spaced)
+        r = desk(spaced, "open", "a.b")
+        self.assertEqual(r.returncode, 8, r.stderr)
+        cmd = r.stderr.split("(", 1)[1].split("), then", 1)[0]
+        self.assertIn(shlex.quote(os.path.join(spaced, "desks")), cmd)
+        sh(["bash", "-c", cmd], spaced)  # the printed command, run as pasted, does the rename
+        self.assertTrue(os.path.isdir(os.path.join(spaced, "desks", "a-b")))
 
     def test_status_warns_and_carries_on(self):
         self.topic("a.b")
