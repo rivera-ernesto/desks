@@ -52,8 +52,10 @@
 - An OpenRouter answer that carries the provider's error inside a 200 reply is a failure (and is
   retried), not an empty review.
 - **In a Claude Code cloud session** (setup.md, Review key): the key goes in the environment's
-  network secrets, header `Authorization` with the prefix `Bearer`, and `OPENROUTER_API_KEY` is set
-  to a placeholder. A secret saved without the prefix made OpenRouter answer 401 to every call;
+  network secrets, header `Authorization` with the prefix `Bearer`. With no key of its own,
+  `review.py` asks OpenRouter once (no key sent) whether the environment adds one, and then sends
+  none; `--check` stays offline and says `--test` will ask. The Boot line's review mode does the
+  same in a cloud session. No placeholder variable is needed any more. A secret saved without the prefix made OpenRouter answer 401 to every call;
   `--test` now says so in one line. Verified with a real review from a cloud session: three
   vendors answered in under a minute.
 - On equal context length, OpenRouter's larger free model of a family is asked (31b over 26b).

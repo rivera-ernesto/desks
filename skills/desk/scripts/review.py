@@ -131,8 +131,32 @@ def conf(name):
         return ""
 
 
-def api_key():
-    return os.environ.get("OPENROUTER_API_KEY", "").strip() or conf("openrouter.key")
+# In a cloud session the environment can add the key on the way out (a network secret), so the
+# session never holds it. Then there is no key here, and this stands in for it: no header is sent.
+PROXY = "(added by the environment)"
+_probed = {}
+
+
+def cloud():
+    """A Claude Code cloud session (CLAUDE_CODE_REMOTE=true). DESK_CLOUD=1 or 0 overrides, as in desk.py."""
+    forced = os.environ.get("DESK_CLOUD", "").strip()
+    if forced in ("0", "1"):
+        return forced == "1"
+    return os.environ.get("CLAUDE_CODE_REMOTE", "").strip().lower() == "true"
+
+
+def api_key(probe=False):
+    """The OpenRouter key: OPENROUTER_API_KEY, then openrouter.key. In a cloud session with neither, and
+    only when `probe` allows the network, ask OpenRouter once, with no key, whether the environment adds one."""
+    key = os.environ.get("OPENROUTER_API_KEY", "").strip() or conf("openrouter.key")
+    if key or not (probe and cloud()):
+        return key
+    if "ok" not in _probed:
+        try:
+            _probed["ok"] = bool(http(API + "/key", timeout=15).get("data"))
+        except Exception:
+            _probed["ok"] = False
+    return PROXY if _probed["ok"] else ""
 
 
 def vendor_of(model, fallback=""):
@@ -263,7 +287,7 @@ def http(url, payload=None, key=None, timeout=100):
     headers = {"Content-Type": "application/json", "X-Title": "Desk review", "User-Agent": "desk-review"}
     if url.startswith(API):
         headers["HTTP-Referer"] = "https://github.com/rivera-ernesto/desks"
-    if key:
+    if key and key != PROXY:
         headers["Authorization"] = "Bearer " + key
     data = json.dumps(payload).encode() if payload is not None else None
     req = urllib.request.Request(url, data=data, headers=headers)
@@ -604,17 +628,20 @@ def key_status(key):
         return None, f"set (not checked: HTTP {e.code})"
     except Exception as e:
         return None, f"set (not checked: {explain(e)})"
+    how = "added by the environment" if key == PROXY else "set"
     if d.get("is_free_tier"):
-        return True, "set and working · no credit bought: 50 free requests a day (about eight reviews)"
-    return True, "set and working · credit bought once: 1000 free requests a day"
+        return True, f"{how} and working · no credit bought: 50 free requests a day (about eight reviews)"
+    return True, f"{how} and working · credit bought once: 1000 free requests a day"
 
 
 def check(live=False):
     """What is set up. Offline unless `live`: then each provider is asked whether its key works."""
-    key, lanes, apple = api_key(), command_lanes(), conf("apple-shortcut")
+    key, lanes, apple = api_key(probe=live), command_lanes(), conf("apple-shortcut")
     direct = direct_lanes()
     ok_key, ready = True, direct
-    if not key:
+    if not key and cloud() and not live:
+        print("review key:      none here; in a cloud session the environment may add it (`--test` asks)")
+    elif not key:
         print("review key:      not set  ->  run `desk setup`")
     elif live:
         ok_key, said = key_status(key)
@@ -768,7 +795,7 @@ def main(argv):
         os.makedirs(out, exist_ok=True)
         watchdog(wd, out)
 
-    key, lanes, apple = api_key(), command_lanes(), conf("apple-shortcut")
+    key, lanes, apple = api_key(probe=True), command_lanes(), conf("apple-shortcut")
     direct = direct_lanes()
     gate, plane = cfg.get("gate", "").strip(), cfg.get("private lane", "").strip()
     screened = text + "\n" + focus
