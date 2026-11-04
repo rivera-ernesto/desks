@@ -535,20 +535,27 @@ def table_rows(text):
 
 
 # A finding is closed by a recognised status word, then anything: `Accepted, fixed in abc123`, `Rejected: out of scope`.
-DISPOSITION = re.compile(r"(accepted|rejected|partly|left|noted)\b", re.I)
+# The words SKILL.md and reference/review.md tell the agent to write, plus older ones still in use (#96).
+DISPOSITION_WORDS = ("adopted", "accepted", "rejected", "partly", "left", "noted")
+DISPOSITION = re.compile(r"(" + "|".join(DISPOSITION_WORDS) + r")\b", re.I)
 
 
-def dispositions_closed(path):
-    """True when the file has finding rows and every row ends in a real disposition."""
+def open_rows(path):
+    """The rows of a dispositions file that do not end in a real disposition; None when it has no rows."""
     try:
         with open(path, encoding="utf-8") as fh:
             text = fh.read()
     except OSError:
-        return False
+        return None
     rows = table_rows(text)
     if not rows:
-        return False
-    return all(r and DISPOSITION.match(r[-1].lstrip("*_` ")) and "{{" not in r[-1] for r in rows)
+        return None
+    return [r for r in rows if not (r and DISPOSITION.match(r[-1].lstrip("*_` ")) and "{{" not in r[-1])]
+
+
+def dispositions_closed(path):
+    """True when the file has finding rows and every row ends in a real disposition."""
+    return open_rows(path) == []
 
 
 def index_file():
@@ -602,6 +609,10 @@ def receipt_state(rid, roots=(".",)):
             now = "converged"
         else:
             now, why = "open", f"give every finding a disposition in {disp or 'the dispositions file'}"
+            bad = open_rows(disp) if disp else None
+            if bad:  # #96: say which row and which words count, so nobody has to guess
+                why += (f": {len(bad)} row(s) do not end in one of {', '.join(DISPOSITION_WORDS)}, "
+                        f"first: | {' | '.join(bad[0])[:120]} |")
     return {"path": path, "text": text, "fields": f, "label": label, "now": now, "why": why, "dispositions": disp}
 
 

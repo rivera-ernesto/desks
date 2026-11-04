@@ -271,6 +271,49 @@ def slug(topic):
     return s
 
 
+def near_matches(base, topic):
+    """Folders directly under `base` whose slug is `topic` but whose name is not (#95): `release-0.3.0/`
+    for `release-0-3-0`, `Trip-Japan/` for `trip-japan`. Hidden folders are not topics and are skipped."""
+    try:
+        names = sorted(os.listdir(base))
+    except OSError:
+        return []
+    return [n for n in names if n != topic and not n.startswith(".") and os.path.isdir(os.path.join(base, n))
+            and re.sub(r"[^a-z0-9]+", "-", n.lower()).strip("-") == topic]
+
+
+def rename_hint(base, name, topic):
+    """The command that gives the folder its slug name, or why there is none."""
+    path = os.path.join(base, name)
+    if os.path.islink(path):
+        return f"{path} is a symlink: point it, or its target, at {topic}/ yourself"
+    tracked = run(["git", "ls-files", "--error-unmatch", "--", name], cwd=base)[0] == 0
+    mv = "git mv" if tracked else "mv"
+    q = shlex.quote  # the command is pasted into a shell: a root like `/Users/First Last/` must survive it
+    if name.lower() == topic:  # a case-only rename is a no-op on a case-insensitive file system
+        return f"cd {q(base)} && {mv} {q(name)} {q(topic + '.tmp')} && {mv} {q(topic + '.tmp')} {q(topic)}"
+    return f"cd {q(base)} && {mv} {q(name)} {q(topic)}"
+
+
+def check_spelling(base, topic, verb="open"):
+    """Stop when `topic`'s folder is missing and a folder with another spelling of it exists (#95): acting
+    would silently make, or miss, a second home for the same topic. Nothing is renamed automatically."""
+    near = near_matches(base, topic)
+    if not near:
+        return
+    if os.path.isdir(os.path.join(base, topic)):
+        print(f"note: {', '.join(n + '/' for n in near)} next to {topic}/ has the same name in another spelling; "
+              f"{verb} uses {topic}/", file=sys.stderr)
+        return
+    if len(near) > 1:
+        die(f"no folder {topic}/ in {base}, but several have its name in another spelling: "
+            f"{', '.join(n + '/' for n in near)}. Keep one, rename it to {topic}/, then run {verb} again. "
+            "Nothing was changed.", 8 if verb == "open" else 1)
+    die(f"no folder {topic}/ in {base}, but {near[0]}/ has the same name in another spelling, so {verb} would "
+        f"miss it. Rename it to {topic}/ ({rename_hint(base, near[0], topic)}), then run {verb} again. "
+        "Nothing was changed.", 8 if verb == "open" else 1)
+
+
 def worktree_of(root, branch):
     _, out, _ = run(["git", "worktree", "list", "--porcelain"], cwd=root)
     path = None
@@ -566,6 +609,11 @@ def cmd_status():
     if os.path.isdir(dr):
         topics = sorted(d for d in os.listdir(dr) if os.path.isfile(os.path.join(dr, d, "README.md")))
         print("topics:   " + (", ".join(topics) or "none"))
+        for d in topics:  # #95: status only reads, so it warns where open, close and note would stop
+            s = slug(d) if re.search(r"[a-z0-9]", d.lower()) else ""
+            if s and s != d:
+                print(f"  warning: {d}/ is not in the form desk.py opens; `open {d}` looks for {s}/. "
+                      f"Rename it: {rename_hint(dr.rstrip('/'), d, s)}")
         now = datetime.datetime.now().timestamp()
         for d in topics:  # the facts for a brief across topics; the recommendation is the session's
             f = os.path.join(dr, d, "README.md")
@@ -640,6 +688,7 @@ def cmd_open(topic, reopen=False, parent=None):
         print("opened with this folder's own routine. Desks made no topic folder, branch or working copy here.")
         return 0
     droot = cfg.get("desk root", "desks/").strip("/")
+    check_spelling(os.path.join(root, droot), topic)  # before any branch or working copy is made (#95)
     lv = level(root, is_git, cfg)
     work = branch = None
     fresh = ""
@@ -1057,6 +1106,7 @@ def cmd_close(topic, how, title):
         work, branch = (here, cur) if topic_of_branch(cfg, cur) == topic else topic_work(root, cfg, topic)
     if not work:
         die(f"no open desk named {topic}")
+    check_spelling(os.path.join(work, droot), topic, "close")  # #95
     if not branch and lv != "folder":
         _, branch, _ = run(["git", "branch", "--show-current"], cwd=work)
     if not house and lv != "folder" and not session_branch(lv) and topic_of_branch(cfg, branch) != topic:
@@ -1270,6 +1320,7 @@ def cmd_note(current, other, text):
         work = root if lv == "folder" or session_branch(lv) else topic_work(root, cfg, current)[0]
     if not work:
         die(f"no open desk named {current}")
+    check_spelling(os.path.join(work, droot), other, "note")  # #95: a note must not start a second home
     inbox = os.path.join(work, droot, other, "inbox")
     if lv != "folder" and ignored(work, os.path.relpath(os.path.join(inbox, "x.md"), work)):
         die(f"{inbox} is ignored by git: a note left there would never reach {other}. Nothing was written (#25).")

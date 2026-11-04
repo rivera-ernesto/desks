@@ -19,6 +19,17 @@
   A folder install leaves settings alone; INSTALL.md says how to add them by hand.
 - Design reviewed by 3 families (receipt 99ff24f0e9). Adopted: enforce all three lines alike, not
   only the label; no next steps at session start.
+### Fixes from the pre-release check
+
+- **A topic folder in another spelling is found, never doubled** (#95). `open release-0.3.0` looks for
+  `release-0-3-0/`; it used to miss `release-0.3.0/`, call the topic new and make an empty second folder.
+  Now `open` (exit 8), `close` and `note` stop and print the rename (`git mv` for a saved folder, `mv`
+  otherwise, through a temporary name when only the case differs, none for a symlink), and `status` warns.
+  Nothing is renamed automatically. Hidden folders are not topics. Design reviewed by 3 families
+  (receipt 545aa08bd9).
+- **"adopted" counts as a disposition** (#96), as the contract and `reference/review.md` say;
+  `accepted` still does. `review.py --verify` names the first row that does not count, and the words that do.
+
 ### Cloud sessions
 
 - **A Desk works in a Claude Code cloud session** (`CLAUDE_CODE_REMOTE=true`; `DESK_CLOUD=1|0`

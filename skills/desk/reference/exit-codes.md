@@ -13,6 +13,7 @@ Any command that is given something it does not understand exits 2 and prints it
 | | 5 | the topic was closed as ready and not yet received: needs `--reopen` and the user's yes |
 | | 6 | another open holds a live lock; wait and run it again |
 | | 7 | the child would be deeper than `Depth cap:` |
+| | 8 | no folder in the topic's own spelling, but one in another (`release-0.3.0/` for `release-0-3-0`, `Trip-Japan/` for `trip-japan`); nothing was opened, and the message gives the rename |
 | `close` | 0 | closed (the `Closed line:` is printed) |
 | | 1 | refused: placeholders, a note missing sections or lessons without a destination, a label without a receipt that checks out, unsaved files, the wrong branch, the main folder not on the base, a failed merge or routine; the Desk is not closed |
 | | 2 | no topic or no `Close:` line recorded |
