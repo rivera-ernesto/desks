@@ -435,6 +435,21 @@ class Receipts(Sandbox):
         put(d, "# no rows at all\n")
         self.assertEqual(review.receipt_state(rid, [self.dir])["now"], "open")
 
+    def test_every_word_the_contract_names_closes_a_row(self):  # #96
+        packet, rid = self.converge()
+        rows = "".join(f"| {n} | f | {w}: why |\n" for n, w in enumerate(
+            ("adopted", "accepted", "rejected", "partly", "left to the user", "noted"), 1))
+        put(packet[:-3] + "-dispositions.md", "| # | f | disposition |\n|---|---|---|\n" + rows)
+        self.assertEqual(review.receipt_state(rid, [self.dir])["now"], "converged")
+
+    def test_verify_names_the_row_that_does_not_count(self):  # #96
+        packet, rid = self.converge()
+        put(packet[:-3] + "-dispositions.md", "| # | f | disposition |\n|---|---|---|\n| 1 | a | accepted |\n| 2 | b | fixed it |\n")
+        st = review.receipt_state(rid, [self.dir])
+        self.assertEqual(st["now"], "open")
+        self.assertIn("1 row(s) do not end in one of adopted, accepted", st["why"])
+        self.assertIn("| 2 | b | fixed it |", st["why"])
+
     def test_two_tables_in_one_file_are_both_checked(self):
         packet, rid = self.converge()
         put(packet[:-3] + "-dispositions.md", "| # | f | disposition |\n|---|---|---|\n| 1 | a | accepted |\n\nRound 2\n\n| # | f | disposition |\n|---|---|---|\n| 2 | b |  |\n")
