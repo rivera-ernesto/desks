@@ -699,7 +699,7 @@ def review_mode():
     rv = load_review()
     if rv is None:
         return "same-vendor"
-    lanes = [rv.api_key(), rv.command_lanes(), rv.conf("apple-shortcut")]
+    lanes = [rv.api_key(probe=True), rv.command_lanes(), rv.conf("apple-shortcut")]  # probes only in a cloud session
     if hasattr(rv, "direct_lanes"):
         lanes.append(rv.direct_lanes())
     return "cross-vendor" if any(lanes) else "same-vendor"

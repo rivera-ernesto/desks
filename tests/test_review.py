@@ -746,5 +746,87 @@ class OpenRouterFixes(Sandbox):
         self.assertEqual(len(calls), 2)
 
 
+
+class CloudKey(Sandbox):
+    """A cloud environment can add the key on the way out: no variable and no file in the session."""
+
+    def setUp(self):
+        super().setUp()
+        os.environ["DESK_CLOUD"] = "1"
+        review._probed.clear()
+        self.addCleanup(os.environ.__setitem__, "DESK_CLOUD", "0")
+        self.addCleanup(review._probed.clear)
+
+    def proxy(self, adds_key=True):
+        sent = []
+
+        def http(url, payload=None, key=None, timeout=100):
+            sent.append(key)
+            if url.endswith("/key"):
+                if not adds_key:
+                    raise review.urllib.error.HTTPError(url, 401, "Unauthorized", {}, io.BytesIO(b"{}"))
+                return {"data": {"is_free_tier": False}}
+            if payload is None:
+                return CATALOGUE
+            return {"choices": [{"message": {"content": LONG}}]}
+
+        review.http = http
+        return sent
+
+    def test_a_review_runs_with_the_key_the_environment_adds(self):
+        sent = self.proxy()
+        code, out, _ = self.run_main(self.packet())
+        self.assertEqual(code, 0)
+        self.assertIn("[converged]", out)
+        self.assertLessEqual(set(sent), {None, review.PROXY}, "no key of its own is ever sent")
+        self.assertIn(review.PROXY, sent)
+
+    def test_no_key_anywhere_is_still_same_vendor(self):
+        self.proxy(adds_key=False)
+        code, _, err = self.run_main(self.packet())
+        self.assertEqual(code, 3)
+        self.assertIn("[same-vendor]", err)
+
+    def test_check_stays_offline_and_test_asks(self):
+        self.proxy()
+        review.http = (lambda real: (lambda *a, **k: self.fail("--check went to the network")))(review.http)
+        code, out, _ = self.run_main("--check")
+        self.assertIn("in a cloud session the environment may add it", out)
+        self.proxy()
+        code, out, _ = self.run_main("--test")
+        self.assertIn("added by the environment and working · credit bought once", out)
+        self.assertIn("mode:            cross-vendor", out)
+
+    def test_off_the_cloud_nothing_is_probed(self):
+        os.environ["DESK_CLOUD"] = "0"
+        sent = self.proxy()
+        self.assertEqual(review.api_key(probe=True), "")
+        self.assertEqual(sent, [])
+
+    def test_the_header_is_left_out_for_the_environment_to_add(self):
+        seen = {}
+
+        class Fake:
+            def __init__(self, req, timeout=None):
+                seen.update(req.headers)
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def read(self):
+                return b'{"data": {}}'
+
+        old = review.urllib.request.urlopen
+        review.urllib.request.urlopen = Fake
+        try:
+            review.http(review.API + "/key", key=review.PROXY)
+        finally:
+            review.urllib.request.urlopen = old
+        self.assertNotIn("Authorization", seen)
+
+
 if __name__ == "__main__":
     unittest.main()

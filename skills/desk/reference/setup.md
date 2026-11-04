@@ -58,11 +58,11 @@ This turns `same-vendor` into `cross-vendor`.
 **In a Claude Code cloud session** there is no clipboard and no home folder that lasts. The key
 goes in the cloud environment's settings instead (the environment menu, Edit, Network secrets):
 host `openrouter.ai`, header name `Authorization`, **prefix `Bearer`**, value the key. Without the
-prefix OpenRouter answers 401 and every review fails. Then add an environment variable
-`OPENROUTER_API_KEY` with any placeholder value: the script needs a key to start, and the
-environment puts the real one in on the way out, so it never sits in the session. Run
-`review.py --test` in a new session. Other providers work the same way, each with its host
-allowed in the environment's network settings and a placeholder `~/.config/desk/<name>.key`.
+prefix OpenRouter answers 401 and every review fails. Nothing else is needed: the environment adds
+the key on the way out, so it never sits in the session, and in a cloud session with no key of
+its own the script asks OpenRouter once whether the environment adds one. Run `review.py --test`
+in a new session. Other providers work the same way, each with its host allowed in the
+environment's network settings and a placeholder `~/.config/desk/<name>.key`.
 
 Tell them plainly:
 
