@@ -4,6 +4,7 @@ labels and receipts. Standard library only.
 import importlib.util
 import io
 import os
+import re
 import sys
 import tempfile
 import unittest
@@ -727,7 +728,7 @@ class LocalModel(Sandbox):
         self.assertIn("[thin] · 1 family", out)
         self.assertEqual(self.seen[0]["model"], "qwen3:14b")
         self.assertIn("used bicycle", self.seen[0]["messages"][1]["content"])
-        self.assertTrue(os.path.isfile(os.path.join(self.dir, "reviews", "2026-01-01-price-reviews", "qwen-ollama.txt")))
+        self.assertTrue(os.path.isfile(os.path.join(self.dir, "reviews", "2026-01-01-price-reviews", "qwen-ollama-%s.txt" % re.search(r"receipt ([0-9a-f]{10})", out).group(1))))
 
     def test_a_private_packet_goes_only_to_the_local_model(self):
         self.conf("openrouter.key", "k")
@@ -841,6 +842,53 @@ class CloudKey(Sandbox):
         finally:
             review.urllib.request.urlopen = old
         self.assertNotIn("Authorization", seen)
+
+
+class KeepsEarlierAnswers(Sandbox):
+    """#81: a run never replaces another run's answer files."""
+
+    def lane(self, name, text):
+        script = os.path.join(self.dir, name + ".py")
+        put(script, "import sys; sys.stdin.read(); print(%r)" % text)
+        self.conf("reviewers.txt", f'mine | "{sys.executable}" "{script}"\n')
+
+    def test_a_second_review_of_the_same_packet_keeps_the_first_answers(self):
+        packet = self.packet()
+        out = packet[:-3] + "-reviews"
+        self.lane("one", "FIRST " + LONG)
+        self.run_main(packet)
+        self.lane("two", "SECOND " + LONG)
+        self.run_main(packet)
+        bodies = []
+        for name in sorted(os.listdir(out)):
+            if name.startswith("mine") and name.endswith(".txt"):
+                with open(os.path.join(out, name), encoding="utf-8") as fh:
+                    bodies.append(fh.read())
+        self.assertEqual(len(bodies), 2, os.listdir(out))
+        self.assertTrue(any("FIRST" in b for b in bodies))
+        self.assertTrue(any("SECOND" in b for b in bodies))
+
+
+class PacketInsideAWorktree(Sandbox):
+    """#23: a relative packet path means the folder the command ran from, even when the folder's
+    hooks run in another working copy."""
+
+    def test_the_private_lane_gets_a_path_that_exists_from_its_own_folder(self):
+        lane = os.path.join(self.dir, "plane.py")
+        put(lane, "import os, sys\nsys.exit(1) if not os.path.isfile(sys.argv[1]) else print(%r)" % LONG)
+        elsewhere = os.path.join(self.dir, "worktree")
+        os.makedirs(elsewhere)
+        packet = self.packet()
+        here = os.getcwd()
+        real = review.folder_settings
+        review.folder_settings = lambda: ({"private lane": f'"{sys.executable}" "{lane}"'}, elsewhere)
+        os.chdir(os.path.dirname(packet))
+        try:
+            code, out, err = self.run_main(os.path.basename(packet))
+        finally:
+            os.chdir(here)
+            review.folder_settings = real
+        self.assertIn(" answered (", out, out + err)
 
 
 if __name__ == "__main__":
