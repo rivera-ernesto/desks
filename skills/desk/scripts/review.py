@@ -710,7 +710,7 @@ def ask_private_command(cmd, packet, focus, cwd):
     """The folder's private lane: `<command> <packet>`, the answer on stdout, exit 3 for a packet too large."""
     size = os.path.getsize(packet)
     try:
-        p = subprocess.run(f"{cmd} {shlex.quote(packet)}", shell=True, cwd=cwd, capture_output=True, text=True, timeout=400,
+        p = subprocess.run(f"{cmd} {shlex.quote(os.path.abspath(packet))}", shell=True, cwd=cwd, capture_output=True, text=True, timeout=400,
                            stdin=subprocess.DEVNULL, env=dict(os.environ, DESK_FOCUS=focus))
     except subprocess.TimeoutExpired:
         return "failed", "no answer within 400 s"
@@ -839,13 +839,15 @@ def main(argv):
     if not os.path.exists(ledger):
         open(ledger, "w", encoding="utf-8").write("date\tpacket\tmodel\tfamily\tstatus\tseconds\n")
     today = datetime.date.today().isoformat()
+    sha = hashlib.sha256(text.encode()).hexdigest()
+    rid = hashlib.sha256(f"{sha}{time.time()}{os.getpid()}".encode()).hexdigest()[:10]  # known up front: it names this run's files (#81)
     results = []  # (family, model, status, seconds)
 
     def record(family, model, fn, file=None):
         t0 = time.time()
         status, body = fn()
         secs = int(time.time() - t0)
-        with open(os.path.join(out, (file or family) + ".txt"), "w", encoding="utf-8") as f:
+        with open(os.path.join(out, f"{file or family}-{rid}.txt"), "w", encoding="utf-8") as f:
             f.write(f"packet: {packet}\nmodel:  {model}\nstatus: {status}\n\n{body}\n")
         with open(ledger, "a", encoding="utf-8") as f:
             f.write(f"{today}\t{stem}\t{model}\t{family}\t{status}\t{secs}\n")
@@ -914,8 +916,6 @@ def main(argv):
               "  (the credit is not spent by free models). Otherwise wait for the daily reset.")
     families = answered()
     private_ok_answer = any(v == "apple" and s == "answered" for v, _, s, _ in results)
-    sha = hashlib.sha256(text.encode()).hexdigest()
-    rid = hashlib.sha256(f"{sha}{time.time()}{len(families)}".encode()).hexdigest()[:10]
     if families:
         label = "open" if len(families) >= want else "thin"
     else:
