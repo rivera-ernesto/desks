@@ -60,6 +60,8 @@ desk my-first-topic
 
 ## The review, honestly
 
+Until you add a key, a second Claude checks the answers; type `desk setup` to add a free review key so other companies' AIs check them too.
+
 - **With a free OpenRouter key** (three minutes, `desk setup`): several vendors review each
   substantive answer. Free models are weaker than Claude. They are not there to be right; they are
   there to disagree, and Claude has to answer each objection.
