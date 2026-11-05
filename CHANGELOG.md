@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **`note` warns when the target topic does not exist yet** (#25): on stderr, naming the topics that do; `status` marks inboxes whose topic has no README.
+
 ### review.py fixes
 
 - **`off-site` is not `off`** (#30): a setting reads as off only when its first word is exactly `off`, optionally followed by a remark.

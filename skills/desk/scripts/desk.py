@@ -634,7 +634,8 @@ def cmd_status():
             box = os.path.join(dr, d, "inbox")
             n = len(os.listdir(box)) if os.path.isdir(box) else 0
             if n:
-                waiting.append(f"{d} ({n})")
+                orphan = not os.path.isfile(os.path.join(dr, d, "README.md"))  # #25
+                waiting.append(f"{d} ({n}, no README)" if orphan else f"{d} ({n})")
         if waiting:
             print("notes waiting: " + ", ".join(waiting) + "  <- tell the user; they were left by other desks")
         if is_git:  # state in the main checkout is state no branch holds (#31)
@@ -1329,6 +1330,16 @@ def cmd_note(current, other, text):
     inbox = os.path.join(work, droot, other, "inbox")
     if lv != "folder" and ignored(work, os.path.relpath(os.path.join(inbox, "x.md"), work)):
         die(f"{inbox} is ignored by git: a note left there would never reach {other}. Nothing was written (#25).")
+    homes = [work, root] + ([topic_work(root, cfg, other)[0]] if is_git else [])  # a topic open but not merged yet lives in its own copy
+    if not any(h and os.path.isfile(os.path.join(h, droot, other, "README.md")) for h in homes):  # #25: only found under this exact name
+        known = set()
+        for h in homes:
+            dr = os.path.join(h or "", droot)
+            if h and os.path.isdir(dr):
+                known.update(d for d in os.listdir(dr) if os.path.isfile(os.path.join(dr, d, "README.md")))
+        known = sorted(known)
+        print(f"warning: no topic named {other} exists yet (no {droot}/{other}/README.md). The note is written, but it is found "
+              f"only when a session opens exactly `{other}`. Topics that exist: {', '.join(known) or '(none)'}.", file=sys.stderr)
     os.makedirs(inbox, exist_ok=True)
     stamp = datetime.datetime.now().strftime("%Y-%m-%d-%H%M%S")
     path = os.path.join(inbox, f"{stamp}-from-{current}.md")
