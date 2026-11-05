@@ -2,7 +2,7 @@
 // scripts/qa-check.mjs against the README.
 export const REPO = 'https://github.com/rivera-ernesto/desks';
 // The release the install prompts point at. Change it here only; tests/test_version.py checks it.
-export const VERSION = 'v0.2.0';
+export const VERSION = 'v0.3.0';
 // The day VERSION was released, shown in the footer with a link to the newest release.
 export const RELEASED = '2026-10-19';
 
