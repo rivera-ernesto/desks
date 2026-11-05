@@ -20,3 +20,18 @@ follows from that.
 | Same-vendor pass | A `desk-reader` subagent | **Works** when the workers are installed as above. |
 | Browser, screen, the user's logged-in accounts | The user's machine | **Off:** reading public pages works where the environment's network allows. Say what is missing and continue (`reference/surfaces.md`). |
 | History and transcripts | Kept on the machine | **Gone with the machine:** only what is pushed survives. Commit by path and push at each milestone, not only at the close. |
+
+## Two repositories attached (#106)
+
+With two repositories attached, the session's project folder is their parent, so this repository's
+`.claude/settings.json` hooks never load (the `CLAUDE.md` block does). Silently, a `respawn` plus `/clear`
+reopens nothing and the Stop checks do not run. What Desks does about it:
+
+- The Desk block tells the session to run `desk.py open` with no topic on a first message that names none:
+  it uses the pending respawn marker once, or lists the topics.
+- The SessionStart hook leaves a stamp each time it runs. In a cloud session `open` and `status` warn
+  (`hooks unverified here`) when no stamp is newer than the machine's start. Locally there is never a warning.
+- Optional root fix, in the environment's setup script: put the two hook entries of this repository's
+  `.claude/settings.json` into `~/.claude/settings.json`, which loads wherever the project folder is.
+  Parse the file, merge the `SessionStart` and `Stop` entries without dropping others, check the result still
+  parses, then write it. Use the path of this checkout's `desk.py`, not a copy.

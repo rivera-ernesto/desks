@@ -94,5 +94,74 @@ class RespawnGit(Base):
         self.assertIn("continue Desk `sell-bike`", hook(self.root, "clear").stdout)
 
 
+class HooklessRespawn(Base):
+    """#106: with two repositories attached the hooks never load. The marker is still used, once, without them."""
+    git = False
+
+    def setUp(self):
+        super().setUp()
+        self.assertEqual(desk(self.root, "open", "sell-bike").returncode, 0)
+        self.marker = os.path.join(self.root, ".desk-respawn")
+        self.stamp = os.path.join(self.root, ".desk-hook-seen")
+
+    def test_open_with_no_topic_uses_a_fresh_marker_once(self):
+        desk(self.root, "respawn", "sell-bike")
+        r = desk(self.root, "open")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("Boot line: Desk `sell-bike`", r.stdout)
+        self.assertFalse(os.path.exists(self.marker))
+        again = desk(self.root, "open")
+        self.assertEqual(again.returncode, 0)
+        self.assertIn("no pending respawn", again.stdout)
+        self.assertNotIn("Boot line:", again.stdout)
+
+    def test_a_stale_marker_is_ignored(self):
+        put(self.marker, f"sell-bike\t{int(time.time()) - 13 * 3600}\n")
+        r = desk(self.root, "open")
+        self.assertIn("no pending respawn", r.stdout)
+        self.assertNotIn("Boot line:", r.stdout)
+
+    def test_no_marker_lists_the_topics_and_succeeds(self):
+        r = desk(self.root, "open")
+        self.assertEqual(r.returncode, 0)
+        self.assertIn("sell-bike", r.stdout)
+
+    def test_open_with_a_topic_drops_a_marker_for_that_topic_only(self):
+        desk(self.root, "respawn", "sell-bike")
+        self.assertEqual(desk(self.root, "open", "sell-bike", "--reopen").returncode, 0)
+        self.assertFalse(os.path.exists(self.marker))
+        put(self.marker, f"other\t{int(time.time())}\n")
+        desk(self.root, "open", "sell-bike", "--reopen")
+        self.assertTrue(os.path.exists(self.marker))
+
+    def test_status_reports_a_pending_respawn_without_using_it(self):
+        desk(self.root, "respawn", "sell-bike")
+        self.assertIn("respawn is pending", desk(self.root, "status").stdout)
+        self.assertTrue(os.path.exists(self.marker))
+
+    def test_the_session_start_hook_leaves_a_stamp(self):
+        self.assertFalse(os.path.exists(self.stamp))
+        hook(self.root, "startup")
+        self.assertTrue(os.path.exists(self.stamp))
+
+    def cloud_open(self, start):
+        old = {k: os.environ.get(k) for k in ("DESK_CLOUD", "DESK_MACHINE_START")}
+        os.environ["DESK_CLOUD"], os.environ["DESK_MACHINE_START"] = "1", str(start)
+        try:
+            return desk(self.root, "open", "sell-bike", "--reopen")
+        finally:
+            for k, v in old.items():
+                os.environ.pop(k, None) if v is None else os.environ.__setitem__(k, v)
+
+    def test_cloud_open_warns_without_a_stamp_and_is_quiet_with_a_fresh_one(self):
+        self.assertIn("hooks unverified", self.cloud_open(time.time() - 100).stdout)
+        put(self.stamp, "1\n")
+        self.assertNotIn("hooks unverified", self.cloud_open(time.time() - 100).stdout)
+        self.assertIn("hooks unverified", self.cloud_open(time.time() + 100).stdout, "a stamp from before the machine started")
+
+    def test_a_local_open_never_warns(self):
+        self.assertNotIn("hooks unverified", desk(self.root, "open", "sell-bike", "--reopen").stdout)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Respawn works when the hooks do not load** (#106): `desk.py open` with no topic uses a pending respawn marker (atomically, once); `open <topic>` clears a marker for that topic; the SessionStart hook leaves a stamp and, in a cloud session with none newer than the machine's start, `open` and `status` warn `hooks unverified here`; the INSTALL block and `reference/cloud.md` say what to do.
 - **`note` warns when the target topic does not exist yet** (#25): on stderr, naming the topics that do; `status` marks inboxes whose topic has no README.
 
 ### review.py fixes
