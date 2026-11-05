@@ -120,7 +120,7 @@ def settings(root):
 def is_off(cfg, key):
     """`off`, or `off` followed by a remark: `- Git: off (the folder has its own branches)`.
     Only the first word is read, and only to switch something of Desk's off, never on."""
-    return re.match(r"off\b", cfg.get(key, "").strip().lower()) is not None
+    return re.match(r"off(?:$|[\s(,;:])", cfg.get(key, "").strip().lower()) is not None
 
 
 def close_mode(cfg):

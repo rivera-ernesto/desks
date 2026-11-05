@@ -4,6 +4,8 @@
 
 ### review.py fixes
 
+- **`off-site` is not `off`** (#30): a setting reads as off only when its first word is exactly `off`, optionally followed by a remark.
+
 - **A second review keeps the first one's answers** (#81): each answer file is now `<family>-<receipt>.txt`, so a run never replaces another run's files.
 - **A relative packet path reaches the private lane** (#23): the lane gets the full path, so it works when the folder's hooks run in a git worktree.
 
