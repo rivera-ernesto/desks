@@ -264,8 +264,13 @@ def level_note(root, is_git, cfg, lv):
     return ""
 
 
+def slug_text(name):
+    """The slug of `name`; empty when it has no letter or digit."""
+    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+
+
 def slug(topic):
-    s = re.sub(r"[^a-z0-9]+", "-", topic.lower()).strip("-")
+    s = slug_text(topic)
     if not s:
         die("give the topic a short name, like sell-camera", 2)
     return s
@@ -279,7 +284,7 @@ def near_matches(base, topic):
     except OSError:
         return []
     return [n for n in names if n != topic and not n.startswith(".") and os.path.isdir(os.path.join(base, n))
-            and re.sub(r"[^a-z0-9]+", "-", n.lower()).strip("-") == topic]
+            and slug_text(n) == topic]
 
 
 def rename_hint(base, name, topic):

@@ -67,6 +67,12 @@ class Spelling(Base):
         self.assertIn("is a symlink", r.stderr)
         self.assertNotIn("mv ", r.stderr)
 
+    def test_a_folder_with_no_letter_or_digit_is_no_match_and_prints_no_stop(self):
+        os.makedirs(os.path.join(self.root, "desks", "___"))
+        r = desk(self.root, "open", "a-b")  # no a-b folder yet, so the spelling check looks at its neighbours
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertNotIn("STOP", r.stderr)
+
     def test_hidden_folders_are_not_topics(self):
         os.makedirs(os.path.join(self.root, "desks", ".a-b"))
         r = desk(self.root, "open", "a-b")
