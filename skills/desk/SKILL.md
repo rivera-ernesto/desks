@@ -21,6 +21,7 @@ file is the whole contract. Read it once when the Desk opens and follow it until
 | `desk` with no topic | The brief across all topics, and the one thing you would do today (§ 10) |
 | `desk review` | Review your last substantive answer now (§ 3) |
 | `desk close` | Close the Desk (§ 7) |
+| `desk respawn` | Save the state and continue the same topic in a fresh conversation (§ 7) |
 | `desk setup` | Walk through every setup question at once (`reference/setup.md`) |
 | `desk adopt` · `desk import` | Fit Desk to the tools, folders and habits already here (`reference/adopt.md`) |
 | `desk profile` | Build or update the user's profile (`reference/profile.md`) |
@@ -219,6 +220,10 @@ Read `reference/surfaces.md` before the first browser, screen or phone-simulator
 Every reply re-reads the whole session, so **propose the close yourself**, once, at a milestone
 (something decided, sent or finished) when the session has grown long or been compacted. Say in one
 line what a fresh Desk would start from. Close on the user's word; keep going if they say so.
+
+**Respawn**, the light close for a session that goes on: update the README's state and next step, put each lesson
+as a line under its `## Pending lessons` (the next full close routes them), save, run `desk.py respawn <topic>`, copy its
+`Respawn line:` and tell the user to type `/clear`, then any message: the topic reopens by itself.
 
 To close, read `reference/close.md`. In short:
 
