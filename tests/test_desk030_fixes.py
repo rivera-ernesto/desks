@@ -475,3 +475,25 @@ class RemoveKeepsRecords(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class IsOffReadsOnlyTheWordOff(unittest.TestCase):
+    """#30 item 3: `off-site` is not `off`; `off` with a remark still is."""
+
+    @classmethod
+    def setUpClass(cls):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("desk_mod", DESK)
+        cls.mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.mod)
+
+    def off(self, v):
+        return self.mod.is_off({"git": v}, "git")
+
+    def test_off_site_and_similar_values_are_not_off(self):
+        for v in ("off-site", "offsite", "off/site", "office", "off-"):
+            self.assertFalse(self.off(v), v)
+
+    def test_off_and_off_with_a_remark_still_are(self):
+        for v in ("off", "OFF", "  Off  ", "off (the folder has its own branches)", "off, on purpose", "off: shared"):
+            self.assertTrue(self.off(v), v)
