@@ -71,6 +71,7 @@ is already there, replace just that block.
 
 When my first message is `desk <topic>` (or `/desk`, `open desk`, or the same in my own language), or is clearly real
 work on a topic, load the `desk` skill and follow it for the whole session.
+If my first message names no topic, run `desk.py open` with no topic: it reopens a topic saved by `respawn`, or lists them.
 
 - Desk root: `desks/`
 - Version: 0.2.0

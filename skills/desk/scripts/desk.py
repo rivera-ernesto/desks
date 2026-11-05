@@ -3,6 +3,7 @@
 
     python3 desk.py status
     python3 desk.py open  <topic> [--parent <topic>] [--reopen]
+    python3 desk.py open                       (no topic: uses a pending respawn, for sessions whose hooks do not load)
     python3 desk.py close [<topic>] --merge | --pr [--title "Five Words At Most"]
     python3 desk.py close [<topic>]            (the recorded `Close:` line decides; the topic is found from the working copy)
     python3 desk.py respawn [<topic>]          (a light close: state saved, then `/clear` reopens the topic by itself)
@@ -597,6 +598,10 @@ def cmd_status():
     if session_branch(lv):
         print("environment: cloud session. Topics live on this session's branch; the close needs it pushed "
               "(reference/cloud.md)")
+    if hooks_unverified(root, is_git):
+        print("hooks:    " + HOOKS_NOTE)
+    if os.path.exists(respawn_marker(root, is_git)):
+        print("respawn:  a respawn is pending; `desk.py open` with no topic uses it (status does not)")
     omode, oarg = open_mode(cfg)
     if omode in ("follow", "run"):
         print(f"opens:    with this folder's own routine ({omode} {oarg}); topics it keeps elsewhere are not listed")
@@ -724,6 +729,8 @@ def cmd_open(topic, reopen=False, parent=None):
         attention.append("README needs the Desk sections")
     if session_branch(lv):
         attention.append("cloud session: push this branch before the close")
+    if hooks_unverified(root, is_git):
+        attention.append(HOOKS_NOTE)
     boot_line(topic, new, lv, attention)
     if session_branch(lv):
         print(f"branch: {branch or 'none'} (this cloud session's branch; no {prefix_of(cfg)}{topic} branch or working copy)")
@@ -1352,17 +1359,77 @@ def cmd_respawn(topic):
 def respawn_pending(root, is_git):
     """The topic a fresh respawn marker names, or ''. The marker is used once: it is removed when read."""
     path = respawn_marker(root, is_git)
+    mine = f"{path}.{os.getpid()}"
     try:
-        with open(path, encoding="utf-8") as f:
+        os.rename(path, mine)  # atomic: of two callers racing for the marker, only one gets it
+    except OSError:
+        return ""
+    try:
+        with open(mine, encoding="utf-8") as f:
             topic, stamp = f.read().strip().split("\t")
-        os.remove(path)
     except (OSError, ValueError):
         return ""
+    finally:
+        try:
+            os.remove(mine)
+        except OSError:
+            pass
     try:
         fresh = time.time() - int(stamp) < RESPAWN_HOURS * 3600
     except ValueError:
         return ""
     return topic if fresh and topic == slug_text(topic) else ""
+
+
+def drop_marker(root, is_git, topic):
+    """`open <topic>` has done what a pending marker for that same topic would do: remove it (#106)."""
+    path = respawn_marker(root, is_git)
+    try:
+        with open(path, encoding="utf-8") as f:
+            named = f.read().split("\t")[0].strip()
+        if named == topic:
+            os.remove(path)
+    except OSError:
+        pass
+
+
+def hook_stamp(root, is_git):
+    """Written by the SessionStart hook each time it runs: proof that this project's hooks load (#106)."""
+    return os.path.join(state_dir(root), "hook-seen") if is_git else os.path.join(root, ".desk-hook-seen")
+
+
+def hooks_unverified(root, is_git):
+    """In a cloud session, whether no SessionStart hook has run since the machine started. Local: never.
+    With two repositories attached the project folder is their parent, and this folder's hooks never load."""
+    if not cloud():
+        return False
+    try:
+        began = float(os.environ.get("DESK_MACHINE_START") or os.stat("/proc/1").st_ctime)
+    except (OSError, ValueError):
+        began = 0.0
+    try:
+        return os.path.getmtime(hook_stamp(root, is_git)) < began
+    except OSError:
+        return True
+
+
+HOOKS_NOTE = ("hooks unverified here: the respawn reopen and the Stop checks may be off; "
+              "run the printed lines by hand (reference/cloud.md)")
+
+
+def cmd_resume():
+    """`open` with no topic: the hook-free way to pick up a respawn (#106). Uses the marker once."""
+    root, is_git = main_root()
+    topic = respawn_pending(root, is_git)
+    if topic:
+        return cmd_open(topic)
+    droot = settings(root).get("desk root", "desks/").strip("/")
+    dr = os.path.join(root, droot)
+    topics = sorted(d for d in os.listdir(dr) if os.path.isfile(os.path.join(dr, d, "README.md"))) if os.path.isdir(dr) else []
+    print("no pending respawn. Topics: " + (", ".join(topics) or "none") + ". Say which one to open.")
+    if hooks_unverified(root, is_git):
+        print("note: " + HOOKS_NOTE)
+    return 0
 
 
 def hook_input():
@@ -2100,7 +2167,12 @@ def cmd_hook(kind):
     """Claude Code hooks. They never fail loudly: a hook that breaks must not break the session."""
     try:
         if kind == "session-start":
-            root, _ = main_root()
+            root, is_git0 = main_root()
+            try:
+                with open(hook_stamp(root, is_git0), "w", encoding="utf-8") as f:
+                    f.write(f"{int(time.time())}\n")
+            except OSError:
+                pass
             cfg = settings(root)
             droot = cfg.get("desk root", "desks/").strip("/")
             dr = os.path.join(root, droot)
@@ -2153,11 +2225,19 @@ def main(a):
     cmd = a[1] if len(a) > 1 else ""
     if cmd == "status":
         return cmd_status()
+    if cmd == "open" and len(a) == 2:
+        return cmd_resume()
     if cmd == "open" and len(a) >= 3:
         rest = a[2:]
         reopen, _ = flag(rest, "--reopen")
         _, parent = flag(rest, "--parent", True)
-        return cmd_open(" ".join(rest), reopen, parent or None)
+        if not rest:
+            return cmd_resume()
+        rc = cmd_open(" ".join(rest), reopen, parent or None)
+        if rc == 0:
+            r, g = main_root()
+            drop_marker(r, g, slug(" ".join(rest)))
+        return rc
     if cmd == "close":
         rest = a[2:]
         _, title = flag(rest, "--title", True)
