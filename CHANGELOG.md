@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **`note` warns when the target topic does not exist yet** (#25): on stderr, naming the topics that do; `status` marks inboxes whose topic has no README.
+
 ### review.py fixes
 
 - **A second review keeps the first one's answers** (#81): each answer file is now `<family>-<receipt>.txt`, so a run never replaces another run's files.
