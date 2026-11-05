@@ -5,6 +5,7 @@
     python3 desk.py open  <topic> [--parent <topic>] [--reopen]
     python3 desk.py close [<topic>] --merge | --pr [--title "Five Words At Most"]
     python3 desk.py close [<topic>]            (the recorded `Close:` line decides; the topic is found from the working copy)
+    python3 desk.py respawn [<topic>]          (a light close: state saved, then `/clear` reopens the topic by itself)
     python3 desk.py receive [<topic>]          (no topic: lists what is ready; else takes the topic in, all or nothing)
     python3 desk.py digest [--fetch] [--freeze <file> --next "..."] [--compare <file>]
     python3 desk.py children [<topic>]
@@ -120,7 +121,7 @@ def settings(root):
 def is_off(cfg, key):
     """`off`, or `off` followed by a remark: `- Git: off (the folder has its own branches)`.
     Only the first word is read, and only to switch something of Desk's off, never on."""
-    return re.match(r"off\b", cfg.get(key, "").strip().lower()) is not None
+    return re.match(r"off(?:$|[\s(,;:])", cfg.get(key, "").strip().lower()) is not None
 
 
 def close_mode(cfg):
@@ -634,7 +635,8 @@ def cmd_status():
             box = os.path.join(dr, d, "inbox")
             n = len(os.listdir(box)) if os.path.isdir(box) else 0
             if n:
-                waiting.append(f"{d} ({n})")
+                orphan = not os.path.isfile(os.path.join(dr, d, "README.md"))  # #25
+                waiting.append(f"{d} ({n}, no README)" if orphan else f"{d} ({n})")
         if waiting:
             print("notes waiting: " + ", ".join(waiting) + "  <- tell the user; they were left by other desks")
         if is_git:  # state in the main checkout is state no branch holds (#31)
@@ -944,6 +946,9 @@ def close_problems(cfg, work, root, topic, note_text, readme_text):
             probs.append(f"the close note has no section '{sec}' with something in it")
     probs += lesson_problems(note_text, work, root)
     probs += label_problems(note_text + "\n" + readme_text, cfg, work, root)
+    if section_body(readme_text, "Pending lessons"):
+        probs.append("the README still has lines under '## Pending lessons' (left by a respawn): move each into the "
+                     "close note's lessons with where it lands, then empty that section")
     return probs
 
 
@@ -1300,6 +1305,78 @@ def close_cloud(root, topic, folder, branch):
     return 0
 
 
+RESPAWN_HOURS = 12  # a marker older than this is from another day: a `/clear` then must not reopen anything
+
+
+def respawn_marker(root, is_git):
+    """Where `respawn` leaves the topic for the next `/clear`: never in the saved history, never shared."""
+    return os.path.join(state_dir(root), "respawn") if is_git else os.path.join(root, ".desk-respawn")
+
+
+def cmd_respawn(topic):
+    """A light close (#89): the README carries the state, the lessons wait under `## Pending lessons` for the next
+    full close, and a one-shot marker lets the SessionStart hook reopen the topic after the user's `/clear`."""
+    root, is_git = main_root()
+    cfg = settings(root)
+    topic = slug(topic) if topic else current_topic(cfg)
+    if not topic:
+        die("say which topic to respawn, or run this from the topic's working copy", 2)
+    droot = cfg.get("desk root", "desks/").strip("/")
+    lv = level(root, is_git, cfg)
+    work, branch = root, ""
+    if lv != "folder" and not session_branch(lv):
+        work, branch = topic_work(root, cfg, topic)
+        if not work:
+            work = root if os.path.isfile(os.path.join(root, droot, topic, "README.md")) else None
+    if not work or not os.path.isfile(os.path.join(work, droot, topic, "README.md")):
+        die(f"no open desk named {topic}")
+    folder = os.path.join(work, droot, topic)
+    if lv != "folder":
+        _, dirty, _ = run(["git", "status", "--porcelain", "--", folder], cwd=work)
+        if dirty:
+            die("uncommitted files in the topic. Commit the ones you wrote, by path, then run respawn again. "
+                "Nothing was changed:\n" + dirty)
+    if session_branch(lv):
+        _, branch, _ = run(["git", "branch", "--show-current"], cwd=root)
+        rc, upstream, _ = run(["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], cwd=root)
+        _, ahead, _ = run(["git", "rev-list", "--count", f"{upstream}..HEAD"], cwd=root) if rc == 0 else (1, "1", "")
+        if rc != 0 or ahead.strip() not in ("", "0"):
+            die(f"{branch or 'this branch'} has commits that are not pushed, and this cloud machine is thrown away "
+                f"after the session. Push it (git push -u origin {branch}), then run respawn again. Nothing was changed.")
+    with open(respawn_marker(root, is_git), "w", encoding="utf-8") as f:
+        f.write(f"{topic}\t{int(time.time())}\n")
+    print(f"Respawn line: Desk `{topic}` saved for a respawn · type /clear, then any message, and it reopens by itself")
+    return 0
+
+
+def respawn_pending(root, is_git):
+    """The topic a fresh respawn marker names, or ''. The marker is used once: it is removed when read."""
+    path = respawn_marker(root, is_git)
+    try:
+        with open(path, encoding="utf-8") as f:
+            topic, stamp = f.read().strip().split("\t")
+        os.remove(path)
+    except (OSError, ValueError):
+        return ""
+    try:
+        fresh = time.time() - int(stamp) < RESPAWN_HOURS * 3600
+    except ValueError:
+        return ""
+    return topic if fresh and topic == slug_text(topic) else ""
+
+
+def hook_input():
+    """The hook's JSON on stdin, or {}: never wait for input that is not coming."""
+    try:
+        import select
+        if sys.stdin is None or sys.stdin.isatty() or not select.select([sys.stdin], [], [], 0.2)[0]:
+            return {}
+        data = json.loads(sys.stdin.read() or "{}")
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
 def cmd_note(current, other, text):
     """Something about another topic came up. Leave it where that topic's next session finds it.
 
@@ -1329,6 +1406,16 @@ def cmd_note(current, other, text):
     inbox = os.path.join(work, droot, other, "inbox")
     if lv != "folder" and ignored(work, os.path.relpath(os.path.join(inbox, "x.md"), work)):
         die(f"{inbox} is ignored by git: a note left there would never reach {other}. Nothing was written (#25).")
+    homes = [work, root] + ([topic_work(root, cfg, other)[0]] if is_git else [])  # a topic open but not merged yet lives in its own copy
+    if not any(h and os.path.isfile(os.path.join(h, droot, other, "README.md")) for h in homes):  # #25: only found under this exact name
+        known = set()
+        for h in homes:
+            dr = os.path.join(h or "", droot)
+            if h and os.path.isdir(dr):
+                known.update(d for d in os.listdir(dr) if os.path.isfile(os.path.join(dr, d, "README.md")))
+        known = sorted(known)
+        print(f"warning: no topic named {other} exists yet (no {droot}/{other}/README.md). The note is written, but it is found "
+              f"only when a session opens exactly `{other}`. Topics that exist: {', '.join(known) or '(none)'}.", file=sys.stderr)
     os.makedirs(inbox, exist_ok=True)
     stamp = datetime.datetime.now().strftime("%Y-%m-%d-%H%M%S")
     path = os.path.join(inbox, f"{stamp}-from-{current}.md")
@@ -1961,7 +2048,8 @@ def cmd_remove(yes):
 
 # Lines the scripts print for the session to copy into its reply as they are. The Stop hook checks
 # that a reply carries the ones its own turn printed: Boot (open), Label (review), Closed (close).
-PRINTED = (("Boot line: ", r"Desk `[^`]+`"), ("Label line: ", r"receipt [0-9a-f]{10}"), ("Closed line: ", r"Desk `[^`]+` closed"))
+PRINTED = (("Boot line: ", r"Desk `[^`]+`"), ("Label line: ", r"receipt [0-9a-f]{10}"), ("Closed line: ", r"Desk `[^`]+` closed"),
+           ("Respawn line: ", r"Desk `[^`]+` saved for a respawn"))
 
 
 def transcript_turn(path):
@@ -2018,6 +2106,14 @@ def cmd_hook(kind):
             dr = os.path.join(root, droot)
             if not block_file(root) and not os.path.isdir(dr):
                 return 0  # not a Desks folder: say nothing
+            if hook_input().get("source") == "clear":
+                again = respawn_pending(root, run(["git", "rev-parse", "--git-dir"], cwd=root)[0] == 0)
+                if again:
+                    print(f"Respawn: the user cleared the conversation to continue Desk `{again}`. On their first message, "
+                          f"unless it is plainly about something else, load the `desk` skill and run `desk.py open {again}` "
+                          "without asking for the topic's name. If it is about something else, say in one line that "
+                          f"Desk `{again}` was not reopened.")
+                    return 0
             topics = sorted(d for d in os.listdir(dr) if os.path.isfile(os.path.join(dr, d, "README.md"))) if os.path.isdir(dr) else []
             print("This folder uses Desks. When the user starts real work on a topic, or names one, load the `desk` skill "
                   "and open it with desk.py before working.")
@@ -2071,6 +2167,8 @@ def main(a):
             print(__doc__, file=sys.stderr)
             return 2
         return cmd_close(rest[0] if rest else "", "--merge" if merge else ("--pr" if pr else ""), title)
+    if cmd == "respawn" and len(a) <= 3:
+        return cmd_respawn(a[2] if len(a) == 3 else "")
     if cmd == "receive":
         rest = a[2:]
         _, ok = flag(rest, "--escalated-ok", True)

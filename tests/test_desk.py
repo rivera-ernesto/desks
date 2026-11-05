@@ -228,8 +228,31 @@ class GitLevel(Base):
             self.assertEqual(desk(self.root, "close", t, "--merge").returncode, 0)
         inbox = os.path.join(self.root, "desks", "taxes", "inbox")
         self.assertEqual(len(os.listdir(inbox)), 2)
-        self.assertIn("notes waiting: taxes (2)", desk(self.root, "status").stdout)
+        self.assertIn("notes waiting: taxes (2, no README)", desk(self.root, "status").stdout)
         self.assertIn("inbox:  2 note(s)", desk(self.root, "open", "taxes").stdout)
+
+    def test_note_warns_when_the_target_topic_does_not_exist_yet(self):
+        # #25: a note for a topic with no folder is found only under that exact name.
+        desk(self.root, "open", "trip")
+        r = desk(self.root, "note", "trip", "taxes", "remember the form")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("no topic named taxes", r.stderr)
+        self.assertIn("trip", r.stderr)  # names the topics that do exist
+
+    def test_note_for_an_existing_topic_does_not_warn(self):
+        for t in ("a", "b"):
+            desk(self.root, "open", t)
+        r = desk(self.root, "note", "a", "b", "hello")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertNotIn("no topic named", r.stderr)
+
+    def test_status_marks_inboxes_whose_topic_has_no_readme(self):
+        desk(self.root, "open", "trip")
+        desk(self.root, "note", "trip", "taxes", "x")
+        self.fill("trip")
+        self.assertEqual(desk(self.root, "close", "trip", "--merge").returncode, 0)
+        out = desk(self.root, "status").stdout
+        self.assertIn("taxes (1, no README)", out)
 
     def test_tidy_keeps_unmerged_work(self):
         desk(self.root, "open", "trip")

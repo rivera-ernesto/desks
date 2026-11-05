@@ -2,9 +2,12 @@
 
 ## Unreleased
 
+- **`note` warns when the target topic does not exist yet** (#25): on stderr, naming the topics that do; `status` marks inboxes whose topic has no README.
+
 ### review.py fixes
 
 - **Free review key, in one sentence** (#79): INSTALL, README and the site's home pages now say that `desk setup` adds a free review key.
+- **`off-site` is not `off`** (#30): a setting reads as off only when its first word is exactly `off`, optionally followed by a remark.
 
 - **A second review keeps the first one's answers** (#81): each answer file is now `<family>-<receipt>.txt`, so a run never replaces another run's files.
 - **A relative packet path reaches the private lane** (#23): the lane gets the full path, so it works when the folder's hooks run in a git worktree.
@@ -26,6 +29,15 @@
   A folder install leaves settings alone; INSTALL.md says how to add them by hand.
 - Design reviewed by 3 families (receipt 99ff24f0e9). Adopted: enforce all three lines alike, not
   only the label; no next steps at session start.
+### Respawn
+
+- **`desk respawn`: a light close that keeps the session going** (#89). It saves the state (refused while the
+  topic has unsaved files, or, in the cloud, unpushed commits), writes a one-shot marker outside the saved history and
+  prints a `Respawn line:`. After the user's `/clear`, the SessionStart hook sees `source: clear` and tells the fresh
+  conversation to reopen the topic without asking its name; a marker older than 12 hours reopens nothing. Lessons wait
+  under `## Pending lessons` in the README, and the next full close refuses while any are left. Design reviewed by
+  5 families (receipt 6e7eda1fbf).
+
 ### Fixes from the pre-release check
 
 - **A topic folder in another spelling is found, never doubled** (#95). `open release-0.3.0` looks for
