@@ -106,6 +106,8 @@ anything during install; tell the user what is new and let them decide.
      `desk setup` asks them all at once;
    - if they already use other tools or have folders of work here: `desk adopt`.
 
+   Then say, in one plain sentence: "Until you add a key, a second Claude checks the answers; type `desk setup` to add a free review key so other companies' AIs check them too."
+
 ## Alternative: install as a plugin
 
 In a terminal session of Claude Code:

@@ -6,6 +6,7 @@
 
 ### review.py fixes
 
+- **Free review key, in one sentence** (#79): INSTALL, README and the site's home pages now say that `desk setup` adds a free review key.
 - **`off-site` is not `off`** (#30): a setting reads as off only when its first word is exactly `off`, optionally followed by a remark.
 
 - **A second review keeps the first one's answers** (#81): each answer file is now `<family>-<receipt>.txt`, so a run never replaces another run's files.
