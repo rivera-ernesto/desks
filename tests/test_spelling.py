@@ -67,6 +67,16 @@ class Spelling(Base):
         self.assertIn("is a symlink", r.stderr)
         self.assertNotIn("mv ", r.stderr)
 
+    def test_a_folder_name_with_no_letter_or_digit_is_no_match_and_no_stop(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("desk_mod", os.path.join(os.path.dirname(__file__), "..", "skills", "desk", "scripts", "desk.py"))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        base = os.path.join(self.root, "desks")
+        os.makedirs(os.path.join(base, "---"), exist_ok=True)
+        os.makedirs(os.path.join(base, "Trip-Japan"), exist_ok=True)
+        self.assertEqual(mod.near_matches(base, "trip-japan"), ["Trip-Japan"])
+
     def test_hidden_folders_are_not_topics(self):
         os.makedirs(os.path.join(self.root, "desks", ".a-b"))
         r = desk(self.root, "open", "a-b")

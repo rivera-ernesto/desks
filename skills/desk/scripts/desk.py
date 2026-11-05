@@ -279,7 +279,15 @@ def near_matches(base, topic):
     except OSError:
         return []
     return [n for n in names if n != topic and not n.startswith(".") and os.path.isdir(os.path.join(base, n))
-            and re.sub(r"[^a-z0-9]+", "-", n.lower()).strip("-") == topic]
+            and _slug_or_none(n) == topic]
+
+
+def _slug_or_none(name):
+    """`slug(name)`, or None when the name has no letter or digit (`slug` would stop the script)."""
+    try:
+        return slug(name)
+    except SystemExit:
+        return None
 
 
 def rename_hint(base, name, topic):
